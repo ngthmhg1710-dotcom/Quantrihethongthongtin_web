@@ -15,12 +15,12 @@ export function CustomerDashboard() {
   const normalizeAddressBook = () => {
     const fromBook =
       user?.shippingAddresses?.map((a, idx) => ({
-        label: a.label || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+        label: a.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: a.name || '',
         address: a.address || '',
         city: a.city || '',
         zipCode: a.zipCode || '',
-        country: a.country || 'USA',
+        country: a.country || 'Việt Nam',
         isDefault: Boolean(a.isDefault),
       })) || [];
 
@@ -33,12 +33,12 @@ export function CustomerDashboard() {
     if (user?.defaultShippingAddress?.address) {
       return [
         {
-          label: 'Home',
+          label: 'Nhà riêng',
           name: user.defaultShippingAddress.name || user.name || '',
           address: user.defaultShippingAddress.address || '',
           city: user.defaultShippingAddress.city || '',
           zipCode: user.defaultShippingAddress.zipCode || '',
-          country: user.defaultShippingAddress.country || 'USA',
+          country: user.defaultShippingAddress.country || 'Việt Nam',
           isDefault: true,
         },
       ];
@@ -104,6 +104,13 @@ export function CustomerDashboard() {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+  const getStatusLabel = (status: string) => {
+    if (status === 'pending') return 'Chờ xử lý';
+    if (status === 'processing') return 'Đang xử lý';
+    if (status === 'shipped') return 'Đã gửi hàng';
+    if (status === 'delivered') return 'Đã giao';
+    return status;
+  };
 
   const formatOrderDateTime = (order: (typeof orders)[number]) => {
     const placedAt =
@@ -159,22 +166,22 @@ export function CustomerDashboard() {
   const handleSaveProfile = async () => {
     try {
       if (profileForm.name.trim().length < 2) {
-        toast.error('Name must be at least 2 characters');
+        toast.error('Tên phải có ít nhất 2 ký tự');
         return;
       }
       const normalizedBook = addressBookDraft.map((item, idx) => ({
-        label: item.label.trim() || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+        label: item.label.trim() || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: item.name.trim(),
         address: item.address.trim(),
         city: item.city.trim(),
         zipCode: item.zipCode.trim(),
-        country: item.country.trim() || 'USA',
+        country: item.country.trim() || 'Việt Nam',
         isDefault: Boolean(item.isDefault),
       }));
 
       const invalid = normalizedBook.find((a) => !a.name || !a.address || !a.city || !a.zipCode || !a.country);
       if (normalizedBook.length > 0 && invalid) {
-        toast.error('Please fill all fields of the address you are saving');
+        toast.error('Vui lòng điền đầy đủ thông tin địa chỉ đang lưu');
         return;
       }
       if (normalizedBook.length > 0) {
@@ -188,17 +195,17 @@ export function CustomerDashboard() {
         phone: profileForm.phone.trim(),
         shippingAddresses: normalizedBook,
       });
-      toast.success('Profile updated');
+      toast.success('Đã cập nhật hồ sơ');
       setIsEditingProfile(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
     }
   };
 
   const sectionButtons = [
     { key: 'account' as const, label: 'Thông tin tài khoản', icon: User },
-    { key: 'reviews' as const, label: 'My Reviews', icon: MessageCircleHeart },
-    { key: 'wishlist' as const, label: 'My Wishlist', icon: Heart },
+    { key: 'reviews' as const, label: 'Đánh giá của tôi', icon: MessageCircleHeart },
+    { key: 'wishlist' as const, label: 'Wishlist của tôi', icon: Heart },
     { key: 'orders' as const, label: 'Lịch sử mua hàng', icon: Package },
   ];
 
@@ -270,7 +277,7 @@ export function CustomerDashboard() {
                               <td className="px-4 py-3 text-sm font-semibold">${order.total.toFixed(2)}</td>
                               <td className="px-4 py-3">
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                  {getStatusLabel(order.status)}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">{shippingCode}</td>
@@ -314,7 +321,7 @@ export function CustomerDashboard() {
                 <h2 className="font-['Poppins'] font-semibold text-xl">Thông tin tài khoản</h2>
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-4">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Name</p>
+                    <p className="text-sm text-gray-600 mb-1">Tên</p>
                     <p className="font-semibold">{user.name}</p>
                   </div>
                   <div>
@@ -322,22 +329,22 @@ export function CustomerDashboard() {
                     <p className="font-semibold">{user.email}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Phone</p>
-                    <p className="font-semibold">{user.phone || 'Not set'}</p>
+                    <p className="text-sm text-gray-600 mb-1">Số điện thoại</p>
+                    <p className="font-semibold">{user.phone || 'Chưa cập nhật'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Default Shipping</p>
+                    <p className="text-sm text-gray-600 mb-1">Địa chỉ giao hàng mặc định</p>
                     <p className="text-sm font-medium text-gray-800">
                       {user.defaultShippingAddress?.address
                         ? `${user.defaultShippingAddress.name}, ${user.defaultShippingAddress.address}, ${user.defaultShippingAddress.city}`
-                        : 'Not set'}
+                        : 'Chưa cập nhật'}
                     </p>
                   </div>
                   <button
                     onClick={openEditProfileModal}
                     className="text-sm text-[#FFC0CB] hover:underline"
                   >
-                    Edit Profile
+                    Chỉnh sửa hồ sơ
                   </button>
                 </div>
               </div>
@@ -348,12 +355,12 @@ export function CustomerDashboard() {
                 <div className="flex items-center justify-between">
                   <h2 className="font-['Poppins'] font-semibold text-xl flex items-center gap-2">
                     <Heart className="w-5 h-5 text-[#FFC0CB]" />
-                    <span>My Wishlist</span>
+                    <span>Wishlist của tôi</span>
                   </h2>
                   <span className="text-sm text-gray-500">{wishlistedProducts.length}</span>
                 </div>
                 {wishlistedProducts.length === 0 ? (
-                  <p className="text-sm text-gray-600">No wishlist items yet.</p>
+                  <p className="text-sm text-gray-600">Chưa có sản phẩm nào trong wishlist.</p>
                 ) : (
                   <div className="space-y-3">
                     {wishlistedProducts.map((product) => (
@@ -384,12 +391,12 @@ export function CustomerDashboard() {
                 <div className="flex items-center justify-between">
                   <h2 className="font-['Poppins'] font-semibold text-xl flex items-center gap-2">
                     <MessageCircleHeart className="w-5 h-5 text-[#FFC0CB]" />
-                    <span>My Reviews</span>
+                    <span>Đánh giá của tôi</span>
                   </h2>
                   <span className="text-sm text-gray-500">{reviewedProducts.length}</span>
                 </div>
                 {reviewedProducts.length === 0 ? (
-                  <p className="text-sm text-gray-600">You have not written any reviews yet.</p>
+                  <p className="text-sm text-gray-600">Bạn chưa viết đánh giá nào.</p>
                 ) : (
                   <div className="space-y-3">
                     {reviewedProducts.map((product) => {
@@ -437,7 +444,7 @@ export function CustomerDashboard() {
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-['Poppins'] font-semibold text-xl">Order Details</h3>
+                <h3 className="font-['Poppins'] font-semibold text-xl">Chi tiết đơn hàng</h3>
                 <p className="text-sm text-gray-500 mt-0.5">{selectedOrder.id}</p>
               </div>
               <button
@@ -445,21 +452,21 @@ export function CustomerDashboard() {
                 onClick={() => setSelectedOrder(null)}
                 className="px-3 py-1.5 border rounded-full text-sm hover:bg-gray-100"
               >
-                Close
+                Đóng
               </button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                <p className="text-xs text-gray-500 mb-1">Status</p>
+                <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
-                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                  {getStatusLabel(selectedOrder.status)}
                 </span>
-                <p className="text-sm text-gray-600 mt-3">Date: {formatOrderDateTime(selectedOrder)}</p>
-                <p className="text-sm text-gray-600 mt-1">Total: ${selectedOrder.total.toFixed(2)}</p>
+                <p className="text-sm text-gray-600 mt-3">Ngày đặt: {formatOrderDateTime(selectedOrder)}</p>
+                <p className="text-sm text-gray-600 mt-1">Tổng tiền: ${selectedOrder.total.toFixed(2)}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                <p className="text-xs text-gray-500 mb-1">Shipping Address</p>
+                <p className="text-xs text-gray-500 mb-1">Địa chỉ giao hàng</p>
                 <p className="font-medium">
                   {selectedOrder.shippingAddress.name}
                 </p>
@@ -474,7 +481,7 @@ export function CustomerDashboard() {
 
             <div className="rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <p className="font-semibold">Items ({selectedOrder.items.length})</p>
+                <p className="font-semibold">Sản phẩm ({selectedOrder.items.length})</p>
               </div>
               <div className="divide-y divide-gray-200">
                 {selectedOrder.items.map((item) => (
@@ -487,7 +494,7 @@ export function CustomerDashboard() {
                       />
                       <div className="min-w-0">
                         <p className="font-medium line-clamp-1">{item.product.name}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                        <p className="text-xs text-gray-500">SL: {item.quantity}</p>
                       </div>
                     </div>
                     <p className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</p>
@@ -508,19 +515,19 @@ export function CustomerDashboard() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-['Poppins'] font-semibold text-xl">Edit Profile</h3>
+              <h3 className="font-['Poppins'] font-semibold text-xl">Chỉnh sửa hồ sơ</h3>
               <button
                 type="button"
                 onClick={() => setIsEditingProfile(false)}
                 className="px-3 py-1.5 border rounded-full text-sm hover:bg-gray-100"
               >
-                Close
+                Đóng
               </button>
             </div>
             <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <label className="block text-sm font-medium mb-1">Tên</label>
                   <input
                     value={profileForm.name}
                     onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
@@ -528,7 +535,7 @@ export function CustomerDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <label className="block text-sm font-medium mb-1">Số điện thoại</label>
                   <input
                     value={profileForm.phone}
                     onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
@@ -539,7 +546,7 @@ export function CustomerDashboard() {
               </div>
               <div className="pt-2 border-t border-gray-200">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="font-medium">Address Book</p>
+                  <p className="font-medium">Sổ địa chỉ</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -547,12 +554,12 @@ export function CustomerDashboard() {
                         const next = [
                           ...prev,
                           {
-                            label: `Address ${prev.length + 1}`,
+                            label: `Địa chỉ ${prev.length + 1}`,
                             name: user.name || '',
                             address: '',
                             city: '',
                             zipCode: '',
-                            country: 'USA',
+                            country: 'Việt Nam',
                             isDefault: prev.length === 0,
                           },
                         ];
@@ -562,14 +569,14 @@ export function CustomerDashboard() {
                     }}
                     className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
                   >
-                    Add address
+                    Thêm địa chỉ
                   </button>
                 </div>
 
                 <div className="grid md:grid-cols-5 gap-4">
                   <div className="md:col-span-2 space-y-2">
                     {addressBookDraft.length === 0 && (
-                      <p className="text-sm text-gray-600">No saved addresses yet.</p>
+                      <p className="text-sm text-gray-600">Chưa có địa chỉ nào được lưu.</p>
                     )}
                     {addressBookDraft.map((addr, index) => (
                       <button
@@ -582,7 +589,7 @@ export function CustomerDashboard() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium line-clamp-1">
-                            {addr.label} {addr.isDefault ? '(Default)' : ''}
+                            {addr.label} {addr.isDefault ? '(Mặc định)' : ''}
                           </p>
                         </div>
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">
@@ -597,7 +604,7 @@ export function CustomerDashboard() {
                       <div className="space-y-3 rounded-xl border border-gray-200 p-4">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-sm font-medium mb-1">Label</label>
+                            <label className="block text-sm font-medium mb-1">Nhãn</label>
                             <input
                               value={addressBookDraft[editingAddressIndex].label}
                               onChange={(e) =>
@@ -619,13 +626,13 @@ export function CustomerDashboard() {
                                   )
                                 }
                               />
-                              Set as default
+                              Đặt làm mặc định
                             </label>
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium mb-1">Receiver Name</label>
+                          <label className="block text-sm font-medium mb-1">Tên người nhận</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].name}
                             onChange={(e) =>
@@ -637,7 +644,7 @@ export function CustomerDashboard() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-1">Address</label>
+                          <label className="block text-sm font-medium mb-1">Địa chỉ</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].address}
                             onChange={(e) =>
@@ -650,7 +657,7 @@ export function CustomerDashboard() {
                         </div>
                         <div className="grid md:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-sm font-medium mb-1">City</label>
+                            <label className="block text-sm font-medium mb-1">Thành phố</label>
                             <input
                               value={addressBookDraft[editingAddressIndex].city}
                               onChange={(e) =>
@@ -662,7 +669,7 @@ export function CustomerDashboard() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">ZIP Code</label>
+                            <label className="block text-sm font-medium mb-1">Mã bưu điện</label>
                             <input
                               value={addressBookDraft[editingAddressIndex].zipCode}
                               onChange={(e) =>
@@ -674,7 +681,7 @@ export function CustomerDashboard() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">Country</label>
+                            <label className="block text-sm font-medium mb-1">Quốc gia</label>
                             <input
                               value={addressBookDraft[editingAddressIndex].country}
                               onChange={(e) =>
@@ -702,12 +709,12 @@ export function CustomerDashboard() {
                             }}
                             className="px-4 py-2 border rounded-full text-sm text-red-600 hover:bg-red-50"
                           >
-                            Delete
+                            Xóa
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-600">Select an address to edit.</p>
+                      <p className="text-sm text-gray-600">Chọn một địa chỉ để chỉnh sửa.</p>
                     )}
                   </div>
                 </div>
@@ -718,14 +725,14 @@ export function CustomerDashboard() {
                   onClick={() => setIsEditingProfile(false)}
                   className="px-4 py-2 border rounded-full"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveProfile}
                   className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800"
                 >
-                  Save Profile
+                  Lưu hồ sơ
                 </button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { CartItem, Product, Order, products as localProducts } from '../data/products';
+import { localizeProduct } from '../utils/localization';
 
 interface User {
   id: string;
@@ -70,7 +71,7 @@ interface AppContextType {
 }
 
 const defaultAppContext: AppContextType = {
-  products: localProducts,
+  products: localProducts.map(localizeProduct),
   productsLoading: false,
   refreshProducts: async () => {},
   cart: [],
@@ -83,27 +84,27 @@ const defaultAppContext: AppContextType = {
   isInWishlist: () => false,
   user: null,
   login: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
   loginWithGoogle: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
   register: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
   logout: async () => {},
   updateProfile: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
   orders: [],
   addOrder: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
   updateOrderStatus: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
   addProductReview: async () => {
-    throw new Error('App context is not ready');
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
 };
 
@@ -138,7 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(`${API_BASE_URL}/products`);
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        throw new Error('Không thể tải danh sách sản phẩm');
       }
 
       const apiProducts = (await response.json()) as Array<Partial<Product>>;
@@ -158,9 +159,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         step: item.step,
       }));
 
-      setProducts(normalized.length > 0 ? normalized : localProducts);
+      setProducts((normalized.length > 0 ? normalized : localProducts).map(localizeProduct));
     } catch {
-      setProducts(localProducts);
+      setProducts(localProducts.map(localizeProduct));
     }
   };
 
@@ -197,7 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!refreshToken) {
       clearAuthStorage();
       setUser(null);
-      throw new Error('Session expired');
+      throw new Error('Phiên đăng nhập đã hết hạn');
     }
 
     const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -209,7 +210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!refreshResponse.ok) {
       clearAuthStorage();
       setUser(null);
-      throw new Error('Session expired');
+      throw new Error('Phiên đăng nhập đã hết hạn');
     }
 
     const refreshData = await refreshResponse.json();
@@ -264,7 +265,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         if (!response.ok) {
-          throw new Error('Session expired');
+          throw new Error('Phiên đăng nhập đã hết hạn');
         }
 
         const data = await response.json();
@@ -294,7 +295,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const endpoint = user.isAdmin ? '/admin/orders' : '/user/orders';
         const response = await authFetch(`${API_BASE_URL}${endpoint}`);
         if (!response.ok) {
-          throw new Error('Failed to load orders');
+          throw new Error('Không thể tải đơn hàng');
         }
         const data = await response.json();
         setOrders((data.orders || []) as Order[]);
@@ -309,7 +310,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addToCart = (product: Product, quantity: number = 1) => {
     const availableStock = Number(product.stock ?? 0);
     if (availableStock <= 0) {
-      throw new Error('This product is out of stock');
+      throw new Error('Sản phẩm này đã hết hàng');
     }
 
     let error: Error | null = null;
@@ -319,7 +320,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (existing) {
         const nextQuantity = existing.quantity + quantity;
         if (nextQuantity > availableStock) {
-          error = new Error(`Only ${availableStock} items left in stock`);
+          error = new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
           return prev;
         }
         return prev.map((item) =>
@@ -328,7 +329,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       if (quantity > availableStock) {
-        error = new Error(`Only ${availableStock} items left in stock`);
+        error = new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
         return prev;
       }
       return [...prev, { product, quantity }];
@@ -349,7 +350,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const product = products.find((p) => p.id === productId);
     const availableStock = Number(product?.stock ?? 0);
     if (availableStock > 0 && quantity > availableStock) {
-      throw new Error(`Only ${availableStock} items left in stock`);
+      throw new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
     }
     setCart(prev =>
       prev.map(item =>
@@ -383,7 +384,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
+      throw new Error(data.message || 'Đăng nhập thất bại');
     }
 
     const loggedInUser = data.user as User;
@@ -406,7 +407,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ? await response.json()
       : { message: await response.text() };
     if (!response.ok) {
-      throw new Error(data.message || 'Google login failed');
+      throw new Error(data.message || 'Đăng nhập Google thất bại');
     }
 
     const loggedInUser = data.user as User;
@@ -426,7 +427,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Registration failed');
+      throw new Error(data.message || 'Đăng ký thất bại');
     }
 
     const createdUser = data.user as User;
@@ -481,7 +482,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to update profile');
+      throw new Error(data.message || 'Không thể cập nhật hồ sơ');
     }
     const updatedUser = data.user as User;
     setUser(updatedUser);
@@ -518,9 +519,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       : { message: await response.text() };
     if (!response.ok) {
       if (response.status === 413) {
-        throw new Error('Order payload is too large. Please use smaller product images.');
+        throw new Error('Dữ liệu đơn hàng quá lớn. Vui lòng dùng ảnh sản phẩm nhỏ hơn.');
       }
-      throw new Error(data.detail || data.message || 'Failed to place order');
+      throw new Error(data.detail || data.message || 'Không thể đặt hàng');
     }
 
     setOrders((prev) => [data.order as Order, ...prev]);
@@ -533,7 +534,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to update order status');
+      throw new Error(data.message || 'Không thể cập nhật trạng thái đơn hàng');
     }
 
     setOrders((prev) => prev.map((order) => (order.id === orderId ? (data.order as Order) : order)));
@@ -549,10 +550,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ? await response.json()
       : { message: await response.text() };
     if (!response.ok) {
-      throw new Error(data.detail || data.message || 'Failed to submit review');
+      throw new Error(data.detail || data.message || 'Không thể gửi đánh giá');
     }
     const updatedProduct = data.product as Product;
-    setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p)));
+    setProducts((prev) =>
+      prev.map((p) => (p.id === updatedProduct.id ? localizeProduct({ ...p, ...updatedProduct }) : p))
+    );
     return updatedProduct;
   };
 

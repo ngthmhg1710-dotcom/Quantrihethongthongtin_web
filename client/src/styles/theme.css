@@ -131,11 +131,19 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* Remap existing Tailwind arbitrary class font-['Poppins'] to Vietnamese-friendly font. */
+  .font-\[\'Poppins\'\] {
+    font-family: 'Be Vietnam Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
   }
 
   /**

@@ -15,7 +15,7 @@ export function Checkout() {
     address: '',
     city: '',
     zipCode: '',
-    country: 'USA'
+    country: 'Việt Nam'
   });
   const [didPrefillShipping, setDidPrefillShipping] = useState(false);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
@@ -76,7 +76,7 @@ export function Checkout() {
     if (!user?.shippingAddresses || !user.shippingAddresses[index]) return;
     try {
       const nextBook = user.shippingAddresses.map((addr, idx) => ({
-        label: addr.label || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+        label: addr.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: addr.name,
         address: addr.address,
         city: addr.city,
@@ -85,9 +85,9 @@ export function Checkout() {
         isDefault: idx === index,
       }));
       await updateProfile({ shippingAddresses: nextBook });
-      toast.success('Default address updated');
+      toast.success('Đã cập nhật địa chỉ mặc định');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to set default address');
+      toast.error(error instanceof Error ? error.message : 'Không thể đặt địa chỉ mặc định');
     }
   };
 
@@ -114,22 +114,22 @@ export function Checkout() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm p-8 text-center">
-          <h1 className="font-['Poppins'] text-2xl font-bold mb-3">Please sign in to checkout</h1>
+          <h1 className="font-['Poppins'] text-2xl font-bold mb-3">Vui lòng đăng nhập để thanh toán</h1>
           <p className="text-gray-600 mb-6">
-            You need an account to place orders and track your order history.
+            Bạn cần tài khoản để đặt hàng và theo dõi lịch sử mua hàng.
           </p>
           <div className="flex gap-3">
             <Link
               to="/login?redirect=%2Fcheckout"
               className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
             >
-              Sign In
+              Đăng nhập
             </Link>
             <Link
               to="/login?mode=register&redirect=%2Fcheckout"
               className="flex-1 bg-[#FFC0CB] text-black py-3 rounded-full hover:bg-[#ffb3c1] transition-colors"
             >
-              Sign Up
+              Đăng ký
             </Link>
           </div>
         </div>
@@ -156,12 +156,12 @@ export function Checkout() {
     const zipCode = shippingInfo.zipCode.trim();
     const country = shippingInfo.country.trim();
 
-    if (name.length < 2) errors.name = 'Please enter full name';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Invalid email format';
-    if (address.length < 6) errors.address = 'Address is too short';
-    if (city.length < 2) errors.city = 'City is required';
-    if (!/^[A-Za-z0-9 -]{4,10}$/.test(zipCode)) errors.zipCode = 'Invalid ZIP/Postal code';
-    if (!country) errors.country = 'Country is required';
+    if (name.length < 2) errors.name = 'Vui lòng nhập họ tên đầy đủ';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email không hợp lệ';
+    if (address.length < 6) errors.address = 'Địa chỉ quá ngắn';
+    if (city.length < 2) errors.city = 'Vui lòng nhập thành phố';
+    if (!/^[A-Za-z0-9 -]{4,10}$/.test(zipCode)) errors.zipCode = 'Mã bưu điện không hợp lệ';
+    if (!country) errors.country = 'Vui lòng chọn quốc gia';
 
     return errors;
   };
@@ -173,18 +173,18 @@ export function Checkout() {
     const cardName = paymentInfo.cardName.trim();
     const expiryDate = paymentInfo.expiryDate.trim();
 
-    if (!/^\d{13,19}$/.test(cardNumber)) errors.cardNumber = 'Card number must be 13-19 digits';
-    if (!/^\d{3,4}$/.test(cvv)) errors.cvv = 'CVV must be 3 or 4 digits';
-    if (cardName.length < 2) errors.cardName = 'Cardholder name is required';
+    if (!/^\d{13,19}$/.test(cardNumber)) errors.cardNumber = 'Số thẻ phải gồm 13-19 chữ số';
+    if (!/^\d{3,4}$/.test(cvv)) errors.cvv = 'CVV phải gồm 3 hoặc 4 chữ số';
+    if (cardName.length < 2) errors.cardName = 'Vui lòng nhập tên chủ thẻ';
     if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiryDate)) {
-      errors.expiryDate = 'Expiry must be MM/YY';
+      errors.expiryDate = 'Hạn sử dụng phải theo định dạng MM/YY';
     } else {
       const [month, year] = expiryDate.split('/').map(Number);
       const now = new Date();
       const currentYear = now.getFullYear() % 100;
       const currentMonth = now.getMonth() + 1;
       if (year < currentYear || (year === currentYear && month < currentMonth)) {
-        errors.expiryDate = 'Card is expired';
+        errors.expiryDate = 'Thẻ đã hết hạn';
       }
     }
 
@@ -196,14 +196,14 @@ export function Checkout() {
   const handleShippingSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (hasInvalidCart) {
-      toast.error('Cart contains invalid items. Please update cart first.');
+      toast.error('Giỏ hàng chứa sản phẩm không hợp lệ. Vui lòng cập nhật lại giỏ hàng.');
       navigate('/cart');
       return;
     }
     const errors = validateShippingInfo();
     setShippingErrors(errors);
     if (Object.keys(errors).length > 0) {
-      toast.error('Please fix shipping information');
+      toast.error('Vui lòng kiểm tra lại thông tin giao hàng');
       return;
     }
     setStep('payment');
@@ -212,21 +212,21 @@ export function Checkout() {
   const handlePaymentSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (hasInvalidCart || cart.length === 0) {
-      toast.error('Cart is empty or invalid. Please review your cart.');
+      toast.error('Giỏ hàng trống hoặc không hợp lệ. Vui lòng kiểm tra lại giỏ hàng.');
       navigate('/cart');
       return;
     }
     const errors = validatePaymentInfo();
     setPaymentErrors(errors);
     if (Object.keys(errors).length > 0) {
-      toast.error('Please fix payment information');
+      toast.error('Vui lòng kiểm tra lại thông tin thanh toán');
       return;
     }
 
     if (saveAddressToAccount && user) {
       try {
         const currentBook = (user.shippingAddresses || []).map((address, index) => ({
-          label: address.label || (index === 0 ? 'Home' : `Address ${index + 1}`),
+          label: address.label || (index === 0 ? 'Nhà riêng' : `Địa chỉ ${index + 1}`),
           name: address.name,
           address: address.address,
           city: address.city,
@@ -252,7 +252,7 @@ export function Checkout() {
         const nextBook = [...currentBook];
         if (existingIndex === -1) {
           nextBook.push({
-            label: nextBook.length === 0 ? 'Home' : `Address ${nextBook.length + 1}`,
+            label: nextBook.length === 0 ? 'Nhà riêng' : `Địa chỉ ${nextBook.length + 1}`,
             ...normalizedCurrent,
             isDefault: nextBook.length === 0 || setAsDefaultAddress,
           });
@@ -270,7 +270,7 @@ export function Checkout() {
           shippingAddresses: nextBook,
         });
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Could not save address to account');
+        toast.error(error instanceof Error ? error.message : 'Không thể lưu địa chỉ vào tài khoản');
       }
     }
 
@@ -288,9 +288,9 @@ export function Checkout() {
       await addOrder(order);
       clearCart();
       setStep('success');
-      toast.success('Order placed successfully!');
+      toast.success('Đặt hàng thành công!');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to place order';
+      const message = error instanceof Error ? error.message : 'Không thể đặt hàng';
       toast.error(message);
     }
   };
@@ -302,27 +302,27 @@ export function Checkout() {
           <div className="w-24 h-24 bg-[#FFE4E9] rounded-full flex items-center justify-center mx-auto mb-6">
             <Check className="w-12 h-12 text-[#FFC0CB]" />
           </div>
-          <h1 className="font-['Poppins'] text-3xl font-bold mb-4">Order Confirmed!</h1>
+          <h1 className="font-['Poppins'] text-3xl font-bold mb-4">Đơn hàng đã được xác nhận!</h1>
           <p className="text-gray-600 mb-8">
-            Thank you for your purchase. We've sent a confirmation email to {shippingInfo.email}
+            Cảm ơn bạn đã mua hàng. Chúng tôi đã gửi email xác nhận tới {shippingInfo.email}
           </p>
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-            <p className="text-sm text-gray-600 mb-2">Order Total</p>
+            <p className="text-sm text-gray-600 mb-2">Tổng đơn hàng</p>
             <p className="text-3xl font-bold mb-4">${total.toFixed(2)}</p>
-            <p className="text-sm text-gray-600">Expected delivery: 5-7 business days</p>
+            <p className="text-sm text-gray-600">Dự kiến giao hàng: 5-7 ngày làm việc</p>
           </div>
           <div className="flex gap-4">
             <button
               onClick={() => navigate('/dashboard?tab=orders')}
               className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
             >
-              View Orders
+              Xem đơn hàng
             </button>
             <button
               onClick={() => navigate('/products')}
               className="flex-1 bg-[#FFC0CB] text-black py-3 rounded-full hover:bg-[#ffb3c1] transition-colors"
             >
-              Continue Shopping
+              Tiếp tục mua sắm
             </button>
           </div>
         </div>
@@ -333,7 +333,7 @@ export function Checkout() {
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="font-['Poppins'] text-4xl font-bold mb-8">Checkout</h1>
+        <h1 className="font-['Poppins'] text-4xl font-bold mb-8">Thanh toán</h1>
 
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center">
@@ -353,7 +353,7 @@ export function Checkout() {
               <div className="bg-white rounded-2xl shadow-sm p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <MapPin className="w-6 h-6" />
-                  <h2 className="font-['Poppins'] font-semibold text-2xl">Shipping Information</h2>
+                  <h2 className="font-['Poppins'] font-semibold text-2xl">Thông tin giao hàng</h2>
                 </div>
 
                 <form onSubmit={handleShippingSubmit} className="space-y-4">
@@ -361,11 +361,11 @@ export function Checkout() {
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">Shipping address</p>
+                          <p className="text-sm font-medium">Địa chỉ giao hàng</p>
                           <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
                             {selectedSavedAddress
-                              ? `${selectedSavedAddress.label}${selectedSavedAddress.isDefault ? ' (Default)' : ''} • ${selectedSavedAddress.name} • ${selectedSavedAddress.address}, ${selectedSavedAddress.city}`
-                              : 'No address selected'}
+                              ? `${selectedSavedAddress.label}${selectedSavedAddress.isDefault ? ' (Mặc định)' : ''} • ${selectedSavedAddress.name} • ${selectedSavedAddress.address}, ${selectedSavedAddress.city}`
+                              : 'Chưa chọn địa chỉ'}
                           </p>
                         </div>
                         <button
@@ -381,7 +381,7 @@ export function Checkout() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Full Name</label>
+                      <label className="block text-sm font-medium mb-2">Họ và tên</label>
                       <input
                         type="text"
                         required
@@ -413,7 +413,7 @@ export function Checkout() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Address</label>
+                      <label className="block text-sm font-medium mb-2">Địa chỉ</label>
                     <input
                       type="text"
                       required
@@ -430,7 +430,7 @@ export function Checkout() {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">City</label>
+                      <label className="block text-sm font-medium mb-2">Thành phố</label>
                       <input
                         type="text"
                         required
@@ -445,7 +445,7 @@ export function Checkout() {
                       {shippingErrors.city && <p className="mt-1 text-xs text-red-600">{shippingErrors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">ZIP Code</label>
+                      <label className="block text-sm font-medium mb-2">Mã bưu điện</label>
                       <input
                         type="text"
                         required
@@ -460,7 +460,7 @@ export function Checkout() {
                       {shippingErrors.zipCode && <p className="mt-1 text-xs text-red-600">{shippingErrors.zipCode}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Country</label>
+                      <label className="block text-sm font-medium mb-2">Quốc gia</label>
                       <select
                         value={shippingInfo.country}
                         onChange={(e) => {
@@ -469,9 +469,9 @@ export function Checkout() {
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
                       >
-                        <option>USA</option>
+                        <option>Việt Nam</option>
+                        <option>Hoa Kỳ</option>
                         <option>Canada</option>
-                        <option>UK</option>
                       </select>
                       {shippingErrors.country && <p className="mt-1 text-xs text-red-600">{shippingErrors.country}</p>}
                     </div>
@@ -507,7 +507,7 @@ export function Checkout() {
                     type="submit"
                     className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
                   >
-                    Continue to Payment
+                    Tiếp tục tới thanh toán
                   </button>
                 </form>
               </div>
@@ -517,7 +517,7 @@ export function Checkout() {
               <div className="bg-white rounded-2xl shadow-sm p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <CreditCard className="w-6 h-6" />
-                  <h2 className="font-['Poppins'] font-semibold text-2xl">Payment Information</h2>
+                  <h2 className="font-['Poppins'] font-semibold text-2xl">Thông tin thanh toán</h2>
                 </div>
 
                 <form onSubmit={handlePaymentSubmit} className="space-y-4">
@@ -600,13 +600,13 @@ export function Checkout() {
                       onClick={() => setStep('shipping')}
                       className="flex-1 bg-gray-200 text-black py-3 rounded-full hover:bg-gray-300 transition-colors"
                     >
-                      Back
+                      Quay lại
                     </button>
                     <button
                       type="submit"
                       className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
                     >
-                      Place Order
+                      Đặt hàng
                     </button>
                   </div>
                 </form>
@@ -616,7 +616,7 @@ export function Checkout() {
 
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
-              <h3 className="font-['Poppins'] font-semibold text-xl mb-4">Order Summary</h3>
+              <h3 className="font-['Poppins'] font-semibold text-xl mb-4">Tóm tắt đơn hàng</h3>
 
               <div className="space-y-3 mb-6">
                 {cart.map(item => (
@@ -628,7 +628,7 @@ export function Checkout() {
                     />
                     <div className="flex-1">
                       <p className="font-semibold text-sm">{item.product.name}</p>
-                      <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                      <p className="text-xs text-gray-600">SL: {item.quantity}</p>
                     </div>
                     <p className="font-semibold">${(item.product.price * item.quantity).toFixed(2)}</p>
                   </div>
@@ -637,18 +637,18 @@ export function Checkout() {
 
               <div className="border-t border-gray-200 pt-4 space-y-2 mb-4">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
+                  <span>Tạm tính</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                  <span>Phí vận chuyển</span>
+                  <span>{shipping === 0 ? 'MIỄN PHÍ' : `$${shipping.toFixed(2)}`}</span>
                 </div>
               </div>
 
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
+                  <span>Tổng cộng</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
               </div>
@@ -669,14 +669,14 @@ export function Checkout() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-['Poppins'] font-semibold text-xl">Chọn địa chỉ giao hàng</h3>
-                <p className="text-sm text-gray-500">{user.shippingAddresses.length} saved</p>
+                <p className="text-sm text-gray-500">{user.shippingAddresses.length} địa chỉ đã lưu</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddressPickerOpen(false)}
                 className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
               >
-                Close
+                Đóng
               </button>
             </div>
 
@@ -705,7 +705,7 @@ export function Checkout() {
                     address: '',
                     city: '',
                     zipCode: '',
-                    country: 'USA',
+                    country: 'Việt Nam',
                   });
                   setSetAsDefaultAddress(true);
                   setMakeSelectedDefaultInPicker(false);
@@ -743,7 +743,7 @@ export function Checkout() {
                   />
                   <div className="min-w-0">
                     <p className="font-medium truncate">
-                      {address.label} {address.isDefault ? '(Default)' : ''}
+                      {address.label} {address.isDefault ? '(Mặc định)' : ''}
                     </p>
                     <p className="text-xs text-gray-600 line-clamp-2">
                       {address.name} - {address.address}, {address.city}

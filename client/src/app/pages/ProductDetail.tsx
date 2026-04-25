@@ -43,12 +43,12 @@ export function ProductDetail() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Product not found</h2>
+          <h2 className="text-2xl font-bold mb-4">Không tìm thấy sản phẩm</h2>
           <button
             onClick={() => navigate('/products')}
             className="bg-black text-white px-6 py-2 rounded-full"
           >
-            Back to Shop
+            Quay lại cửa hàng
           </button>
         </div>
       </div>
@@ -58,40 +58,40 @@ export function ProductDetail() {
   const handleAddToCart = () => {
     try {
       if (availableStock <= 0) {
-        toast.error('Out of stock');
+        toast.error('Sản phẩm đã hết hàng');
         return;
       }
       const safeQuantity = Math.max(1, Math.min(quantity, availableStock));
       if (safeQuantity !== quantity) setQuantity(safeQuantity);
       addToCart(product, safeQuantity);
-      toast.success(`${product.name} added to cart!`, {
-        description: `Quantity: ${safeQuantity}`
+      toast.success(`${product.name} đã được thêm vào giỏ hàng!`, {
+        description: `Số lượng: ${safeQuantity}`
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to add to cart';
+      const message = error instanceof Error ? error.message : 'Không thể thêm vào giỏ hàng';
       toast.error(message);
     }
   };
 
   const handleSubmitReview = async () => {
     if (!user) {
-      toast.error('Please sign in to write a review');
+      toast.error('Vui lòng đăng nhập để viết đánh giá');
       navigate('/login?redirect=' + encodeURIComponent(`/products/${product.id}`));
       return;
     }
     const comment = reviewForm.comment.trim();
     if (comment.length < 5) {
-      toast.error('Comment must be at least 5 characters');
+      toast.error('Nhận xét phải có ít nhất 5 ký tự');
       return;
     }
     try {
       setSubmittingReview(true);
       await addProductReview(product.id, { rating: reviewForm.rating, comment });
-      toast.success('Review submitted');
+      toast.success('Đánh giá đã được gửi');
       setReviewForm({ rating: 5, comment: '' });
       setSelectedTab('reviews');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to submit review');
+      toast.error(error instanceof Error ? error.message : 'Không thể gửi đánh giá');
     } finally {
       setSubmittingReview(false);
     }
@@ -100,7 +100,7 @@ export function ProductDetail() {
   const handleToggleWishlist = () => {
     toggleWishlist(product.id);
     const nextWishlisted = !isInWishlist(product.id);
-    toast.success(nextWishlisted ? 'Added to wishlist' : 'Removed from wishlist');
+    toast.success(nextWishlisted ? 'Đã thêm vào wishlist' : 'Đã xóa khỏi wishlist');
   };
 
   return (
@@ -135,17 +135,17 @@ export function ProductDetail() {
                 </div>
                 <span className="text-gray-600">({product.rating})</span>
                 <span className="text-gray-600">•</span>
-                <span className="text-gray-600">{product.reviews.length} reviews</span>
+                <span className="text-gray-600">{product.reviews.length} đánh giá</span>
               </div>
 
               <p className="text-3xl font-bold mb-6">${product.price.toFixed(2)}</p>
 
               <div className="mb-6">
-                <h3 className="font-semibold mb-2">Suitable for:</h3>
+                <h3 className="font-semibold mb-2">Phù hợp với:</h3>
                 <div className="flex gap-2 flex-wrap">
                   {product.skinTypes.map(type => (
                     <span key={type} className="px-3 py-1 bg-[#FFE4E9] rounded-full text-sm capitalize">
-                      {type} skin
+                      Da {type}
                     </span>
                   ))}
                 </div>
@@ -171,7 +171,7 @@ export function ProductDetail() {
                   </button>
                 </div>
                 <span className="text-gray-600">
-                  {availableStock > 0 ? `${availableStock} in stock` : 'Out of stock'}
+                  {availableStock > 0 ? `Còn ${availableStock} sản phẩm` : 'Hết hàng'}
                 </span>
               </div>
 
@@ -182,13 +182,13 @@ export function ProductDetail() {
                   className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  {availableStock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                  {availableStock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
                 </button>
                 <button
                   type="button"
                   onClick={handleToggleWishlist}
                   className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
-                  aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                  aria-label={isInWishlist(product.id) ? 'Xóa khỏi wishlist' : 'Thêm vào wishlist'}
                 >
                   <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-[#FFC0CB] text-[#FFC0CB]' : ''}`} />
                 </button>
@@ -200,15 +200,15 @@ export function ProductDetail() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Check className="w-5 h-5 text-[#FFC0CB]" />
-                  <span>Free shipping on orders over $50</span>
+                  <span>Miễn phí vận chuyển cho đơn trên $50</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Check className="w-5 h-5 text-[#FFC0CB]" />
-                  <span>30-day money-back guarantee</span>
+                  <span>Cam kết hoàn tiền trong 30 ngày</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Check className="w-5 h-5 text-[#FFC0CB]" />
-                  <span>100% natural ingredients</span>
+                  <span>100% thành phần tự nhiên</span>
                 </div>
               </div>
             </div>
@@ -225,7 +225,7 @@ export function ProductDetail() {
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              Description
+              Mô tả
             </button>
             <button
               onClick={() => setSelectedTab('ingredients')}
@@ -235,7 +235,7 @@ export function ProductDetail() {
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              Ingredients
+              Thành phần
             </button>
             <button
               onClick={() => setSelectedTab('reviews')}
@@ -245,7 +245,7 @@ export function ProductDetail() {
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              Reviews ({product.reviews.length})
+              Đánh giá ({product.reviews.length})
             </button>
           </div>
 
@@ -257,7 +257,7 @@ export function ProductDetail() {
 
           {selectedTab === 'ingredients' && (
             <div>
-              <h3 className="font-semibold mb-4">Key Ingredients:</h3>
+              <h3 className="font-semibold mb-4">Thành phần chính:</h3>
               <div className="grid grid-cols-2 gap-4">
                 {product.ingredients.map(ingredient => (
                   <div key={ingredient} className="flex items-center gap-2">
@@ -272,10 +272,10 @@ export function ProductDetail() {
           {selectedTab === 'reviews' && (
             <div className="space-y-6">
               <div className="border border-gray-200 rounded-xl p-4">
-                <h3 className="font-semibold mb-3">Write a review</h3>
+                <h3 className="font-semibold mb-3">Viết đánh giá</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Rating</label>
+                    <label className="block text-sm font-medium mb-2">Chấm sao</label>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((value) => (
@@ -298,13 +298,13 @@ export function ProductDetail() {
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Comment</label>
+                    <label className="block text-sm font-medium mb-2">Nhận xét</label>
                     <textarea
                       value={reviewForm.comment}
                       onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
                       rows={3}
                       className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="Share your experience..."
+                      placeholder="Chia sẻ trải nghiệm của bạn..."
                     />
                   </div>
                 </div>
@@ -315,7 +315,7 @@ export function ProductDetail() {
                     disabled={submittingReview}
                     className="bg-black text-white px-5 py-2 rounded-full hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    {submittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
                   </button>
                 </div>
               </div>
@@ -353,7 +353,7 @@ export function ProductDetail() {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-600">No reviews yet. Be the first to review this product!</p>
+                <p className="text-gray-600">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá sản phẩm này!</p>
               )}
             </div>
           )}

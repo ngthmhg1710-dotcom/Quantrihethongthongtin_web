@@ -19,16 +19,16 @@ export function Header() {
 
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-sm hover:text-[#FFC0CB] transition-colors">
-              Home
+              Trang chủ
             </Link>
             <Link to="/products" className="text-sm hover:text-[#FFC0CB] transition-colors">
-              Shop
+              Cửa hàng
             </Link>
             <Link to="/about" className="text-sm hover:text-[#FFC0CB] transition-colors">
-              About
+              Giới thiệu
             </Link>
             <Link to="/contact" className="text-sm hover:text-[#FFC0CB] transition-colors">
-              Contact
+              Liên hệ
             </Link>
           </nav>
 
@@ -47,13 +47,13 @@ export function Header() {
                     to={user.isAdmin ? "/admin" : "/dashboard"}
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                   >
-                    {user.isAdmin ? "Admin Dashboard" : "My Account"}
+                    {user.isAdmin ? "Trang quản trị" : "Tài khoản của tôi"}
                   </Link>
                   <button
                     onClick={logout}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                   >
-                    Logout
+                    Đăng xuất
                   </button>
                 </div>
               </div>
@@ -85,16 +85,16 @@ export function Header() {
           <nav className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
               <Link to="/" className="text-sm hover:text-[#FFC0CB] transition-colors">
-                Home
+                Trang chủ
               </Link>
               <Link to="/products" className="text-sm hover:text-[#FFC0CB] transition-colors">
-                Shop
+                Cửa hàng
               </Link>
               <Link to="/about" className="text-sm hover:text-[#FFC0CB] transition-colors">
-                About
+                Giới thiệu
               </Link>
               <Link to="/contact" className="text-sm hover:text-[#FFC0CB] transition-colors">
-                Contact
+                Liên hệ
               </Link>
             </div>
           </nav>

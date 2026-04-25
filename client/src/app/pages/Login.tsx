@@ -25,7 +25,7 @@ export function Login() {
     e.preventDefault();
 
     if (isRegister && formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error('Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -40,14 +40,14 @@ export function Login() {
           })
         : await login(formData.email, formData.password);
 
-      toast.success(isRegister ? 'Account created successfully!' : 'Welcome back!');
+      toast.success(isRegister ? 'Tạo tài khoản thành công!' : 'Chào mừng bạn quay lại!');
       if (authUser.isAdmin) {
         navigate('/admin');
       } else {
         navigate(redirectPath);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Authentication failed';
+      const message = error instanceof Error ? error.message : 'Đăng nhập/đăng ký thất bại';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -75,17 +75,17 @@ export function Login() {
         client_id: googleClientId,
         callback: async (response: { credential?: string }) => {
           if (!response.credential) {
-            toast.error('Google sign-in did not return a credential.');
+            toast.error('Google không trả về thông tin đăng nhập hợp lệ.');
             return;
           }
 
           try {
             setSubmitting(true);
             const authUser = await loginWithGoogle(response.credential);
-            toast.success('Signed in with Google');
+            toast.success('Đăng nhập Google thành công');
             navigate(authUser.isAdmin ? '/admin' : redirectPath);
           } catch (error) {
-            const message = error instanceof Error ? error.message : 'Google login failed';
+            const message = error instanceof Error ? error.message : 'Đăng nhập Google thất bại';
             toast.error(message);
           } finally {
             setSubmitting(false);
@@ -123,13 +123,13 @@ export function Login() {
 
   const handleGoogleSignIn = () => {
     if (!googleClientId) {
-      toast.error('Google login is not configured. Missing VITE_GOOGLE_CLIENT_ID.');
+      toast.error('Google login chưa được cấu hình. Thiếu VITE_GOOGLE_CLIENT_ID.');
       return;
     }
 
     const google = (window as Window & { google?: any }).google;
     if (!google?.accounts?.id) {
-      toast.error('Google sign-in library is not ready yet. Please try again.');
+      toast.error('Thư viện Google chưa sẵn sàng. Vui lòng thử lại.');
       return;
     }
 
@@ -143,16 +143,16 @@ export function Login() {
           <div className="order-2 md:order-1">
             <div className="bg-gradient-to-br from-[#FFE4E9] to-[#FFC0CB] rounded-2xl p-12 h-full flex flex-col justify-center">
               <h2 className="font-['Poppins'] text-4xl font-bold mb-4">
-                {isRegister ? 'Join Glow' : 'Welcome Back'}
+                {isRegister ? 'Tham gia Glow' : 'Chào mừng trở lại'}
               </h2>
               <p className="text-lg mb-8">
                 {isRegister
-                  ? 'Create an account to unlock exclusive benefits and track your orders.'
-                  : 'Sign in to access your account and continue your beauty journey.'}
+                  ? 'Tạo tài khoản để nhận ưu đãi độc quyền và theo dõi đơn hàng.'
+                  : 'Đăng nhập để truy cập tài khoản và tiếp tục hành trình làm đẹp của bạn.'}
               </p>
               <img
                 src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=600&fit=crop"
-                alt="Beauty products"
+                alt="Sản phẩm làm đẹp"
                 className="rounded-xl shadow-2xl"
               />
             </div>
@@ -161,13 +161,13 @@ export function Login() {
           <div className="order-1 md:order-2">
             <div className="bg-white rounded-2xl shadow-sm p-8">
               <h1 className="font-['Poppins'] text-3xl font-bold mb-6">
-                {isRegister ? 'Create Account' : 'Sign In'}
+                {isRegister ? 'Tạo tài khoản' : 'Đăng nhập'}
               </h1>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {isRegister && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">Full Name</label>
+                    <label className="block text-sm font-medium mb-2">Họ và tên</label>
                     <input
                       type="text"
                       required
@@ -180,7 +180,7 @@ export function Login() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email</label>
+                    <label className="block text-sm font-medium mb-2">Email</label>
                   <input
                     type="email"
                     required
@@ -192,7 +192,7 @@ export function Login() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Password</label>
+                  <label className="block text-sm font-medium mb-2">Mật khẩu</label>
                   <input
                     type="password"
                     required
@@ -205,7 +205,7 @@ export function Login() {
 
                 {isRegister && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">Confirm Password</label>
+                    <label className="block text-sm font-medium mb-2">Xác nhận mật khẩu</label>
                     <input
                       type="password"
                       required
@@ -222,7 +222,7 @@ export function Login() {
                   disabled={submitting}
                   className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
                 >
-                  {submitting ? 'Please wait...' : isRegister ? 'Create Account' : 'Sign In'}
+                  {submitting ? 'Vui lòng chờ...' : isRegister ? 'Tạo tài khoản' : 'Đăng nhập'}
                 </button>
 
                 {!isRegister && (
@@ -238,11 +238,11 @@ export function Login() {
                       disabled={submitting || !googleReady}
                       className="w-full border border-gray-300 py-3 rounded-full hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Continue with Google
+                      Tiếp tục với Google
                     </button>
                     {!googleClientId && (
                       <p className="text-xs text-amber-600">
-                        Google login is disabled until `VITE_GOOGLE_CLIENT_ID` is configured.
+                        Đăng nhập Google sẽ bị tắt cho đến khi cấu hình `VITE_GOOGLE_CLIENT_ID`.
                       </p>
                     )}
                   </>
@@ -254,14 +254,14 @@ export function Login() {
                   onClick={() => setIsRegister(!isRegister)}
                   className="text-sm text-gray-600 hover:text-black"
                 >
-                  {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                  {isRegister ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Đăng ký ngay'}
                 </button>
               </div>
 
               {!isRegister && (
                 <div className="mt-4 text-center">
                   <button className="text-sm text-[#FFC0CB] hover:underline">
-                    Forgot password?
+                    Quên mật khẩu?
                   </button>
                 </div>
               )}

@@ -29,15 +29,15 @@ export function ProductListing() {
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="font-['Poppins'] text-4xl font-bold mb-4">Shop All Products</h1>
-          <p className="text-gray-600">Discover our complete collection of premium skincare</p>
+          <h1 className="font-['Poppins'] text-4xl font-bold mb-4">Tất cả sản phẩm</h1>
+          <p className="text-gray-600">Khám phá trọn bộ sản phẩm chăm sóc da cao cấp</p>
         </div>
 
         <div className="mb-8">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search products..."
+              placeholder="Tìm kiếm sản phẩm..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-3 pl-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
@@ -53,11 +53,11 @@ export function ProductListing() {
             <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-24">
               <div className="flex items-center gap-2 mb-6">
                 <SlidersHorizontal className="w-5 h-5" />
-                <h3 className="font-['Poppins'] font-semibold">Filters</h3>
+                <h3 className="font-['Poppins'] font-semibold">Bộ lọc</h3>
               </div>
 
               <div className="mb-6">
-                <h4 className="font-semibold mb-3">Category</h4>
+                <h4 className="font-semibold mb-3">Danh mục</h4>
                 <div className="space-y-2">
                   {categories.map(category => (
                     <label key={category} className="flex items-center gap-2 cursor-pointer">
@@ -75,7 +75,7 @@ export function ProductListing() {
               </div>
 
               <div className="mb-6">
-                <h4 className="font-semibold mb-3">Skin Type</h4>
+                <h4 className="font-semibold mb-3">Loại da</h4>
                 <div className="space-y-2">
                   {skinTypes.map(skinType => (
                     <label key={skinType} className="flex items-center gap-2 cursor-pointer">
@@ -93,7 +93,7 @@ export function ProductListing() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-3">Price Range</h4>
+                <h4 className="font-semibold mb-3">Khoảng giá</h4>
                 <div className="space-y-2">
                   <input
                     type="range"
@@ -119,14 +119,14 @@ export function ProductListing() {
                 }}
                 className="w-full mt-6 py-2 text-sm text-[#FFC0CB] hover:underline"
               >
-                Clear All Filters
+                Xóa tất cả bộ lọc
               </button>
             </div>
           </aside>
 
           <main className="lg:col-span-3">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-gray-600">{filteredProducts.length} products found</p>
+              <p className="text-gray-600">Tìm thấy {filteredProducts.length} sản phẩm</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -164,7 +164,7 @@ export function ProductListing() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
-                      <span className="text-xs text-[#FFC0CB] group-hover:underline">View</span>
+                      <span className="text-xs text-[#FFC0CB] group-hover:underline">Xem</span>
                     </div>
                   </div>
                 </Link>
@@ -173,7 +173,7 @@ export function ProductListing() {
 
             {filteredProducts.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-600">No products found matching your criteria.</p>
+                <p className="text-gray-600">Không tìm thấy sản phẩm phù hợp với bộ lọc của bạn.</p>
                 <button
                   onClick={() => {
                     setSelectedCategory('all');
@@ -183,7 +183,7 @@ export function ProductListing() {
                   }}
                   className="mt-4 text-[#FFC0CB] hover:underline"
                 >
-                  Clear filters
+                  Xóa bộ lọc
                 </button>
               </div>
             )}

@@ -12,7 +12,7 @@ export function Contact() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Message sent successfully! We\'ll get back to you soon.');
+    toast.success('Gửi tin nhắn thành công! Chúng tôi sẽ phản hồi sớm nhất có thể.');
     setFormData({ name: '', email: '', subject: '', message: '' });
   };
 
@@ -20,9 +20,9 @@ export function Contact() {
     <div className="min-h-screen">
       <section className="bg-gradient-to-br from-[#FFE4E9] to-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="font-['Poppins'] text-5xl font-bold mb-6">Get in Touch</h1>
+          <h1 className="font-['Poppins'] text-5xl font-bold mb-6">Liên hệ với chúng tôi</h1>
           <p className="text-xl text-gray-600">
-            Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            Bạn có thắc mắc? Hãy gửi tin nhắn cho chúng tôi, đội ngũ sẽ phản hồi sớm nhất.
           </p>
         </div>
       </section>
@@ -34,7 +34,7 @@ export function Contact() {
               <div className="w-16 h-16 bg-[#FFE4E9] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-8 h-8 text-[#FFC0CB]" />
               </div>
-              <h3 className="font-['Poppins'] font-semibold text-xl mb-2">Email Us</h3>
+              <h3 className="font-['Poppins'] font-semibold text-xl mb-2">Email</h3>
               <p className="text-gray-600">hello@glow.com</p>
               <p className="text-gray-600">support@glow.com</p>
             </div>
@@ -43,16 +43,16 @@ export function Contact() {
               <div className="w-16 h-16 bg-[#FFE4E9] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Phone className="w-8 h-8 text-[#FFC0CB]" />
               </div>
-              <h3 className="font-['Poppins'] font-semibold text-xl mb-2">Call Us</h3>
+              <h3 className="font-['Poppins'] font-semibold text-xl mb-2">Điện thoại</h3>
               <p className="text-gray-600">+1 (555) 123-4567</p>
-              <p className="text-sm text-gray-500">Mon-Fri, 9am-6pm EST</p>
+              <p className="text-sm text-gray-500">Thứ 2 - Thứ 6, 9:00 - 18:00</p>
             </div>
 
             <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
               <div className="w-16 h-16 bg-[#FFE4E9] rounded-full flex items-center justify-center mx-auto mb-4">
                 <MapPin className="w-8 h-8 text-[#FFC0CB]" />
               </div>
-              <h3 className="font-['Poppins'] font-semibold text-xl mb-2">Visit Us</h3>
+              <h3 className="font-['Poppins'] font-semibold text-xl mb-2">Địa chỉ</h3>
               <p className="text-gray-600">123 Beauty Avenue</p>
               <p className="text-gray-600">New York, NY 10001</p>
             </div>
@@ -62,17 +62,17 @@ export function Contact() {
             <div>
               <img
                 src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=800&h=600&fit=crop"
-                alt="Contact Us"
+                alt="Liên hệ"
                 className="rounded-2xl shadow-2xl w-full h-full object-cover"
               />
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm p-8">
-              <h2 className="font-['Poppins'] text-3xl font-bold mb-6">Send us a Message</h2>
+              <h2 className="font-['Poppins'] text-3xl font-bold mb-6">Gửi tin nhắn cho chúng tôi</h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Your Name</label>
+                  <label className="block text-sm font-medium mb-2">Họ và tên</label>
                   <input
                     type="text"
                     required
@@ -84,7 +84,7 @@ export function Contact() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email Address</label>
+                  <label className="block text-sm font-medium mb-2">Địa chỉ email</label>
                   <input
                     type="email"
                     required
@@ -96,26 +96,26 @@ export function Contact() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Subject</label>
+                  <label className="block text-sm font-medium mb-2">Chủ đề</label>
                   <input
                     type="text"
                     required
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                    placeholder="How can we help?"
+                    placeholder="Chúng tôi có thể hỗ trợ gì cho bạn?"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Message</label>
+                  <label className="block text-sm font-medium mb-2">Nội dung</label>
                   <textarea
                     required
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     rows={6}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                    placeholder="Tell us more about your inquiry..."
+                    placeholder="Hãy chia sẻ chi tiết nhu cầu của bạn..."
                   />
                 </div>
 
@@ -124,7 +124,7 @@ export function Contact() {
                   className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                 >
                   <Send className="w-5 h-5" />
-                  Send Message
+                  Gửi tin nhắn
                 </button>
               </form>
             </div>
@@ -134,20 +134,20 @@ export function Contact() {
 
       <section className="py-16 px-4 bg-gradient-to-br from-[#FFE4E9] to-[#FFC0CB]">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="font-['Poppins'] text-4xl font-bold mb-6">Frequently Asked Questions</h2>
+          <h2 className="font-['Poppins'] text-4xl font-bold mb-6">Câu hỏi thường gặp</h2>
           <div className="space-y-4 text-left">
             {[
               {
-                q: 'What are your shipping options?',
-                a: 'We offer free shipping on orders over $50. Standard shipping takes 5-7 business days, and express shipping is available for 2-3 day delivery.'
+                q: 'Các hình thức giao hàng là gì?',
+                a: 'Chúng tôi miễn phí vận chuyển cho đơn hàng trên $50. Giao hàng tiêu chuẩn mất 5-7 ngày làm việc, và có giao nhanh trong 2-3 ngày.'
               },
               {
-                q: 'What is your return policy?',
-                a: 'We offer a 30-day money-back guarantee on all products. If you\'re not satisfied, you can return any unopened products for a full refund.'
+                q: 'Chính sách đổi trả như thế nào?',
+                a: 'Chúng tôi áp dụng cam kết hoàn tiền trong 30 ngày cho tất cả sản phẩm. Nếu chưa hài lòng, bạn có thể hoàn trả sản phẩm chưa mở để được hoàn tiền đầy đủ.'
               },
               {
-                q: 'Are your products cruelty-free?',
-                a: 'Yes! All Glow products are 100% cruelty-free and never tested on animals. We\'re also working towards vegan certification for our entire line.'
+                q: 'Sản phẩm có thử nghiệm trên động vật không?',
+                a: 'Không. Tất cả sản phẩm Glow đều 100% không thử nghiệm trên động vật. Chúng tôi cũng đang hướng tới chứng nhận thuần chay cho toàn bộ dòng sản phẩm.'
               }
             ].map((faq, index) => (
               <div key={index} className="bg-white rounded-xl p-6">

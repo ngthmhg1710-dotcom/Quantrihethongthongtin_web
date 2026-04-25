@@ -20,13 +20,13 @@ const subtotal = cart.reduce(
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </div>
-          <h2 className="font-['Poppins'] text-2xl font-bold mb-4">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Looks like you haven't added anything to your cart yet</p>
+          <h2 className="font-['Poppins'] text-2xl font-bold mb-4">Giỏ hàng của bạn đang trống</h2>
+          <p className="text-gray-600 mb-6">Có vẻ bạn chưa thêm sản phẩm nào vào giỏ hàng</p>
           <Link
             to="/products"
             className="inline-block bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors"
           >
-            Continue Shopping
+            Tiếp tục mua sắm
           </Link>
         </div>
       </div>
@@ -36,7 +36,7 @@ const subtotal = cart.reduce(
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="font-['Poppins'] text-4xl font-bold mb-8">Shopping Cart</h1>
+        <h1 className="font-['Poppins'] text-4xl font-bold mb-8">Giỏ hàng</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
@@ -90,27 +90,27 @@ const subtotal = cart.reduce(
 
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
-              <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Order Summary</h2>
+              <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Tóm tắt đơn hàng</h2>
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal ({cart.length} items)</span>
+                  <span>Tạm tính ({cart.length} sản phẩm)</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                  <span>Phí vận chuyển</span>
+                  <span>{shipping === 0 ? 'MIỄN PHÍ' : `$${shipping.toFixed(2)}`}</span>
                 </div>
                 {shipping > 0 && (
                   <p className="text-sm text-[#FFC0CB]">
-                    Add ${(50 - subtotal).toFixed(2)} more for free shipping!
+                    Mua thêm ${(50 - subtotal).toFixed(2)} để được miễn phí vận chuyển!
                   </p>
                 )}
               </div>
 
               <div className="border-t border-gray-200 pt-4 mb-6">
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
+                  <span>Tổng cộng</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
               </div>
@@ -119,14 +119,14 @@ const subtotal = cart.reduce(
                 to="/checkout"
                 className="block w-full bg-black text-white text-center py-3 rounded-full hover:bg-gray-800 transition-colors mb-4"
               >
-                Proceed to Checkout
+                Tiến hành thanh toán
               </Link>
 
               <Link
                 to="/products"
                 className="block w-full text-center py-3 text-gray-600 hover:text-black transition-colors"
               >
-                Continue Shopping
+                Tiếp tục mua sắm
               </Link>
             </div>
           </div>

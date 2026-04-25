@@ -21,12 +21,12 @@ export function EditProfile() {
   const normalizeAddressBook = (): AddressDraft[] => {
     const fromBook =
       user?.shippingAddresses?.map((a, idx) => ({
-        label: a.label || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+        label: a.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: a.name || '',
         address: a.address || '',
         city: a.city || '',
         zipCode: a.zipCode || '',
-        country: a.country || 'USA',
+        country: a.country || 'Việt Nam',
         isDefault: Boolean(a.isDefault),
       })) || [];
 
@@ -39,12 +39,12 @@ export function EditProfile() {
     if (user?.defaultShippingAddress?.address) {
       return [
         {
-          label: 'Home',
+          label: 'Nhà riêng',
           name: user.defaultShippingAddress.name || user.name || '',
           address: user.defaultShippingAddress.address || '',
           city: user.defaultShippingAddress.city || '',
           zipCode: user.defaultShippingAddress.zipCode || '',
-          country: user.defaultShippingAddress.country || 'USA',
+          country: user.defaultShippingAddress.country || 'Việt Nam',
           isDefault: true,
         },
       ];
@@ -81,23 +81,23 @@ export function EditProfile() {
   const handleSaveProfile = async () => {
     try {
       if (profileForm.name.trim().length < 2) {
-        toast.error('Name must be at least 2 characters');
+        toast.error('Tên phải có ít nhất 2 ký tự');
         return;
       }
 
       const normalizedBook = addressBookDraft.map((item, idx) => ({
-        label: item.label.trim() || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+        label: item.label.trim() || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: item.name.trim(),
         address: item.address.trim(),
         city: item.city.trim(),
         zipCode: item.zipCode.trim(),
-        country: item.country.trim() || 'USA',
+        country: item.country.trim() || 'Việt Nam',
         isDefault: Boolean(item.isDefault),
       }));
 
       const invalid = normalizedBook.find((a) => !a.name || !a.address || !a.city || !a.zipCode || !a.country);
       if (normalizedBook.length > 0 && invalid) {
-        toast.error('Please fill all fields of the address you are saving');
+        toast.error('Vui lòng điền đầy đủ thông tin địa chỉ đang lưu');
         return;
       }
 
@@ -112,10 +112,10 @@ export function EditProfile() {
         phone: profileForm.phone.trim(),
         shippingAddresses: normalizedBook,
       });
-      toast.success('Profile updated');
+      toast.success('Đã cập nhật hồ sơ');
       navigate('/dashboard');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
     }
   };
 
@@ -125,8 +125,8 @@ export function EditProfile() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
           <div className="flex items-center justify-between gap-3 mb-6">
             <div>
-              <h1 className="font-['Poppins'] font-semibold text-2xl">Edit Profile</h1>
-              <p className="text-sm text-gray-600 mt-1">Update personal info and address book</p>
+              <h1 className="font-['Poppins'] font-semibold text-2xl">Chỉnh sửa hồ sơ</h1>
+              <p className="text-sm text-gray-600 mt-1">Cập nhật thông tin cá nhân và sổ địa chỉ</p>
             </div>
             <button
               type="button"
@@ -134,14 +134,14 @@ export function EditProfile() {
               className="inline-flex items-center gap-2 px-4 py-2 border rounded-full text-sm hover:bg-gray-100"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
+              Quay lại
             </button>
           </div>
 
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
+                <label className="block text-sm font-medium mb-1">Tên</label>
                 <input
                   value={profileForm.name}
                   onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
@@ -149,7 +149,7 @@ export function EditProfile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Phone</label>
+                <label className="block text-sm font-medium mb-1">Số điện thoại</label>
                 <input
                   value={profileForm.phone}
                   onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
@@ -161,7 +161,7 @@ export function EditProfile() {
 
             <div className="pt-2 border-t border-gray-200">
               <div className="flex items-center justify-between mb-3">
-                <p className="font-medium">Address Book</p>
+                <p className="font-medium">Sổ địa chỉ</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -169,12 +169,12 @@ export function EditProfile() {
                       const next = [
                         ...prev,
                         {
-                          label: `Address ${prev.length + 1}`,
+                          label: `Địa chỉ ${prev.length + 1}`,
                           name: user.name || '',
                           address: '',
                           city: '',
                           zipCode: '',
-                          country: 'USA',
+                          country: 'Việt Nam',
                           isDefault: prev.length === 0,
                         },
                       ];
@@ -184,14 +184,14 @@ export function EditProfile() {
                   }}
                   className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
                 >
-                  Add address
+                  Thêm địa chỉ
                 </button>
               </div>
 
               <div className="grid md:grid-cols-5 gap-4">
                 <div className="md:col-span-2 space-y-2">
                   {addressBookDraft.length === 0 && (
-                    <p className="text-sm text-gray-600">No saved addresses yet.</p>
+                    <p className="text-sm text-gray-600">Chưa có địa chỉ nào được lưu.</p>
                   )}
                   {addressBookDraft.map((addr, index) => (
                     <button
@@ -204,7 +204,7 @@ export function EditProfile() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium line-clamp-1">
-                          {addr.label} {addr.isDefault ? '(Default)' : ''}
+                          {addr.label} {addr.isDefault ? '(Mặc định)' : ''}
                         </p>
                       </div>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">
@@ -219,7 +219,7 @@ export function EditProfile() {
                     <div className="space-y-3 rounded-xl border border-gray-200 p-4">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-sm font-medium mb-1">Label</label>
+                          <label className="block text-sm font-medium mb-1">Nhãn</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].label}
                             onChange={(e) =>
@@ -241,13 +241,13 @@ export function EditProfile() {
                                 )
                               }
                             />
-                            Set as default
+                            Đặt làm mặc định
                           </label>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-1">Receiver Name</label>
+                        <label className="block text-sm font-medium mb-1">Tên người nhận</label>
                         <input
                           value={addressBookDraft[editingAddressIndex].name}
                           onChange={(e) =>
@@ -259,7 +259,7 @@ export function EditProfile() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Address</label>
+                        <label className="block text-sm font-medium mb-1">Địa chỉ</label>
                         <input
                           value={addressBookDraft[editingAddressIndex].address}
                           onChange={(e) =>
@@ -272,7 +272,7 @@ export function EditProfile() {
                       </div>
                       <div className="grid md:grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-sm font-medium mb-1">City</label>
+                          <label className="block text-sm font-medium mb-1">Thành phố</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].city}
                             onChange={(e) =>
@@ -284,7 +284,7 @@ export function EditProfile() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-1">ZIP Code</label>
+                          <label className="block text-sm font-medium mb-1">Mã bưu điện</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].zipCode}
                             onChange={(e) =>
@@ -296,7 +296,7 @@ export function EditProfile() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-1">Country</label>
+                          <label className="block text-sm font-medium mb-1">Quốc gia</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].country}
                             onChange={(e) =>
@@ -324,12 +324,12 @@ export function EditProfile() {
                           }}
                           className="px-4 py-2 border rounded-full text-sm text-red-600 hover:bg-red-50"
                         >
-                          Delete
+                          Xóa
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-600">Select an address to edit.</p>
+                    <p className="text-sm text-gray-600">Chọn một địa chỉ để chỉnh sửa.</p>
                   )}
                 </div>
               </div>
@@ -341,14 +341,14 @@ export function EditProfile() {
                 onClick={() => navigate('/dashboard')}
                 className="px-4 py-2 border rounded-full"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
                 onClick={handleSaveProfile}
                 className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800"
               >
-                Save Profile
+                Lưu hồ sơ
               </button>
             </div>
           </div>

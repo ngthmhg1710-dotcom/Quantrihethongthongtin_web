@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Product, Order } from '../data/products';
 import { useApp } from '../context/AppContext';
+import { localizeCategory, localizeProduct } from '../utils/localization';
 import { useNavigate } from 'react-router';
 import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -22,20 +23,20 @@ interface DashboardStats {
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const DEFAULT_CATEGORY_OPTIONS = [
-  'Cleanser',
-  'Toner',
+  'Sữa rửa mặt',
+  'Nước cân bằng',
   'Serum',
-  'Moisturizer',
-  'Sunscreen',
-  'Eye Cream',
-  'Mask',
-  'Night Cream',
-  'Lip Care',
-  'Exfoliator',
-  'Essence',
-  'Ampoule',
-  'Body Care',
-  'Makeup Remover',
+  'Kem dưỡng ẩm',
+  'Kem chống nắng',
+  'Kem mắt',
+  'Mặt nạ',
+  'Kem dưỡng đêm',
+  'Chăm sóc môi',
+  'Tẩy tế bào chết',
+  'Tinh chất',
+  'Ống tinh chất',
+  'Chăm sóc cơ thể',
+  'Tẩy trang',
 ];
 const SKIN_TYPE_OPTIONS = ['all', 'dry', 'oily', 'combination', 'normal', 'sensitive', 'mature'];
 
@@ -93,13 +94,13 @@ export function AdminDashboard() {
 
   const refreshToken = async () => {
     const storedRefresh = localStorage.getItem('app_refresh_token');
-    if (!storedRefresh) throw new Error('Session expired');
+    if (!storedRefresh) throw new Error('Phiên đăng nhập đã hết hạn');
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: storedRefresh }),
     });
-    if (!response.ok) throw new Error('Session expired');
+    if (!response.ok) throw new Error('Phiên đăng nhập đã hết hạn');
     const data = await response.json();
     localStorage.setItem('app_token', data.token as string);
     localStorage.setItem('app_refresh_token', data.refreshToken as string);
@@ -150,14 +151,19 @@ export function AdminDashboard() {
       const ordersData = await ordersRes.json();
       const dashboardData = await dashboardRes.json();
 
-      setProducts((productsData || []) as Product[]);
-      setCategories((categoriesData.categories || []) as Category[]);
+      setProducts(((productsData || []) as Product[]).map(localizeProduct));
+      setCategories(
+        ((categoriesData.categories || []) as Category[]).map((category) => ({
+          ...category,
+          name: localizeCategory(category.name),
+        }))
+      );
       setOrders((ordersData.orders || []) as Order[]);
       setStats(dashboardData.stats || stats);
       setMonthlyStats(dashboardData.monthlyStats || []);
       await refreshProducts();
     } catch {
-      toast.error('Failed to load admin data');
+      toast.error('Không thể tải dữ liệu quản trị');
     }
   };
 
@@ -197,20 +203,20 @@ export function AdminDashboard() {
     const ingredients = parseCommaList(productForm.ingredients);
     const skinTypes = parseCommaList(productForm.skinTypes);
 
-    if (!name) errors.name = 'Product name is required';
-    if (!category) errors.category = 'Please select a category';
-    if (!description || description.length < 20) errors.description = 'Description must be at least 20 characters';
+    if (!name) errors.name = 'Tên sản phẩm là bắt buộc';
+    if (!category) errors.category = 'Vui lòng chọn danh mục';
+    if (!description || description.length < 20) errors.description = 'Mô tả phải có ít nhất 20 ký tự';
     if (!image) {
-      errors.image = 'Please upload an image from your device';
+      errors.image = 'Vui lòng tải ảnh từ thiết bị của bạn';
     } else if (!editingProductId && !image.startsWith('data:image/')) {
-      errors.image = 'New product image must be uploaded from your device';
+      errors.image = 'Ảnh sản phẩm mới phải được tải từ thiết bị';
     } else if (editingProductId && !image.startsWith('data:image/') && !/^https?:\/\//i.test(image)) {
-      errors.image = 'Image format is invalid';
+      errors.image = 'Định dạng ảnh không hợp lệ';
     }
-    if (!Number.isFinite(price) || price < 0) errors.price = 'Price must be a non-negative number';
-    if (!Number.isInteger(stock) || stock < 0) errors.stock = 'Stock must be an integer >= 0';
-    if (ingredients.length === 0) errors.ingredients = 'Please enter at least 1 ingredient (comma separated)';
-    if (skinTypes.length === 0) errors.skinTypes = 'Please select at least 1 skin type';
+    if (!Number.isFinite(price) || price < 0) errors.price = 'Giá phải là số không âm';
+    if (!Number.isInteger(stock) || stock < 0) errors.stock = 'Tồn kho phải là số nguyên >= 0';
+    if (ingredients.length === 0) errors.ingredients = 'Vui lòng nhập ít nhất 1 thành phần';
+    if (skinTypes.length === 0) errors.skinTypes = 'Vui lòng chọn ít nhất 1 loại da';
     return errors;
   };
 
@@ -239,16 +245,16 @@ export function AdminDashboard() {
       const data = await readResponseData(response);
       if (!response.ok) {
         if (response.status === 413) {
-          throw new Error('Image is too large. Please choose a smaller file (under ~5MB).');
+          throw new Error('Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn (dưới ~5MB).');
         }
-        throw new Error((data as { message?: string } | null)?.message || 'Failed to save product');
+        throw new Error((data as { message?: string } | null)?.message || 'Không thể lưu sản phẩm');
       }
-      toast.success(editingProductId ? 'Product updated' : 'Product created');
+      toast.success(editingProductId ? 'Đã cập nhật sản phẩm' : 'Đã tạo sản phẩm');
       resetProductForm();
       setIsProductModalOpen(false);
       await loadAdminData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save product');
+      toast.error(error instanceof Error ? error.message : 'Không thể lưu sản phẩm');
     }
   };
 
@@ -256,11 +262,11 @@ export function AdminDashboard() {
     try {
       const response = await adminFetch(`${API_BASE_URL}/admin/products/${productId}`, { method: 'DELETE' });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to delete product');
-      toast.success('Product deleted');
+      if (!response.ok) throw new Error(data.message || 'Không thể xóa sản phẩm');
+      toast.success('Đã xóa sản phẩm');
       await loadAdminData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete product');
+      toast.error(error instanceof Error ? error.message : 'Không thể xóa sản phẩm');
     }
   };
 
@@ -271,12 +277,12 @@ export function AdminDashboard() {
         body: JSON.stringify(categoryForm),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to create category');
-      toast.success('Category created');
+      if (!response.ok) throw new Error(data.message || 'Không thể tạo danh mục');
+      toast.success('Đã tạo danh mục');
       setCategoryForm({ name: '', description: '' });
       await loadAdminData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create category');
+      toast.error(error instanceof Error ? error.message : 'Không thể tạo danh mục');
     }
   };
 
@@ -285,7 +291,7 @@ export function AdminDashboard() {
       const existing = new Set(categories.map((c) => c.name.toLowerCase()));
       const missing = DEFAULT_CATEGORY_OPTIONS.filter((name) => !existing.has(name.toLowerCase()));
       if (missing.length === 0) {
-        toast.success('Default categories are already added');
+        toast.success('Danh mục mặc định đã được thêm trước đó');
         return;
       }
 
@@ -297,10 +303,10 @@ export function AdminDashboard() {
           })
         )
       );
-      toast.success(`Added ${missing.length} default categories`);
+      toast.success(`Đã thêm ${missing.length} danh mục mặc định`);
       await loadAdminData();
     } catch {
-      toast.error('Failed to add default categories');
+      toast.error('Không thể thêm danh mục mặc định');
     }
   };
 
@@ -311,14 +317,14 @@ export function AdminDashboard() {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.onerror = () => reject(new Error('Không thể đọc tệp ảnh'));
         reader.readAsDataURL(file);
       });
       setProductForm((prev) => ({ ...prev, image: dataUrl }));
       setProductFormErrors((prev) => ({ ...prev, image: undefined }));
-      toast.success('Image loaded from your device');
+      toast.success('Đã tải ảnh từ thiết bị');
     } catch {
-      toast.error('Failed to load image file');
+      toast.error('Không thể tải tệp ảnh');
     } finally {
       setUploadingImage(false);
     }
@@ -328,11 +334,11 @@ export function AdminDashboard() {
     try {
       const response = await adminFetch(`${API_BASE_URL}/admin/categories/${id}`, { method: 'DELETE' });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to delete category');
-      toast.success('Category deleted');
+      if (!response.ok) throw new Error(data.message || 'Không thể xóa danh mục');
+      toast.success('Đã xóa danh mục');
       await loadAdminData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete category');
+      toast.error(error instanceof Error ? error.message : 'Không thể xóa danh mục');
     }
   };
 
@@ -343,12 +349,12 @@ export function AdminDashboard() {
         body: JSON.stringify({ status }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to update status');
+      if (!response.ok) throw new Error(data.message || 'Không thể cập nhật trạng thái');
       setOrders((prev) => prev.map((order) => (order.id === orderId ? (data.order as Order) : order)));
-      toast.success('Order status updated');
+      toast.success('Đã cập nhật trạng thái đơn hàng');
       await loadAdminData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update status');
+      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái');
     }
   };
 
@@ -427,6 +433,13 @@ export function AdminDashboard() {
     if (status === 'shipped') return 'bg-purple-100 text-purple-700';
     return 'bg-green-100 text-green-700';
   };
+  const getOrderStatusLabel = (status: Order['status']) => {
+    if (status === 'pending') return 'Chờ xử lý';
+    if (status === 'processing') return 'Đang xử lý';
+    if (status === 'shipped') return 'Đã gửi hàng';
+    if (status === 'delivered') return 'Đã giao';
+    return status;
+  };
   const toggleOrderSort = (field: 'date' | 'total') => {
     if (orderSortBy === field) {
       setOrderSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -438,15 +451,15 @@ export function AdminDashboard() {
   const handleCopyOrderId = async (orderId: string) => {
     try {
       await navigator.clipboard.writeText(orderId);
-      toast.success('Order ID copied');
+      toast.success('Đã sao chép mã đơn hàng');
     } catch {
-      toast.error('Unable to copy order ID');
+      toast.error('Không thể sao chép mã đơn hàng');
     }
   };
   const handlePrintOrder = (order: Order) => {
     const printWindow = window.open('', '_blank', 'width=900,height=700');
     if (!printWindow) {
-      toast.error('Cannot open print window');
+      toast.error('Không thể mở cửa sổ in');
       return;
     }
     const rows = order.items
@@ -457,19 +470,22 @@ export function AdminDashboard() {
       .join('');
     printWindow.document.write(`
       <html>
-        <head><title>Invoice ${order.id}</title></head>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Hóa đơn ${order.id}</title>
+        </head>
         <body style="font-family: Arial, sans-serif; padding: 24px;">
-          <h2>Order ${order.id}</h2>
-          <p><strong>Date:</strong> ${order.date}</p>
-          <p><strong>Customer:</strong> ${order.user?.name || order.shippingAddress.name}</p>
-          <p><strong>Shipping:</strong> ${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.country}</p>
+          <h2>Đơn hàng ${order.id}</h2>
+          <p><strong>Ngày đặt:</strong> ${order.date}</p>
+          <p><strong>Khách hàng:</strong> ${order.user?.name || order.shippingAddress.name}</p>
+          <p><strong>Giao đến:</strong> ${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.country}</p>
           <table style="width:100%; border-collapse:collapse; margin-top:16px;">
             <thead>
-              <tr><th style="text-align:left;padding:8px;border-bottom:2px solid #ddd;">Item</th><th style="padding:8px;border-bottom:2px solid #ddd;">Qty</th><th style="text-align:right;padding:8px;border-bottom:2px solid #ddd;">Price</th><th style="text-align:right;padding:8px;border-bottom:2px solid #ddd;">Total</th></tr>
+              <tr><th style="text-align:left;padding:8px;border-bottom:2px solid #ddd;">Sản phẩm</th><th style="padding:8px;border-bottom:2px solid #ddd;">SL</th><th style="text-align:right;padding:8px;border-bottom:2px solid #ddd;">Đơn giá</th><th style="text-align:right;padding:8px;border-bottom:2px solid #ddd;">Thành tiền</th></tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
-          <h3 style="text-align:right; margin-top:20px;">Grand Total: ${formatCurrency(order.total)}</h3>
+          <h3 style="text-align:right; margin-top:20px;">Tổng cộng: ${formatCurrency(order.total)}</h3>
         </body>
       </html>
     `);
@@ -483,14 +499,14 @@ export function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="font-['Poppins'] text-4xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-gray-600">Manage your cosmetic store</p>
+            <h1 className="font-['Poppins'] text-4xl font-bold mb-2">Bảng điều khiển quản trị</h1>
+            <p className="text-gray-600">Quản lý cửa hàng mỹ phẩm của bạn</p>
           </div>
           <button
             onClick={logout}
             className="px-6 py-2 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
           >
-            Logout
+            Đăng xuất
           </button>
         </div>
 
@@ -501,7 +517,7 @@ export function AdminDashboard() {
               activeTab === 'overview' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Overview
+            Tổng quan
           </button>
           <button
             onClick={() => setActiveTab('products')}
@@ -509,7 +525,7 @@ export function AdminDashboard() {
               activeTab === 'products' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Products
+            Sản phẩm
           </button>
           <button
             onClick={() => setActiveTab('orders')}
@@ -517,7 +533,7 @@ export function AdminDashboard() {
               activeTab === 'orders' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Orders
+            Đơn hàng
           </button>
           <button
             onClick={() => setActiveTab('categories')}
@@ -525,7 +541,7 @@ export function AdminDashboard() {
               activeTab === 'categories' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Categories
+            Danh mục
           </button>
         </div>
 
@@ -533,19 +549,19 @@ export function AdminDashboard() {
           <>
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="rounded-2xl bg-black text-white p-5">
-                <p className="text-xs text-gray-300">Current month revenue</p>
+                <p className="text-xs text-gray-300">Doanh thu tháng hiện tại</p>
                 <p className="text-2xl font-semibold mt-1">{latestMonthStats ? formatCurrency(latestMonthStats.revenue) : '--'}</p>
-                <p className="text-xs text-gray-300 mt-1">{latestMonthStats?.month || 'No monthly data yet'}</p>
+                <p className="text-xs text-gray-300 mt-1">{latestMonthStats?.month || 'Chưa có dữ liệu theo tháng'}</p>
               </div>
               <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <p className="text-xs text-gray-500">Orders this month</p>
+                <p className="text-xs text-gray-500">Đơn hàng tháng này</p>
                 <p className="text-2xl font-semibold mt-1">{latestMonthStats?.orders ?? 0}</p>
-                <p className="text-xs text-gray-500 mt-1">From monthly statistics</p>
+                <p className="text-xs text-gray-500 mt-1">Từ thống kê theo tháng</p>
               </div>
               <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <p className="text-xs text-gray-500">Pending now</p>
+                <p className="text-xs text-gray-500">Đang chờ xử lý</p>
                 <p className="text-2xl font-semibold mt-1">{pendingOrdersCount}</p>
-                <p className="text-xs text-gray-500 mt-1">Need admin attention</p>
+                <p className="text-xs text-gray-500 mt-1">Cần quản trị viên xử lý</p>
               </div>
             </div>
             <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -562,7 +578,7 @@ export function AdminDashboard() {
                   )}
                 </div>
                 <p className="text-2xl font-bold mb-1">{formatCurrency(stats.totalRevenue)}</p>
-                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-sm text-gray-600">Tổng doanh thu</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -570,10 +586,10 @@ export function AdminDashboard() {
                   <div className="w-12 h-12 bg-[#FFE4E9] rounded-full flex items-center justify-center">
                     <ShoppingBag className="w-6 h-6 text-[#FFC0CB]" />
                   </div>
-                  <span className="text-sm text-gray-500">{processingOrdersCount} processing</span>
+                  <span className="text-sm text-gray-500">{processingOrdersCount} đang xử lý</span>
                 </div>
                 <p className="text-2xl font-bold mb-1">{stats.totalOrders}</p>
-                <p className="text-sm text-gray-600">Total Orders</p>
+                <p className="text-sm text-gray-600">Tổng đơn hàng</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -583,7 +599,7 @@ export function AdminDashboard() {
                   </div>
                 </div>
                 <p className="text-2xl font-bold mb-1">{stats.totalProducts}</p>
-                <p className="text-sm text-gray-600">Total Products</p>
+                <p className="text-sm text-gray-600">Tổng sản phẩm</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -591,18 +607,18 @@ export function AdminDashboard() {
                   <div className="w-12 h-12 bg-[#FFE4E9] rounded-full flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-[#FFC0CB]" />
                   </div>
-                  <span className="text-sm text-gray-500">{deliveredOrdersCount} delivered</span>
+                  <span className="text-sm text-gray-500">{deliveredOrdersCount} đã giao</span>
                 </div>
                 <p className="text-2xl font-bold mb-1">{formatCurrency(stats.averageOrderValue)}</p>
-                <p className="text-sm text-gray-600">Avg. Order Value</p>
+                <p className="text-sm text-gray-600">Giá trị đơn TB</p>
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-['Poppins'] font-semibold text-xl">Revenue Overview</h2>
-                  <p className="text-xs text-gray-500">{latestMonthStats ? `Latest: ${latestMonthStats.month}` : 'No monthly data yet'}</p>
+                  <h2 className="font-['Poppins'] font-semibold text-xl">Tổng quan doanh thu</h2>
+                  <p className="text-xs text-gray-500">{latestMonthStats ? `Mới nhất: ${latestMonthStats.month}` : 'Chưa có dữ liệu theo tháng'}</p>
                 </div>
                 {monthlyStats.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
@@ -610,19 +626,19 @@ export function AdminDashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="month" />
                       <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                       <Bar dataKey="revenue" fill="#FFC0CB" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-[300px] flex items-center justify-center text-gray-500 text-sm">
-                    No revenue data yet
+                    Chưa có dữ liệu doanh thu
                   </div>
                 )}
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Orders Trend</h2>
+                <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Xu hướng đơn hàng</h2>
                 {monthlyStats.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={monthlyStats}>
@@ -635,14 +651,14 @@ export function AdminDashboard() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-[300px] flex items-center justify-center text-gray-500 text-sm">
-                    No order trend data yet
+                    Chưa có dữ liệu xu hướng đơn hàng
                   </div>
                 )}
               </div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Top Selling Products</h2>
+              <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Sản phẩm bán chạy</h2>
               <div className="space-y-4">
                 {products.slice(0, 5).map((product, index) => (
                   <div key={product.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition-colors">
@@ -654,7 +670,7 @@ export function AdminDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold">${product.price.toFixed(2)}</p>
-                      <p className="text-sm text-gray-600">245 sold</p>
+                      <p className="text-sm text-gray-600">245 đã bán</p>
                     </div>
                   </div>
                 ))}
@@ -667,10 +683,10 @@ export function AdminDashboard() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="font-['Poppins'] font-semibold text-lg">Product Management</h2>
+                <h2 className="font-['Poppins'] font-semibold text-lg">Quản lý sản phẩm</h2>
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-gray-500">
-                    {products.length} products • Click a row to edit
+                    {products.length} sản phẩm • Bấm vào dòng để chỉnh sửa
                   </p>
                   <button
                     onClick={() => {
@@ -680,7 +696,7 @@ export function AdminDashboard() {
                     className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
                   >
                     <Plus className="w-4 h-4" />
-                    Add Product
+                    Thêm sản phẩm
                   </button>
                 </div>
               </div>
@@ -689,11 +705,11 @@ export function AdminDashboard() {
               <table className="w-full min-w-[720px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-5 py-3 text-left text-sm font-semibold">Product</th>
-                    <th className="px-5 py-3 text-left text-sm font-semibold">Category</th>
-                    <th className="px-5 py-3 text-left text-sm font-semibold">Price</th>
-                    <th className="px-5 py-3 text-left text-sm font-semibold whitespace-nowrap">Stock</th>
-                    <th className="px-5 py-3 text-left text-sm font-semibold whitespace-nowrap w-[112px]">Actions</th>
+                    <th className="px-5 py-3 text-left text-sm font-semibold">Sản phẩm</th>
+                    <th className="px-5 py-3 text-left text-sm font-semibold">Danh mục</th>
+                    <th className="px-5 py-3 text-left text-sm font-semibold">Giá</th>
+                    <th className="px-5 py-3 text-left text-sm font-semibold whitespace-nowrap">Tồn kho</th>
+                    <th className="px-5 py-3 text-left text-sm font-semibold whitespace-nowrap w-[112px]">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -733,7 +749,7 @@ export function AdminDashboard() {
                             Number(product.stock ?? 0) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'
                           }`}
                         >
-                          {Number(product.stock ?? 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                          {Number(product.stock ?? 0) > 0 ? `Còn ${product.stock}` : 'Hết hàng'}
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -791,7 +807,7 @@ export function AdminDashboard() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-['Poppins'] font-semibold text-xl">
-                  {editingProductId ? `Edit Product #${editingProductId}` : 'Add New Product'}
+                  {editingProductId ? `Chỉnh sửa sản phẩm #${editingProductId}` : 'Thêm sản phẩm mới'}
                 </h2>
                 <button
                   type="button"
@@ -801,26 +817,26 @@ export function AdminDashboard() {
                   }}
                   className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
                 >
-                  Close
+                  Đóng
                 </button>
               </div>
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="space-y-3 bg-white border border-gray-200 rounded-xl p-4">
                   <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Product Name</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tên sản phẩm</label>
                   <input
                     value={productForm.name}
                     onChange={(e) => {
                       setProductForm({ ...productForm, name: e.target.value });
                       setProductFormErrors((prev) => ({ ...prev, name: undefined }));
                     }}
-                    placeholder="Product name"
+                    placeholder="Tên sản phẩm"
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                   {productFormErrors.name && <p className="mt-1 text-xs text-red-600">{productFormErrors.name}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Danh mục</label>
                   <select
                     value={productForm.category}
                     onChange={(e) => {
@@ -829,7 +845,7 @@ export function AdminDashboard() {
                     }}
                     className="w-full px-3 py-2 border rounded-lg bg-white"
                   >
-                    <option value="">Select category</option>
+                    <option value="">Chọn danh mục</option>
                     {categoryOptions.map((categoryName) => (
                       <option key={categoryName} value={categoryName}>
                         {categoryName}
@@ -840,17 +856,17 @@ export function AdminDashboard() {
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-gray-700">Product image</p>
+                    <p className="text-xs font-semibold text-gray-700">Ảnh sản phẩm</p>
                     {productForm.image && (
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
-                        {isUploadedImage ? 'From device' : 'From URL'}
+                        {isUploadedImage ? 'Từ thiết bị' : 'Từ URL'}
                       </span>
                     )}
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-white p-3">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Upload from device</p>
+                    <p className="text-xs font-medium text-gray-600 mb-2">Tải ảnh từ thiết bị</p>
                     <label className="inline-flex items-center justify-center px-3 py-2 text-sm border rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                      Choose image file
+                      Chọn tệp ảnh
                       <input
                         type="file"
                         accept="image/*"
@@ -858,19 +874,19 @@ export function AdminDashboard() {
                         className="sr-only"
                       />
                     </label>
-                    <p className="mt-2 text-[11px] text-gray-500">PNG, JPG, WEBP (recommended under 2MB)</p>
+                    <p className="mt-2 text-[11px] text-gray-500">PNG, JPG, WEBP (khuyên dùng dưới 2MB)</p>
                     {!isUploadedImage && productForm.image && (
                       <p className="mt-2 text-[11px] text-amber-700">
-                        This product is using an old URL image. Upload a new file to replace it.
+                        Sản phẩm này đang dùng ảnh URL cũ. Hãy tải ảnh mới để thay thế.
                       </p>
                     )}
                   </div>
-                  {uploadingImage && <p className="mt-2 text-sm text-gray-500">Uploading image...</p>}
+                  {uploadingImage && <p className="mt-2 text-sm text-gray-500">Đang tải ảnh...</p>}
                   {productFormErrors.image && <p className="mt-2 text-xs text-red-600">{productFormErrors.image}</p>}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Price</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Giá</label>
                     <input
                       type="number"
                       min={0}
@@ -880,13 +896,13 @@ export function AdminDashboard() {
                         setProductForm({ ...productForm, price: e.target.value });
                         setProductFormErrors((prev) => ({ ...prev, price: undefined }));
                       }}
-                      placeholder="Price"
+                      placeholder="Giá"
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                     {productFormErrors.price && <p className="mt-1 text-xs text-red-600">{productFormErrors.price}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Stock</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Tồn kho</label>
                     <input
                       type="number"
                       min={0}
@@ -896,28 +912,28 @@ export function AdminDashboard() {
                         setProductForm({ ...productForm, stock: e.target.value });
                         setProductFormErrors((prev) => ({ ...prev, stock: undefined }));
                       }}
-                      placeholder="Stock"
+                      placeholder="Số lượng tồn"
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                     {productFormErrors.stock && <p className="mt-1 text-xs text-red-600">{productFormErrors.stock}</p>}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Mô tả</label>
                   <textarea
                     value={productForm.description}
                     onChange={(e) => {
                       setProductForm({ ...productForm, description: e.target.value });
                       setProductFormErrors((prev) => ({ ...prev, description: undefined }));
                     }}
-                    placeholder="Description"
+                    placeholder="Mô tả sản phẩm"
                     rows={4}
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                   {productFormErrors.description && <p className="mt-1 text-xs text-red-600">{productFormErrors.description}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Ingredients</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Thành phần</label>
                   <textarea
                     value={productForm.ingredients}
                     onChange={(e) => {
@@ -931,7 +947,7 @@ export function AdminDashboard() {
                   {productFormErrors.ingredients && <p className="mt-1 text-xs text-red-600">{productFormErrors.ingredients}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Skin Types</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Loại da</label>
                   <select
                     value={parseCommaList(productForm.skinTypes)[0] || ''}
                     onChange={(e) => {
@@ -940,7 +956,7 @@ export function AdminDashboard() {
                     }}
                     className="w-full px-3 py-2 border rounded-lg bg-white"
                   >
-                    <option value="">Select skin type</option>
+                    <option value="">Chọn loại da</option>
                     {SKIN_TYPE_OPTIONS.map((skinType) => (
                       <option key={skinType} value={skinType}>
                         {skinType.charAt(0).toUpperCase() + skinType.slice(1)}
@@ -952,7 +968,7 @@ export function AdminDashboard() {
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button onClick={submitProduct} className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 min-w-[132px]">
                       <Plus className="w-4 h-4" />
-                      {editingProductId ? 'Update Product' : 'Add Product'}
+                      {editingProductId ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm'}
                     </button>
                     <button
                       type="button"
@@ -962,32 +978,32 @@ export function AdminDashboard() {
                       }}
                       className="px-4 py-2 border rounded-full min-w-[92px]"
                     >
-                      Cancel
+                      Hủy
                     </button>
                   </div>
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-xl p-3 h-fit lg:sticky lg:top-4">
-                  <p className="text-xs text-gray-500 mb-2">Preview (user view)</p>
+                  <p className="text-xs text-gray-500 mb-2">Xem trước (giao diện khách hàng)</p>
                   <div className="rounded-xl overflow-hidden border border-gray-100 bg-white">
                     <div className="aspect-[4/3] bg-gray-100">
                       {productForm.image ? (
-                        <img src={productForm.image} alt="Product preview" className="w-full h-full object-cover" />
+                        <img src={productForm.image} alt="Xem trước sản phẩm" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">No image</div>
+                        <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">Chưa có ảnh</div>
                       )}
                     </div>
                     <div className="p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">{productForm.category || 'Category'}</p>
-                      <h3 className="font-semibold mt-1">{productForm.name || 'Product name'}</h3>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">{productForm.category || 'Danh mục'}</p>
+                      <h3 className="font-semibold mt-1">{productForm.name || 'Tên sản phẩm'}</h3>
                       <p className="text-base font-bold mt-2">${Number(productForm.price || 0).toFixed(2)}</p>
                       <p className={`text-sm mt-1 ${Number(productForm.stock || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {Number(productForm.stock || 0) > 0
-                          ? `${Math.floor(Number(productForm.stock || 0))} in stock`
-                          : 'Out of stock'}
+                          ? `Còn ${Math.floor(Number(productForm.stock || 0))} sản phẩm`
+                          : 'Hết hàng'}
                       </p>
                       <p className="text-xs text-gray-600 mt-2 line-clamp-3">
-                        {productForm.description || 'Product description preview will appear here.'}
+                        {productForm.description || 'Phần mô tả sản phẩm sẽ hiển thị tại đây.'}
                       </p>
                       {parseCommaList(productForm.skinTypes).length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -1009,7 +1025,7 @@ export function AdminDashboard() {
                             : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         }`}
                       >
-                        {Number(productForm.stock || 0) > 0 ? 'Add to Cart' : 'Out of stock'}
+                        {Number(productForm.stock || 0) > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
                       </button>
                     </div>
                   </div>
@@ -1023,12 +1039,12 @@ export function AdminDashboard() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <h2 className="font-['Poppins'] font-semibold text-xl">Order Management</h2>
+                <h2 className="font-['Poppins'] font-semibold text-xl">Quản lý đơn hàng</h2>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     value={orderSearch}
                     onChange={(e) => setOrderSearch(e.target.value)}
-                    placeholder="Search by order ID, customer, city..."
+                    placeholder="Tìm theo mã đơn, khách hàng, thành phố..."
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm min-w-[260px]"
                   />
                   <select
@@ -1036,26 +1052,26 @@ export function AdminDashboard() {
                     onChange={(e) => setOrderStatusFilter(e.target.value as 'all' | Order['status'])}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                   >
-                    <option value="all">All statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="processing">Đang xử lý</option>
+                    <option value="shipped">Đã gửi hàng</option>
+                    <option value="delivered">Đã giao</option>
                   </select>
                   <select
                     value={orderSortBy}
                     onChange={(e) => setOrderSortBy(e.target.value as 'date' | 'total')}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                   >
-                    <option value="date">Sort by date</option>
-                    <option value="total">Sort by total</option>
+                    <option value="date">Sắp xếp theo ngày</option>
+                    <option value="total">Sắp xếp theo tổng tiền</option>
                   </select>
                   <button
                     type="button"
                     onClick={() => setOrderSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
                   >
-                    {orderSortDirection === 'asc' ? 'Asc' : 'Desc'}
+                    {orderSortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
                   </button>
                 </div>
               </div>
@@ -1064,19 +1080,19 @@ export function AdminDashboard() {
             <div className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                  <p className="text-xs text-gray-500">Total</p>
+                  <p className="text-xs text-gray-500">Tổng</p>
                   <p className="text-xl font-semibold mt-1">{orders.length}</p>
                 </div>
                 <div className="rounded-xl border border-amber-200 p-4 bg-amber-50/60">
-                  <p className="text-xs text-amber-700">Pending</p>
+                  <p className="text-xs text-amber-700">Chờ xử lý</p>
                   <p className="text-xl font-semibold mt-1">{pendingOrdersCount}</p>
                 </div>
                 <div className="rounded-xl border border-blue-200 p-4 bg-blue-50/60">
-                  <p className="text-xs text-blue-700">Processing</p>
+                  <p className="text-xs text-blue-700">Đang xử lý</p>
                   <p className="text-xl font-semibold mt-1">{processingOrdersCount}</p>
                 </div>
                 <div className="rounded-xl border border-green-200 p-4 bg-green-50/60">
-                  <p className="text-xs text-green-700">Delivered</p>
+                  <p className="text-xs text-green-700">Đã giao</p>
                   <p className="text-xl font-semibold mt-1">{deliveredOrdersCount}</p>
                 </div>
               </div>
@@ -1085,32 +1101,32 @@ export function AdminDashboard() {
                   <table className="w-full min-w-[980px]">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Order ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Mã đơn hàng</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Khách hàng</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                           <button
                             type="button"
                             onClick={() => toggleOrderSort('date')}
                             className="inline-flex items-center gap-1 hover:text-black"
                           >
-                            Date
+                            Ngày đặt
                             {orderSortBy === 'date' && <span>{orderSortDirection === 'asc' ? '↑' : '↓'}</span>}
                           </button>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Items</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Sản phẩm</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                           <button
                             type="button"
                             onClick={() => toggleOrderSort('total')}
                             className="inline-flex items-center gap-1 hover:text-black"
                           >
-                            Total
+                            Tổng tiền
                             {orderSortBy === 'total' && <span>{orderSortDirection === 'asc' ? '↑' : '↓'}</span>}
                           </button>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Shipping Code</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Actions</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Trạng thái</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Mã vận chuyển</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1131,16 +1147,16 @@ export function AdminDashboard() {
                                 try {
                                   await onUpdateOrderStatus(order.id, e.target.value as typeof order.status);
                                 } catch (error) {
-                                  const message = error instanceof Error ? error.message : 'Failed to update status';
+                                  const message = error instanceof Error ? error.message : 'Không thể cập nhật trạng thái';
                                   toast.error(message);
                                 }
                               }}
                               className={`px-2.5 py-1 rounded-full text-xs border bg-white ${getOrderStatusBadgeClass(order.status)}`}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="processing">Processing</option>
-                              <option value="shipped">Shipped</option>
-                              <option value="delivered">Delivered</option>
+                              <option value="pending">Chờ xử lý</option>
+                              <option value="processing">Đang xử lý</option>
+                              <option value="shipped">Đã gửi hàng</option>
+                              <option value="delivered">Đã giao</option>
                             </select>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">{order.shippingCode || '-'}</td>
@@ -1151,21 +1167,21 @@ export function AdminDashboard() {
                                 onClick={() => setSelectedOrder(order)}
                                 className="px-3 py-1.5 text-xs border rounded-full hover:bg-gray-100"
                               >
-                                Details
+                                Chi tiết
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleCopyOrderId(order.id)}
                                 className="px-3 py-1.5 text-xs border rounded-full hover:bg-gray-100"
                               >
-                                Copy ID
+                                Sao chép mã
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handlePrintOrder(order)}
                                 className="px-3 py-1.5 text-xs bg-black text-white rounded-full hover:bg-gray-800"
                               >
-                                Print
+                                In
                               </button>
                             </div>
                           </td>
@@ -1176,7 +1192,7 @@ export function AdminDashboard() {
                 </div>
                 {paginatedOrders.length === 0 && (
                   <div className="text-center py-12">
-                    <p className="text-gray-600">No orders match your filter</p>
+                    <p className="text-gray-600">Không có đơn hàng phù hợp bộ lọc</p>
                   </div>
                 )}
               </div>
@@ -1184,7 +1200,7 @@ export function AdminDashboard() {
               {sortedOrders.length > 0 && (
                 <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <p className="text-sm text-gray-600">
-                    Showing {(orderPage - 1) * orderPageSize + 1}-{Math.min(orderPage * orderPageSize, sortedOrders.length)} of {sortedOrders.length} orders
+                    Hiển thị {(orderPage - 1) * orderPageSize + 1}-{Math.min(orderPage * orderPageSize, sortedOrders.length)} trên tổng {sortedOrders.length} đơn hàng
                   </p>
                   <div className="flex items-center gap-2">
                     <select
@@ -1192,9 +1208,9 @@ export function AdminDashboard() {
                       onChange={(e) => setOrderPageSize(Number(e.target.value))}
                       className="px-2 py-1.5 border rounded-lg text-sm bg-white"
                     >
-                      <option value={8}>8 / page</option>
-                      <option value={12}>12 / page</option>
-                      <option value={20}>20 / page</option>
+                      <option value={8}>8 / trang</option>
+                      <option value={12}>12 / trang</option>
+                      <option value={20}>20 / trang</option>
                     </select>
                     <button
                       type="button"
@@ -1202,7 +1218,7 @@ export function AdminDashboard() {
                       onClick={() => setOrderPage((prev) => Math.max(1, prev - 1))}
                       className="px-3 py-1.5 border rounded-lg text-sm disabled:opacity-50"
                     >
-                      Prev
+                      Trước
                     </button>
                     <span className="text-sm text-gray-700">
                       {orderPage} / {totalOrderPages}
@@ -1213,7 +1229,7 @@ export function AdminDashboard() {
                       onClick={() => setOrderPage((prev) => Math.min(totalOrderPages, prev + 1))}
                       className="px-3 py-1.5 border rounded-lg text-sm disabled:opacity-50"
                     >
-                      Next
+                      Sau
                     </button>
                   </div>
                 </div>
@@ -1233,7 +1249,7 @@ export function AdminDashboard() {
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-['Poppins'] font-semibold text-xl">Order Details</h3>
+                  <h3 className="font-['Poppins'] font-semibold text-xl">Chi tiết đơn hàng</h3>
                   <p className="text-sm text-gray-500 mt-0.5">{selectedOrder.id}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1242,38 +1258,38 @@ export function AdminDashboard() {
                     onClick={() => handleCopyOrderId(selectedOrder.id)}
                     className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
                   >
-                    Copy ID
+                    Sao chép mã
                   </button>
                   <button
                     type="button"
                     onClick={() => handlePrintOrder(selectedOrder)}
                     className="px-3 py-1.5 text-sm bg-black text-white rounded-full hover:bg-gray-800"
                   >
-                    Print
+                    In
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedOrder(null)}
                     className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
                   >
-                    Close
+                    Đóng
                   </button>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                  <p className="text-xs text-gray-500 mb-1">Customer</p>
+                  <p className="text-xs text-gray-500 mb-1">Khách hàng</p>
                   <p className="font-semibold">{selectedOrder.user?.name || selectedOrder.shippingAddress.name}</p>
-                  <p className="text-sm text-gray-600">{selectedOrder.user?.email || 'No email provided'}</p>
-                  <p className="text-sm text-gray-600 mt-2">Date: {formatOrderDate(selectedOrder)}</p>
-                  <p className="text-sm text-gray-600 mt-1">Shipping code: {selectedOrder.shippingCode || '-'}</p>
+                  <p className="text-sm text-gray-600">{selectedOrder.user?.email || 'Chưa có email'}</p>
+                  <p className="text-sm text-gray-600 mt-2">Ngày đặt: {formatOrderDate(selectedOrder)}</p>
+                  <p className="text-sm text-gray-600 mt-1">Mã vận chuyển: {selectedOrder.shippingCode || '-'}</p>
                   <span className={`inline-flex mt-2 px-2 py-0.5 rounded-full text-xs font-medium ${getOrderStatusBadgeClass(selectedOrder.status)}`}>
-                    {selectedOrder.status}
+                    {getOrderStatusLabel(selectedOrder.status)}
                   </span>
                 </div>
                 <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                  <p className="text-xs text-gray-500 mb-1">Shipping Address</p>
+                  <p className="text-xs text-gray-500 mb-1">Địa chỉ giao hàng</p>
                   <p className="font-semibold">{selectedOrder.shippingAddress.name}</p>
                   <p className="text-sm text-gray-700">
                     {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}
@@ -1286,7 +1302,7 @@ export function AdminDashboard() {
 
               <div className="rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <p className="font-semibold">Items ({selectedOrder.items.length})</p>
+                  <p className="font-semibold">Sản phẩm ({selectedOrder.items.length})</p>
                 </div>
                 <div className="divide-y divide-gray-200">
                   {selectedOrder.items.map((item, idx) => (
@@ -1306,7 +1322,7 @@ export function AdminDashboard() {
               </div>
 
               <div className="mt-4 flex justify-between items-center border-t border-gray-200 pt-4">
-                <p className="text-sm text-gray-600">Order total</p>
+                <p className="text-sm text-gray-600">Tổng đơn hàng</p>
                 <p className="text-xl font-bold">{formatCurrency(selectedOrder.total)}</p>
               </div>
             </div>
@@ -1316,14 +1332,14 @@ export function AdminDashboard() {
         {activeTab === 'categories' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="font-['Poppins'] font-semibold text-xl mb-4">Category Management</h2>
+              <h2 className="font-['Poppins'] font-semibold text-xl mb-4">Quản lý danh mục</h2>
               <div className="grid md:grid-cols-3 gap-3">
-                <input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} placeholder="Category name" className="px-3 py-2 border rounded-lg" />
-                <input value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} placeholder="Description" className="px-3 py-2 border rounded-lg md:col-span-2" />
+                <input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} placeholder="Tên danh mục" className="px-3 py-2 border rounded-lg" />
+                <input value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} placeholder="Mô tả" className="px-3 py-2 border rounded-lg md:col-span-2" />
               </div>
               <div className="flex gap-2 mt-3">
-                <button onClick={submitCategory} className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors">Add Category</button>
-                <button onClick={addDefaultCategories} className="px-4 py-2 border rounded-full hover:bg-gray-100 transition-colors">Add Default Categories</button>
+                <button onClick={submitCategory} className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors">Thêm danh mục</button>
+                <button onClick={addDefaultCategories} className="px-4 py-2 border rounded-full hover:bg-gray-100 transition-colors">Thêm danh mục mặc định</button>
               </div>
             </div>
             <div className="p-6 space-y-3">
@@ -1331,14 +1347,14 @@ export function AdminDashboard() {
                 <div key={category._id} className="flex items-center justify-between border border-gray-200 rounded-xl p-4">
                   <div>
                     <p className="font-semibold">{category.name}</p>
-                    <p className="text-sm text-gray-600">{category.description || 'No description'}</p>
+                    <p className="text-sm text-gray-600">{category.description || 'Chưa có mô tả'}</p>
                   </div>
                   <button onClick={() => removeCategory(category._id)} className="p-2 hover:bg-red-50 rounded-lg transition-colors">
                     <Trash2 className="w-4 h-4 text-red-500" />
                   </button>
                 </div>
               ))}
-              {categories.length === 0 && <p className="text-gray-600">No categories found</p>}
+              {categories.length === 0 && <p className="text-gray-600">Không tìm thấy danh mục nào</p>}
             </div>
           </div>
         )}
