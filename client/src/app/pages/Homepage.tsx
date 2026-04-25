@@ -5,7 +5,10 @@ import { useApp } from '../context/AppContext';
 export function Homepage() {
   const { products } = useApp();
   const featuredProducts = products.filter(p => p.featured);
-  const routineSteps = products.filter(p => p.step).sort((a, b) => (a.step || 0) - (b.step || 0));
+  const routineSteps = products
+    .filter(p => p.step)
+    .sort((a, b) => (a.step || 0) - (b.step || 0))
+    .slice(0, 5);
 
   return (
     <div className="min-h-screen">
@@ -110,7 +113,7 @@ export function Homepage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-['Poppins'] text-4xl font-bold mb-4">Your Perfect Skincare Routine</h2>
-            <p className="text-gray-600">Follow these simple steps for radiant, healthy skin</p>
+            <p className="text-gray-600">5 simple steps with 5 representative products</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">

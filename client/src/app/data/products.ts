@@ -170,9 +170,12 @@ export interface CartItem {
 export interface Order {
   id: string;
   date: string;
+  placedAt?: string | null;
   items: CartItem[];
   total: number;
   status: "pending" | "processing" | "shipped" | "delivered";
+  shippingCode?: string;
+  trackingCode?: string;
   shippingAddress: {
     name: string;
     address: string;

@@ -8,10 +8,13 @@ async function connectDatabase(mongoUri) {
 }
 
 async function seedProductsIfNeeded() {
-  const productCount = await Product.countDocuments();
-  if (productCount === 0) {
-    await Product.insertMany(seedProducts);
-    console.log("Seeded initial products");
+  const existingProducts = await Product.find({}, { id: 1 }).lean();
+  const existingIds = new Set(existingProducts.map((product) => product.id));
+  const missingProducts = seedProducts.filter((product) => !existingIds.has(product.id));
+
+  if (missingProducts.length > 0) {
+    await Product.insertMany(missingProducts);
+    console.log(`Seeded ${missingProducts.length} products`);
   }
 }
 

@@ -382,13 +382,15 @@ export function AdminDashboard() {
       return statusMatched && searchMatched;
     });
   }, [orders, orderSearch, orderStatusFilter]);
-  const parseOrderDate = (dateString: string) => {
-    const time = new Date(dateString).getTime();
+  const parseOrderDate = (order: Order) => {
+    const candidate = order.placedAt || order.date;
+    const time = new Date(candidate).getTime();
     return Number.isNaN(time) ? 0 : time;
   };
-  const formatOrderDate = (dateString: string) => {
-    const parsed = new Date(dateString);
-    if (Number.isNaN(parsed.getTime())) return dateString;
+  const formatOrderDate = (order: Order) => {
+    const candidate = order.placedAt || order.date;
+    const parsed = new Date(candidate);
+    if (Number.isNaN(parsed.getTime())) return order.date;
     return parsed.toLocaleString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
@@ -400,8 +402,8 @@ export function AdminDashboard() {
   const sortedOrders = useMemo(() => {
     const sorted = [...filteredOrders];
     sorted.sort((a, b) => {
-      const left = orderSortBy === 'total' ? a.total : parseOrderDate(a.date);
-      const right = orderSortBy === 'total' ? b.total : parseOrderDate(b.date);
+      const left = orderSortBy === 'total' ? a.total : parseOrderDate(a);
+      const right = orderSortBy === 'total' ? b.total : parseOrderDate(b);
       return orderSortDirection === 'asc' ? left - right : right - left;
     });
     return sorted;
@@ -1100,6 +1102,7 @@ export function AdminDashboard() {
                           </button>
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Shipping Code</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Actions</th>
                       </tr>
                     </thead>
@@ -1111,7 +1114,7 @@ export function AdminDashboard() {
                             <p className="font-medium">{order.user?.name || order.shippingAddress.name}</p>
                             <p className="text-xs text-gray-500">{order.user?.email || order.shippingAddress.city}</p>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">{formatOrderDate(order.date)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{formatOrderDate(order)}</td>
                           <td className="px-4 py-3 text-sm">{order.items.length}</td>
                           <td className="px-4 py-3 font-semibold">{formatCurrency(order.total)}</td>
                           <td className="px-4 py-3">
@@ -1133,6 +1136,7 @@ export function AdminDashboard() {
                               <option value="delivered">Delivered</option>
                             </select>
                           </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{order.shippingCode || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-2">
                               <button
@@ -1255,7 +1259,8 @@ export function AdminDashboard() {
                   <p className="text-xs text-gray-500 mb-1">Customer</p>
                   <p className="font-semibold">{selectedOrder.user?.name || selectedOrder.shippingAddress.name}</p>
                   <p className="text-sm text-gray-600">{selectedOrder.user?.email || 'No email provided'}</p>
-                  <p className="text-sm text-gray-600 mt-2">Date: {formatOrderDate(selectedOrder.date)}</p>
+                  <p className="text-sm text-gray-600 mt-2">Date: {formatOrderDate(selectedOrder)}</p>
+                  <p className="text-sm text-gray-600 mt-1">Shipping code: {selectedOrder.shippingCode || '-'}</p>
                   <span className={`inline-flex mt-2 px-2 py-0.5 rounded-full text-xs font-medium ${getOrderStatusBadgeClass(selectedOrder.status)}`}>
                     {selectedOrder.status}
                   </span>

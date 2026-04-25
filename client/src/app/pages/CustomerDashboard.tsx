@@ -81,6 +81,19 @@ export function CustomerDashboard() {
     }
   }, [searchParams]);
 
+  const normalizedUserName = user?.name?.trim().toLowerCase() || '';
+  const wishlistedProducts = useMemo(
+    () => products.filter((product) => wishlistIds.includes(product.id)),
+    [products, wishlistIds]
+  );
+  const reviewedProducts = useMemo(
+    () =>
+      products.filter((product) =>
+        product.reviews.some((review) => review.user.trim().toLowerCase() === normalizedUserName)
+      ),
+    [products, normalizedUserName]
+  );
+
   if (!user || user.isAdmin) return null;
 
   const getStatusColor = (status: string) => {
@@ -130,18 +143,6 @@ export function CustomerDashboard() {
 
     return `${order.date} --:--`;
   };
-
-  const wishlistedProducts = useMemo(
-    () => products.filter((product) => wishlistIds.includes(product.id)),
-    [products, wishlistIds]
-  );
-  const reviewedProducts = useMemo(
-    () =>
-      products.filter((product) =>
-        product.reviews.some((review) => review.user.trim().toLowerCase() === user.name.trim().toLowerCase())
-      ),
-    [products, user.name]
-  );
 
   const openEditProfileModal = () => {
     setProfileForm({

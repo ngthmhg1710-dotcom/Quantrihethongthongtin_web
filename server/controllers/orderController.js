@@ -7,6 +7,7 @@ function formatOrder(order) {
     id: order.orderNumber,
     date: createdAt ? createdAt.toISOString().split("T")[0] : "",
     placedAt: createdAt ? createdAt.toISOString() : null,
+    shippingCode: order.shippingCode || "",
     items: order.items.map((item) => ({
       product: {
         id: item.productId,
@@ -59,6 +60,7 @@ async function createOrder(req, res) {
 
     const order = await Order.create({
       orderNumber: `ORD-${Date.now()}`,
+      shippingCode: `SHIP-${Math.floor(100000 + Math.random() * 900000)}`,
       userId: req.user.id,
       items: normalizedItems,
       total: Number(total || 0),

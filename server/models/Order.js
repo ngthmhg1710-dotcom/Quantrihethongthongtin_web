@@ -23,6 +23,7 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "processing", "shipped", "delivered"],
       default: "processing",
     },
+    shippingCode: { type: String, default: "" },
     shippingAddress: {
       name: { type: String, required: true },
       address: { type: String, required: true },
