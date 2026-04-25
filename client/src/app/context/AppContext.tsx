@@ -35,6 +35,9 @@ interface AppContextType {
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
+  wishlistIds: number[];
+  toggleWishlist: (productId: number) => void;
+  isInWishlist: (productId: number) => boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<User>;
   register: (payload: { name: string; email: string; password: string }) => Promise<User>;
@@ -65,16 +68,61 @@ interface AppContextType {
   addProductReview: (productId: number, payload: { rating: number; comment: string }) => Promise<Product>;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+const defaultAppContext: AppContextType = {
+  products: localProducts,
+  productsLoading: false,
+  refreshProducts: async () => {},
+  cart: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  wishlistIds: [],
+  toggleWishlist: () => {},
+  isInWishlist: () => false,
+  user: null,
+  login: async () => {
+    throw new Error('App context is not ready');
+  },
+  register: async () => {
+    throw new Error('App context is not ready');
+  },
+  logout: async () => {},
+  updateProfile: async () => {
+    throw new Error('App context is not ready');
+  },
+  orders: [],
+  addOrder: async () => {
+    throw new Error('App context is not ready');
+  },
+  updateOrderStatus: async () => {
+    throw new Error('App context is not ready');
+  },
+  addProductReview: async () => {
+    throw new Error('App context is not ready');
+  },
+};
+
+const AppContext = createContext<AppContextType>(defaultAppContext);
 const API_BASE_URL = 'http://localhost:5000/api';
 const USER_STORAGE_KEY = 'app_user';
 const TOKEN_STORAGE_KEY = 'app_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';
+const WISHLIST_STORAGE_KEY = 'app_wishlist_ids';
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(localProducts);
   const [productsLoading, setProductsLoading] = useState<boolean>(true);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [wishlistIds, setWishlistIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem(WISHLIST_STORAGE_KEY);
+      const parsed = saved ? (JSON.parse(saved) as unknown) : [];
+      return Array.isArray(parsed) ? parsed.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const refreshProducts = async () => {
     try {
@@ -300,6 +348,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCart([]);
   };
 
+  useEffect(() => {
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(wishlistIds));
+  }, [wishlistIds]);
+
+  const toggleWishlist = (productId: number) => {
+    setWishlistIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const isInWishlist = (productId: number) => wishlistIds.includes(productId);
+
   const login = async (email: string, password: string) => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
@@ -469,6 +529,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        wishlistIds,
+        toggleWishlist,
+        isInWishlist,
         user,
         login,
         register,
@@ -487,8 +550,5 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useApp() {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider');
-  }
   return context;
 }

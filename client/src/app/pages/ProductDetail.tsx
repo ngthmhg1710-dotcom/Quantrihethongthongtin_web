@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { Star, ShoppingCart, Heart, Share2, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,14 +7,37 @@ import { toast } from 'sonner';
 export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, products, user, addProductReview } = useApp();
+  const [searchParams] = useSearchParams();
+  const { addToCart, products, user, addProductReview, toggleWishlist, isInWishlist } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<'description' | 'ingredients' | 'reviews'>('description');
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [highlightMine, setHighlightMine] = useState(false);
 
   const product = products.find(p => p.id === parseInt(id || '0'));
   const availableStock = Number(product?.stock ?? 0);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'reviews' || tab === 'ingredients' || tab === 'description') {
+      setSelectedTab(tab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const shouldFocusMine = searchParams.get('focus') === 'mine';
+    if (!shouldFocusMine || selectedTab !== 'reviews' || !user) return;
+
+    const mineKey = user.name.trim().toLowerCase();
+    const target = document.querySelector<HTMLElement>(`[data-review-user='${mineKey}']`);
+    if (!target) return;
+
+    setHighlightMine(true);
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = window.setTimeout(() => setHighlightMine(false), 2000);
+    return () => window.clearTimeout(t);
+  }, [searchParams, selectedTab, user]);
 
   if (!product) {
     return (
@@ -53,7 +76,7 @@ export function ProductDetail() {
   const handleSubmitReview = async () => {
     if (!user) {
       toast.error('Please sign in to write a review');
-      navigate('/login?redirect=' + encodeURIComponent(`/product/${product.id}`));
+      navigate('/login?redirect=' + encodeURIComponent(`/products/${product.id}`));
       return;
     }
     const comment = reviewForm.comment.trim();
@@ -72,6 +95,12 @@ export function ProductDetail() {
     } finally {
       setSubmittingReview(false);
     }
+  };
+
+  const handleToggleWishlist = () => {
+    toggleWishlist(product.id);
+    const nextWishlisted = !isInWishlist(product.id);
+    toast.success(nextWishlisted ? 'Added to wishlist' : 'Removed from wishlist');
   };
 
   return (
@@ -155,8 +184,13 @@ export function ProductDetail() {
                   <ShoppingCart className="w-5 h-5" />
                   {availableStock > 0 ? 'Add to Cart' : 'Out of Stock'}
                 </button>
-                <button className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
-                  <Heart className="w-5 h-5" />
+                <button
+                  type="button"
+                  onClick={handleToggleWishlist}
+                  className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-[#FFC0CB] text-[#FFC0CB]' : ''}`} />
                 </button>
                 <button className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
                   <Share2 className="w-5 h-5" />
@@ -287,7 +321,15 @@ export function ProductDetail() {
               </div>
               {product.reviews.length > 0 ? (
                 product.reviews.map(review => (
-                  <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">
+                  <div
+                    key={review.id}
+                    data-review-user={review.user.trim().toLowerCase()}
+                    className={`border-b border-gray-200 pb-6 last:border-0 rounded-xl px-3 -mx-3 transition-colors ${
+                      highlightMine && user && review.user.trim().toLowerCase() === user.name.trim().toLowerCase()
+                        ? 'bg-[#FFE4E9]'
+                        : ''
+                    }`}
+                  >
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-10 h-10 bg-[#FFE4E9] rounded-full flex items-center justify-center font-semibold">
                         {review.user[0]}

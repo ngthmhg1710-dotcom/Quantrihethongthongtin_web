@@ -7,6 +7,7 @@ import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { Login } from './pages/Login';
 import { CustomerDashboard } from './pages/CustomerDashboard';
+import { EditProfile } from './pages/EditProfile';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
       { path: 'checkout', Component: Checkout },
       { path: 'login', Component: Login },
       { path: 'dashboard', Component: CustomerDashboard },
+      { path: 'dashboard/edit-profile', Component: EditProfile },
       { path: 'admin', Component: AdminDashboard },
       { path: 'about', Component: About },
       { path: 'contact', Component: Contact },
