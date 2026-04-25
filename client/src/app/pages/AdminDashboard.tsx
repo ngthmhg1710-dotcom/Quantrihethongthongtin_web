@@ -3,7 +3,7 @@ import { Product, Order } from '../data/products';
 import { useApp } from '../context/AppContext';
 import { localizeCategory, localizeProduct } from '../utils/localization';
 import { useNavigate } from 'react-router';
-import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
+import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2, Search, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { toast } from 'sonner';
 
@@ -79,6 +79,8 @@ export function AdminDashboard() {
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | Order['status']>('all');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderSortBy, setOrderSortBy] = useState<'date' | 'total'>('date');
@@ -371,6 +373,20 @@ export function AdminDashboard() {
   const deliveredOrdersCount = orders.filter((order) => order.status === 'delivered').length;
   const processingOrdersCount = orders.filter((order) => order.status === 'processing').length;
   const pendingOrdersCount = orders.filter((order) => order.status === 'pending').length;
+  const filteredProducts = useMemo(() => {
+    const keyword = productSearch.trim().toLowerCase();
+    if (!keyword) return products;
+    return products.filter((product) =>
+      [product.name, product.category, product.description].join(' ').toLowerCase().includes(keyword)
+    );
+  }, [products, productSearch]);
+  const filteredCategories = useMemo(() => {
+    const keyword = categorySearch.trim().toLowerCase();
+    if (!keyword) return categories;
+    return categories.filter((category) =>
+      [category.name, category.description || ''].join(' ').toLowerCase().includes(keyword)
+    );
+  }, [categories, categorySearch]);
   const filteredOrders = useMemo(() => {
     const keyword = orderSearch.trim().toLowerCase();
     return orders.filter((order) => {
@@ -685,8 +701,14 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-['Poppins'] font-semibold text-lg">Quản lý sản phẩm</h2>
                 <div className="flex items-center gap-3">
+                  <input
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Tìm sản phẩm theo tên, danh mục, mô tả..."
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm min-w-[280px] bg-white"
+                  />
                   <p className="text-sm text-gray-500">
-                    {products.length} sản phẩm • Bấm vào dòng để chỉnh sửa
+                    {filteredProducts.length}/{products.length} sản phẩm • Bấm vào dòng để chỉnh sửa
                   </p>
                   <button
                     onClick={() => {
@@ -713,10 +735,10 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product, index) => (
+                  {filteredProducts.map((product, index) => (
                     <tr
                       key={product.id}
-                      className={`${index !== products.length - 1 ? 'border-b border-gray-200' : ''} ${
+                      className={`${index !== filteredProducts.length - 1 ? 'border-b border-gray-200' : ''} ${
                         editingProductId === product.id ? 'bg-[#FFE4E9]' : ''
                       } cursor-pointer`}
                       onClick={() => {
@@ -791,6 +813,11 @@ export function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+            {filteredProducts.length === 0 && (
+              <div className="px-6 py-10 text-sm text-gray-600 text-center border-t border-gray-200">
+                Không tìm thấy sản phẩm phù hợp từ khóa.
+              </div>
+            )}
           </div>
         )}
         {isProductModalOpen && (
@@ -1333,6 +1360,30 @@ export function AdminDashboard() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <h2 className="font-['Poppins'] font-semibold text-xl mb-4">Quản lý danh mục</h2>
+              <div className="mb-3 grid md:grid-cols-3 gap-3 items-center">
+                <div className="relative w-full md:col-span-2">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="Tìm danh mục theo tên hoặc mô tả..."
+                    className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] focus:border-transparent transition"
+                  />
+                  {categorySearch.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setCategorySearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 transition-colors"
+                      aria-label="Xóa từ khóa tìm kiếm danh mục"
+                    >
+                      <X className="w-4 h-4 text-gray-500" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 md:text-right">
+                  {filteredCategories.length}/{categories.length} danh mục
+                </p>
+              </div>
               <div className="grid md:grid-cols-3 gap-3">
                 <input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} placeholder="Tên danh mục" className="px-3 py-2 border rounded-lg" />
                 <input value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} placeholder="Mô tả" className="px-3 py-2 border rounded-lg md:col-span-2" />
@@ -1343,7 +1394,7 @@ export function AdminDashboard() {
               </div>
             </div>
             <div className="p-6 space-y-3">
-              {categories.map((category) => (
+              {filteredCategories.map((category) => (
                 <div key={category._id} className="flex items-center justify-between border border-gray-200 rounded-xl p-4">
                   <div>
                     <p className="font-semibold">{category.name}</p>
@@ -1354,7 +1405,7 @@ export function AdminDashboard() {
                   </button>
                 </div>
               ))}
-              {categories.length === 0 && <p className="text-gray-600">Không tìm thấy danh mục nào</p>}
+              {filteredCategories.length === 0 && <p className="text-gray-600">Không tìm thấy danh mục phù hợp.</p>}
             </div>
           </div>
         )}
