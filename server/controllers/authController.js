@@ -1,7 +1,11 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const env = require("../config/env");
+
+const googleOAuthClient = new OAuth2Client();
 
 function sanitizeUser(user) {
   const shippingAddresses = Array.isArray(user.shippingAddresses)
@@ -125,6 +129,56 @@ async function login(req, res) {
   }
 }
 
+async function loginWithGoogle(req, res) {
+  try {
+    if (!env.googleClientId) {
+      return res.status(503).json({ message: "Google OAuth is not configured on server" });
+    }
+
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "Google ID token is required" });
+    }
+
+    const ticket = await googleOAuthClient.verifyIdToken({
+      idToken,
+      audience: env.googleClientId,
+    });
+
+    const payload = ticket.getPayload();
+    const email = String(payload?.email || "").toLowerCase().trim();
+    const name = String(payload?.name || "").trim() || "Google User";
+
+    if (!email) {
+      return res.status(400).json({ message: "Unable to get email from Google account" });
+    }
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        password: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10),
+        isAdmin: false,
+      });
+    } else if (!user.name?.trim()) {
+      user.name = name;
+      await user.save();
+    }
+
+    const authPayload = await buildAuthResponse(user);
+    return res.json({
+      message: "Google login successful",
+      ...authPayload,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message: "Google login failed",
+      detail: error instanceof Error ? error.message : undefined,
+    });
+  }
+}
+
 function me(req, res) {
   return res.json({
     message: "Token valid",
@@ -176,6 +230,7 @@ async function logout(req, res) {
 module.exports = {
   register,
   login,
+  loginWithGoogle,
   me,
   refresh,
   logout,

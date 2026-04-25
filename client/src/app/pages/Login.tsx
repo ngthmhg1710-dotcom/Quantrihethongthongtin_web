@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
@@ -8,9 +8,11 @@ export function Login() {
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/';
   const isRegisterMode = searchParams.get('mode') === 'register';
-  const { login, register } = useApp();
+  const { login, loginWithGoogle, register } = useApp();
   const [isRegister, setIsRegister] = useState(isRegisterMode);
   const [submitting, setSubmitting] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -50,6 +52,88 @@ export function Login() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  useEffect(() => {
+    if (!googleClientId || isRegister) {
+      setGoogleReady(false);
+      return;
+    }
+
+    let mounted = true;
+
+    const initializeGoogle = () => {
+      const google = (window as Window & { google?: any }).google;
+      if (!google?.accounts?.id) {
+        if (mounted) {
+          setGoogleReady(false);
+        }
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response: { credential?: string }) => {
+          if (!response.credential) {
+            toast.error('Google sign-in did not return a credential.');
+            return;
+          }
+
+          try {
+            setSubmitting(true);
+            const authUser = await loginWithGoogle(response.credential);
+            toast.success('Signed in with Google');
+            navigate(authUser.isAdmin ? '/admin' : redirectPath);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Google login failed';
+            toast.error(message);
+          } finally {
+            setSubmitting(false);
+          }
+        },
+      });
+
+      if (mounted) {
+        setGoogleReady(true);
+      }
+    };
+
+    const existingScript = document.querySelector('script[data-google-identity="true"]');
+    if (existingScript) {
+      initializeGoogle();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.setAttribute('data-google-identity', 'true');
+      script.onload = initializeGoogle;
+      script.onerror = () => {
+        if (mounted) {
+          setGoogleReady(false);
+        }
+      };
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [googleClientId, isRegister, loginWithGoogle, navigate, redirectPath]);
+
+  const handleGoogleSignIn = () => {
+    if (!googleClientId) {
+      toast.error('Google login is not configured. Missing VITE_GOOGLE_CLIENT_ID.');
+      return;
+    }
+
+    const google = (window as Window & { google?: any }).google;
+    if (!google?.accounts?.id) {
+      toast.error('Google sign-in library is not ready yet. Please try again.');
+      return;
+    }
+
+    google.accounts.id.prompt();
   };
 
   return (
@@ -140,6 +224,29 @@ export function Login() {
                 >
                   {submitting ? 'Please wait...' : isRegister ? 'Create Account' : 'Sign In'}
                 </button>
+
+                {!isRegister && (
+                  <>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="h-px bg-gray-200 flex-1" />
+                      <span>or</span>
+                      <span className="h-px bg-gray-200 flex-1" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={submitting || !googleReady}
+                      className="w-full border border-gray-300 py-3 rounded-full hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      Continue with Google
+                    </button>
+                    {!googleClientId && (
+                      <p className="text-xs text-amber-600">
+                        Google login is disabled until `VITE_GOOGLE_CLIENT_ID` is configured.
+                      </p>
+                    )}
+                  </>
+                )}
               </form>
 
               <div className="mt-6 text-center">

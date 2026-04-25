@@ -9,6 +9,7 @@ const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "15m",
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "change_this_refresh_secret_in_production",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+  googleClientId: process.env.GOOGLE_CLIENT_ID || "",
 };
 
 module.exports = env;

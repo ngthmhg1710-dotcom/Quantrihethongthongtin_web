@@ -40,6 +40,7 @@ interface AppContextType {
   isInWishlist: (productId: number) => boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: (idToken: string) => Promise<User>;
   register: (payload: { name: string; email: string; password: string }) => Promise<User>;
   logout: () => Promise<void>;
   updateProfile: (payload: {
@@ -84,6 +85,9 @@ const defaultAppContext: AppContextType = {
   login: async () => {
     throw new Error('App context is not ready');
   },
+  loginWithGoogle: async () => {
+    throw new Error('App context is not ready');
+  },
   register: async () => {
     throw new Error('App context is not ready');
   },
@@ -109,6 +113,12 @@ const USER_STORAGE_KEY = 'app_user';
 const TOKEN_STORAGE_KEY = 'app_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';
 const WISHLIST_STORAGE_KEY = 'app_wishlist_ids';
+
+const clearAuthStorage = () => {
+  localStorage.removeItem(USER_STORAGE_KEY);
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+};
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(localProducts);
@@ -185,6 +195,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshAccessToken = async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
     if (!refreshToken) {
+      clearAuthStorage();
+      setUser(null);
       throw new Error('Session expired');
     }
 
@@ -195,6 +207,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     if (!refreshResponse.ok) {
+      clearAuthStorage();
+      setUser(null);
       throw new Error('Session expired');
     }
 
@@ -380,6 +394,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return loggedInUser;
   };
 
+  const loginWithGoogle = async (idToken: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await response.json()
+      : { message: await response.text() };
+    if (!response.ok) {
+      throw new Error(data.message || 'Google login failed');
+    }
+
+    const loggedInUser = data.user as User;
+    setUser(loggedInUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
+    localStorage.setItem(TOKEN_STORAGE_KEY, data.token as string);
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, data.refreshToken as string);
+    return loggedInUser;
+  };
+
   const register = async (payload: { name: string; email: string; password: string }) => {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
@@ -415,9 +452,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+    clearAuthStorage();
   };
 
   const updateProfile = async (payload: {
@@ -537,6 +572,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isInWishlist,
         user,
         login,
+        loginWithGoogle,
         register,
         logout,
         updateProfile,
