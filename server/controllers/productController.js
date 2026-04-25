@@ -165,47 +165,66 @@ async function addProductReview(req, res) {
       return res.status(400).json({ message: "Comment must be at least 5 characters" });
     }
 
-    const product = await Product.findOne({ id });
+    const product = await Product.findOne({ id }).lean();
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const reviewerName = req.user?.name || "User";
+    const reviewerName = String(req.user?.name || "User").trim() || "User";
     const dateString = new Date().toISOString().split("T")[0];
-    const existingIndex = Array.isArray(product.reviews)
-      ? product.reviews.findIndex((r) => r.user === reviewerName)
-      : -1;
+    const safeReviews = Array.isArray(product.reviews)
+      ? product.reviews
+          .filter((review) => review && typeof review === "object" && review.user)
+          .map((review) => {
+            const parsedRating = Number(review.rating);
+            return {
+              id: Number.isFinite(Number(review.id)) ? Number(review.id) : 0,
+              user: String(review.user || "").trim(),
+              rating: Number.isFinite(parsedRating) ? parsedRating : 0,
+              comment: String(review.comment || "").trim(),
+              date: String(review.date || "").trim() || dateString,
+            };
+          })
+          .filter(
+            (review) =>
+              review.user.length > 0 &&
+              review.comment.length > 0 &&
+              Number.isFinite(review.rating) &&
+              review.rating >= 1 &&
+              review.rating <= 5
+          )
+      : [];
+    const nextReviewId = safeReviews.reduce((max, review) => Math.max(max, Number(review.id || 0)), 0) + 1;
 
-    const nextReviewId =
-      (product.reviews || []).reduce((max, r) => Math.max(max, Number(r.id || 0)), 0) + 1;
+    // Allow the same account to submit multiple reviews over time.
+    safeReviews.push({
+      id: nextReviewId,
+      user: reviewerName,
+      rating: parsedRating,
+      comment: normalizedComment,
+      date: dateString,
+    });
 
-    if (existingIndex >= 0) {
-      product.reviews[existingIndex] = {
-        ...product.reviews[existingIndex],
-        rating: parsedRating,
-        comment: normalizedComment,
-        date: dateString,
-      };
-    } else {
-      product.reviews = [
-        ...(product.reviews || []),
-        {
-          id: nextReviewId,
-          user: reviewerName,
-          rating: parsedRating,
-          comment: normalizedComment,
-          date: dateString,
-        },
-      ];
+    const totalRating = safeReviews.reduce((sum, review) => sum + review.rating, 0);
+    const nextRating = safeReviews.length > 0 ? totalRating / safeReviews.length : 0;
+
+    const updatedProduct = await Product.findOneAndUpdate(
+      { id },
+      { reviews: safeReviews, rating: nextRating },
+      { new: true, runValidators: false }
+    ).lean();
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
     }
 
-    const totalRating = (product.reviews || []).reduce((sum, r) => sum + Number(r.rating || 0), 0);
-    product.rating = product.reviews.length > 0 ? totalRating / product.reviews.length : 0;
-
-    await product.save();
-    return res.status(201).json({ message: "Review saved", product: product.toObject() });
+    return res.status(201).json({ message: "Review saved", product: updatedProduct });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to add review" });
+    console.error("addProductReview error:", error);
+    return res.status(500).json({
+      message: "Failed to add review",
+      detail: error instanceof Error ? error.message : undefined,
+    });
   }
 }
 

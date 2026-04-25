@@ -509,9 +509,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await response.json()
+      : { message: await response.text() };
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to submit review');
+      throw new Error(data.detail || data.message || 'Failed to submit review');
     }
     const updatedProduct = data.product as Product;
     setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p)));

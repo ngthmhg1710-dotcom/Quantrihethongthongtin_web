@@ -1,5 +1,5 @@
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Package, User, Heart, MessageCircleHeart } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export function CustomerDashboard() {
   const { user, orders, products, wishlistIds, updateProfile } = useApp();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedOrder, setSelectedOrder] = useState<(typeof orders)[number] | null>(null);
   const [activeSection, setActiveSection] = useState<'account' | 'reviews' | 'wishlist' | 'orders'>('account');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -73,6 +74,13 @@ export function CustomerDashboard() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'account' || tab === 'reviews' || tab === 'wishlist' || tab === 'orders') {
+      setActiveSection(tab);
+    }
+  }, [searchParams]);
+
   if (!user || user.isAdmin) return null;
 
   const getStatusColor = (status: string) => {
@@ -82,6 +90,45 @@ export function CustomerDashboard() {
       case 'processing': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatOrderDateTime = (order: (typeof orders)[number]) => {
+    const placedAt =
+      (order as (typeof order) & { placedAt?: string; createdAt?: string }).placedAt ||
+      (order as (typeof order) & { createdAt?: string }).createdAt;
+
+    if (placedAt) {
+      const parsed = new Date(placedAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString('vi-VN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+    }
+
+    // Fallback for older orders: extract timestamp from ORD-<milliseconds>.
+    const orderIdMatch = order.id.match(/^ORD-(\d{10,})$/);
+    if (orderIdMatch) {
+      const timestamp = Number(orderIdMatch[1]);
+      if (Number.isFinite(timestamp)) {
+        const parsedFromId = new Date(timestamp);
+        if (!Number.isNaN(parsedFromId.getTime())) {
+          return parsedFromId.toLocaleString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        }
+      }
+    }
+
+    return `${order.date} --:--`;
   };
 
   const wishlistedProducts = useMemo(
@@ -183,43 +230,77 @@ export function CustomerDashboard() {
             {activeSection === 'orders' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                <h2 className="font-['Poppins'] font-semibold text-xl">Order History</h2>
-                <span className="text-sm text-gray-500">{orders.length} orders</span>
+                  <h2 className="font-['Poppins'] font-semibold text-xl">Lịch sử mua hàng</h2>
+                  <span className="text-sm text-gray-500">{orders.length} đơn hàng</span>
                 </div>
-                <div className="space-y-4">
-                  {orders.map(order => (
-                    <div key={order.id} className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-semibold">{order.id}</p>
-                          <p className="text-sm text-gray-600">{order.date}</p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <p className="text-gray-600">Total: <span className="font-bold text-black">${order.total.toFixed(2)}</span></p>
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="text-sm text-[#FFC0CB] hover:underline"
-                        >
-                          View Details
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[820px]">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr className="text-left text-sm text-gray-600">
+                          <th className="px-4 py-3 font-medium">Mã đơn hàng</th>
+                          <th className="px-4 py-3 font-medium">Ngày đặt hàng</th>
+                          <th className="px-4 py-3 font-medium">Địa chỉ</th>
+                          <th className="px-4 py-3 font-medium">Tổng tiền</th>
+                          <th className="px-4 py-3 font-medium">Trạng thái</th>
+                          <th className="px-4 py-3 font-medium">Mã vận chuyển</th>
+                          <th className="px-4 py-3 font-medium">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {orders.map((order) => {
+                          const shippingCode =
+                            ((order as typeof order & { shippingCode?: string; trackingCode?: string }).shippingCode ||
+                              (order as typeof order & { trackingCode?: string }).trackingCode ||
+                              '-') as string;
+                          return (
+                            <tr
+                              key={order.id}
+                              className="hover:bg-gray-50 transition-colors cursor-pointer"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <td className="px-4 py-3 font-semibold text-sm">{order.id}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{formatOrderDateTime(order)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 max-w-[280px]">
+                                <p className="line-clamp-2">
+                                  {order.shippingAddress.address}, {order.shippingAddress.city}
+                                </p>
+                              </td>
+                              <td className="px-4 py-3 text-sm font-semibold">${order.total.toFixed(2)}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{shippingCode}</td>
+                              <td className="px-4 py-3">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedOrder(order);
+                                  }}
+                                  className="text-sm text-[#FFC0CB] hover:underline"
+                                >
+                                  Xem chi tiết
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
 
                   {orders.length === 0 && (
                     <div className="text-center py-12">
                       <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-4">No orders yet</p>
+                      <p className="text-gray-600 mb-4">Bạn chưa có đơn hàng nào.</p>
                       <button
                         onClick={() => navigate('/products')}
                         className="bg-black text-white px-6 py-2 rounded-full hover:bg-gray-800 transition-colors"
                       >
-                        Start Shopping
+                        Mua sắm ngay
                       </button>
                     </div>
                   )}
@@ -373,7 +454,7 @@ export function CustomerDashboard() {
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
                   {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                 </span>
-                <p className="text-sm text-gray-600 mt-3">Date: {selectedOrder.date}</p>
+                <p className="text-sm text-gray-600 mt-3">Date: {formatOrderDateTime(selectedOrder)}</p>
                 <p className="text-sm text-gray-600 mt-1">Total: ${selectedOrder.total.toFixed(2)}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">

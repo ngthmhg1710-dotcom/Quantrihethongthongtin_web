@@ -2,9 +2,11 @@ const Order = require("../models/Order");
 const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
 
 function formatOrder(order) {
+  const createdAt = order.createdAt ? new Date(order.createdAt) : null;
   return {
     id: order.orderNumber,
-    date: order.createdAt.toISOString().split("T")[0],
+    date: createdAt ? createdAt.toISOString().split("T")[0] : "",
+    placedAt: createdAt ? createdAt.toISOString() : null,
     items: order.items.map((item) => ({
       product: {
         id: item.productId,

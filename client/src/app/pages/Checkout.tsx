@@ -313,7 +313,7 @@ export function Checkout() {
           </div>
           <div className="flex gap-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/dashboard?tab=orders')}
               className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
             >
               View Orders
