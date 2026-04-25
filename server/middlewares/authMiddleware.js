@@ -23,6 +23,26 @@ async function protect(req, res, next) {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      phone: user.phone || "",
+      defaultShippingAddress: {
+        name: user.defaultShippingAddress?.name || "",
+        address: user.defaultShippingAddress?.address || "",
+        city: user.defaultShippingAddress?.city || "",
+        zipCode: user.defaultShippingAddress?.zipCode || "",
+        country: user.defaultShippingAddress?.country || "",
+      },
+      shippingAddresses: Array.isArray(user.shippingAddresses)
+        ? user.shippingAddresses.map((address) => ({
+            id: address._id?.toString?.() || "",
+            label: address.label || "Home",
+            name: address.name || "",
+            address: address.address || "",
+            city: address.city || "",
+            zipCode: address.zipCode || "",
+            country: address.country || "",
+            isDefault: Boolean(address.isDefault),
+          }))
+        : [],
     };
 
     return next();

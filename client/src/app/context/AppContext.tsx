@@ -6,6 +6,24 @@ interface User {
   name: string;
   email: string;
   isAdmin: boolean;
+  phone?: string;
+  shippingAddresses?: Array<{
+    id?: string;
+    label: string;
+    name: string;
+    address: string;
+    city: string;
+    zipCode: string;
+    country: string;
+    isDefault?: boolean;
+  }>;
+  defaultShippingAddress?: {
+    name: string;
+    address: string;
+    city: string;
+    zipCode: string;
+    country: string;
+  };
 }
 
 interface AppContextType {
@@ -21,6 +39,26 @@ interface AppContextType {
   login: (email: string, password: string) => Promise<User>;
   register: (payload: { name: string; email: string; password: string }) => Promise<User>;
   logout: () => Promise<void>;
+  updateProfile: (payload: {
+    name?: string;
+    phone?: string;
+    defaultShippingAddress?: {
+      name: string;
+      address: string;
+      city: string;
+      zipCode: string;
+      country: string;
+    };
+    shippingAddresses?: Array<{
+      label: string;
+      name: string;
+      address: string;
+      city: string;
+      zipCode: string;
+      country: string;
+      isDefault?: boolean;
+    }>;
+  }) => Promise<User>;
   orders: Order[];
   addOrder: (order: Order) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
@@ -317,19 +355,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
   };
 
+  const updateProfile = async (payload: {
+    name?: string;
+    phone?: string;
+    defaultShippingAddress?: {
+      name: string;
+      address: string;
+      city: string;
+      zipCode: string;
+      country: string;
+    };
+    shippingAddresses?: Array<{
+      label: string;
+      name: string;
+      address: string;
+      city: string;
+      zipCode: string;
+      country: string;
+      isDefault?: boolean;
+    }>;
+  }) => {
+    const response = await authFetch(`${API_BASE_URL}/user/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update profile');
+    }
+    const updatedUser = data.user as User;
+    setUser(updatedUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
+  };
+
   const addOrder = async (order: Order) => {
+    const sanitizedItems = order.items
+      .filter((item) => Number(item.quantity) > 0 && Number(item.product?.price) >= 0)
+      .map((item) => ({
+        product: {
+          id: Number(item.product.id),
+          name: item.product.name,
+          price: Number(item.product.price),
+          category: item.product.category,
+          // Avoid sending large base64 data URLs in checkout payload.
+          image: item.product.image?.startsWith('data:image/') ? '' : item.product.image,
+        },
+        quantity: Number(item.quantity),
+      }));
+
     const response = await authFetch(`${API_BASE_URL}/user/orders`, {
       method: 'POST',
       body: JSON.stringify({
-        items: order.items,
+        items: sanitizedItems,
         total: order.total,
         shippingAddress: order.shippingAddress,
       }),
     });
-
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await response.json()
+      : { message: await response.text() };
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to place order');
+      if (response.status === 413) {
+        throw new Error('Order payload is too large. Please use smaller product images.');
+      }
+      throw new Error(data.detail || data.message || 'Failed to place order');
     }
 
     setOrders((prev) => [data.order as Order, ...prev]);
@@ -363,6 +454,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        updateProfile,
         orders,
         addOrder,
         updateOrderStatus

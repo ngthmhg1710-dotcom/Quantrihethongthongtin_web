@@ -2,11 +2,22 @@ import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router';
 import { Package, User, MapPin, Heart } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function CustomerDashboard() {
-  const { user, orders, logout } = useApp();
+  const { user, orders, logout, updateProfile } = useApp();
   const navigate = useNavigate();
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    addressName: user?.defaultShippingAddress?.name || user?.name || '',
+    address: user?.defaultShippingAddress?.address || '',
+    city: user?.defaultShippingAddress?.city || '',
+    zipCode: user?.defaultShippingAddress?.zipCode || '',
+    country: user?.defaultShippingAddress?.country || 'USA',
+  });
 
   if (!user || user.isAdmin) {
     navigate('/login');
@@ -19,6 +30,32 @@ export function CustomerDashboard() {
       case 'shipped': return 'bg-blue-100 text-blue-800';
       case 'processing': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const savedAddressCount = user?.shippingAddresses?.length || (user?.defaultShippingAddress?.address ? 1 : 0);
+
+  const handleSaveProfile = async () => {
+    try {
+      if (profileForm.name.trim().length < 2) {
+        toast.error('Name must be at least 2 characters');
+        return;
+      }
+      await updateProfile({
+        name: profileForm.name.trim(),
+        phone: profileForm.phone.trim(),
+        defaultShippingAddress: {
+          name: profileForm.addressName.trim(),
+          address: profileForm.address.trim(),
+          city: profileForm.city.trim(),
+          zipCode: profileForm.zipCode.trim(),
+          country: profileForm.country.trim(),
+        },
+      });
+      toast.success('Profile updated');
+      setIsEditingProfile(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
     }
   };
 
@@ -51,7 +88,7 @@ export function CustomerDashboard() {
             <div className="w-12 h-12 bg-[#FFE4E9] rounded-full flex items-center justify-center mb-4">
               <MapPin className="w-6 h-6 text-[#FFC0CB]" />
             </div>
-            <p className="text-2xl font-bold mb-1">1</p>
+            <p className="text-2xl font-bold mb-1">{savedAddressCount}</p>
             <p className="text-sm text-gray-600">Saved Address</p>
           </div>
 
@@ -159,7 +196,35 @@ export function CustomerDashboard() {
                   <p className="font-semibold">{user.email}</p>
                 </div>
 
-                <button className="w-full text-left text-sm text-[#FFC0CB] hover:underline">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Phone</p>
+                  <p className="font-semibold">{user.phone || 'Not set'}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Default Shipping</p>
+                  <p className="text-sm font-medium text-gray-800">
+                    {user.defaultShippingAddress?.address
+                      ? `${user.defaultShippingAddress.name}, ${user.defaultShippingAddress.address}, ${user.defaultShippingAddress.city}`
+                      : 'Not set'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setProfileForm({
+                      name: user.name || '',
+                      phone: user.phone || '',
+                      addressName: user.defaultShippingAddress?.name || user.name || '',
+                      address: user.defaultShippingAddress?.address || '',
+                      city: user.defaultShippingAddress?.city || '',
+                      zipCode: user.defaultShippingAddress?.zipCode || '',
+                      country: user.defaultShippingAddress?.country || 'USA',
+                    });
+                    setIsEditingProfile(true);
+                  }}
+                  className="w-full text-left text-sm text-[#FFC0CB] hover:underline"
+                >
                   Edit Profile
                 </button>
               </div>
@@ -197,6 +262,112 @@ export function CustomerDashboard() {
           </div>
         </div>
       </div>
+      {isEditingProfile && (
+        <div
+          className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4"
+          onClick={() => setIsEditingProfile(false)}
+        >
+          <div
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-['Poppins'] font-semibold text-xl">Edit Profile</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(false)}
+                className="px-3 py-1.5 border rounded-full text-sm hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+84..."
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+              <div className="pt-2 border-t border-gray-200">
+                <p className="font-medium mb-3">Default Shipping Address</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Receiver Name</label>
+                    <input
+                      value={profileForm.addressName}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, addressName: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Address</label>
+                    <input
+                      value={profileForm.address}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, address: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">City</label>
+                      <input
+                        value={profileForm.city}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, city: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">ZIP Code</label>
+                      <input
+                        value={profileForm.zipCode}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, zipCode: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Country</label>
+                      <input
+                        value={profileForm.country}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, country: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProfile(false)}
+                  className="px-4 py-2 border rounded-full"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveProfile}
+                  className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

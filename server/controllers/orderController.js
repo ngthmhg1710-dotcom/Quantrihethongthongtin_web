@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
 
 function formatOrder(order) {
   return {
@@ -39,14 +40,20 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: "Shipping information is incomplete" });
     }
 
-    const normalizedItems = items.map((item) => ({
-      productId: Number(item?.product?.id),
-      name: item?.product?.name || "Product",
-      price: Number(item?.product?.price || 0),
-      image: item?.product?.image || "",
-      category: item?.product?.category || "General",
-      quantity: Number(item?.quantity || 1),
-    }));
+    const normalizedItems = items
+      .map((item) => ({
+        productId: Number(item?.product?.id),
+        name: item?.product?.name || "Product",
+        price: Number(item?.product?.price || 0),
+        image: item?.product?.image || FALLBACK_PRODUCT_IMAGE,
+        category: item?.product?.category || "General",
+        quantity: Number(item?.quantity || 1),
+      }))
+      .filter((item) => Number.isFinite(item.productId) && item.productId > 0 && item.quantity > 0);
+
+    if (normalizedItems.length === 0) {
+      return res.status(400).json({ message: "Order items are invalid" });
+    }
 
     const order = await Order.create({
       orderNumber: `ORD-${Date.now()}`,
@@ -62,7 +69,10 @@ async function createOrder(req, res) {
       order: formatOrder(order),
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to create order" });
+    return res.status(500).json({
+      message: "Failed to create order",
+      detail: error instanceof Error ? error.message : undefined,
+    });
   }
 }
 

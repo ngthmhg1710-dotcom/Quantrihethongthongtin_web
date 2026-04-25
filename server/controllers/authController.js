@@ -4,11 +4,33 @@ const User = require("../models/User");
 const env = require("../config/env");
 
 function sanitizeUser(user) {
+  const shippingAddresses = Array.isArray(user.shippingAddresses)
+    ? user.shippingAddresses.map((address) => ({
+        id: address._id?.toString?.() || "",
+        label: address.label || "Home",
+        name: address.name || "",
+        address: address.address || "",
+        city: address.city || "",
+        zipCode: address.zipCode || "",
+        country: address.country || "",
+        isDefault: Boolean(address.isDefault),
+      }))
+    : [];
+  const defaultAddressFromBook = shippingAddresses.find((address) => address.isDefault) || shippingAddresses[0];
   return {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
     isAdmin: user.isAdmin,
+    phone: user.phone || "",
+    defaultShippingAddress: {
+      name: defaultAddressFromBook?.name || user.defaultShippingAddress?.name || "",
+      address: defaultAddressFromBook?.address || user.defaultShippingAddress?.address || "",
+      city: defaultAddressFromBook?.city || user.defaultShippingAddress?.city || "",
+      zipCode: defaultAddressFromBook?.zipCode || user.defaultShippingAddress?.zipCode || "",
+      country: defaultAddressFromBook?.country || user.defaultShippingAddress?.country || "",
+    },
+    shippingAddresses,
   };
 }
 
