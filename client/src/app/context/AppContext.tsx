@@ -206,14 +206,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const addToCart = (product: Product, quantity: number = 1) => {
+    const availableStock = Number(product.stock ?? 0);
+    if (availableStock <= 0) {
+      throw new Error('This product is out of stock');
+    }
+
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
+        const nextQuantity = existing.quantity + quantity;
+        if (nextQuantity > availableStock) {
+          throw new Error(`Only ${availableStock} items left in stock`);
+        }
         return prev.map(item =>
           item.product.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
+      }
+
+      if (quantity > availableStock) {
+        throw new Error(`Only ${availableStock} items left in stock`);
       }
       return [...prev, { product, quantity }];
     });
@@ -227,6 +240,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
+    }
+    const product = products.find((p) => p.id === productId);
+    const availableStock = Number(product?.stock ?? 0);
+    if (availableStock > 0 && quantity > availableStock) {
+      throw new Error(`Only ${availableStock} items left in stock`);
     }
     setCart(prev =>
       prev.map(item =>

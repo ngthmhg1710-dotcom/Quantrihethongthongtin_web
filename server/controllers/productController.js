@@ -1,6 +1,49 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 
+function validateProductPayload(payload, isPartial = false) {
+  const errors = [];
+  const has = (key) => Object.prototype.hasOwnProperty.call(payload, key);
+
+  if (!isPartial || has("name")) {
+    const name = String(payload.name || "").trim();
+    if (!name) errors.push("Product name is required");
+    if (name.length > 120) errors.push("Product name is too long");
+  }
+
+  if (!isPartial || has("category")) {
+    const category = String(payload.category || "").trim();
+    if (!category) errors.push("Category is required");
+  }
+
+  if (!isPartial || has("description")) {
+    const description = String(payload.description || "").trim();
+    if (!description) errors.push("Description is required");
+    if (description.length < 20) errors.push("Description must be at least 20 characters");
+  }
+
+  if (!isPartial || has("price")) {
+    const price = Number(payload.price);
+    if (!Number.isFinite(price) || price < 0) errors.push("Price must be a non-negative number");
+  }
+
+  if (!isPartial || has("stock")) {
+    const stock = Number(payload.stock);
+    if (!Number.isInteger(stock) || stock < 0) errors.push("Stock must be an integer greater than or equal to 0");
+  }
+
+  if (!isPartial || has("image")) {
+    const image = String(payload.image || "").trim();
+    const isDataImage = image.startsWith("data:image/");
+    const isHttpImage = /^https?:\/\//i.test(image);
+    if (!image || (!isDataImage && !isHttpImage)) {
+      errors.push("Image must be a valid URL or uploaded image data");
+    }
+  }
+
+  return errors;
+}
+
 async function getProducts(req, res) {
   try {
     const products = await Product.find().sort({ id: 1 }).lean();
@@ -28,8 +71,9 @@ async function getProductById(req, res) {
 async function createProduct(req, res) {
   try {
     const { name, price, stock, image, category, description, ingredients, skinTypes, featured, step } = req.body;
-    if (!name || !image || !category || !description) {
-      return res.status(400).json({ message: "Missing required product fields" });
+    const validationErrors = validateProductPayload(req.body, false);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ message: validationErrors[0], errors: validationErrors });
     }
 
     const maxProduct = await Product.findOne().sort({ id: -1 }).lean();
@@ -68,6 +112,10 @@ async function updateProduct(req, res) {
   try {
     const id = Number(req.params.id);
     const updates = { ...req.body };
+    const validationErrors = validateProductPayload(updates, true);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ message: validationErrors[0], errors: validationErrors });
+    }
     if (updates.category) {
       const normalizedCategory = String(updates.category).trim();
       updates.category = normalizedCategory;

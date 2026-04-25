@@ -30,10 +30,15 @@ export function ProductDetail() {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
-    toast.success(`${product.name} added to cart!`, {
-      description: `Quantity: ${quantity}`
-    });
+    try {
+      addToCart(product, quantity);
+      toast.success(`${product.name} added to cart!`, {
+        description: `Quantity: ${quantity}`
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to add to cart';
+      toast.error(message);
+    }
   };
 
   return (
@@ -100,16 +105,19 @@ export function ProductDetail() {
                     +
                   </button>
                 </div>
-                <span className="text-gray-600">In Stock</span>
+                <span className="text-gray-600">
+                  {Number(product.stock ?? 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                </span>
               </div>
 
               <div className="flex gap-4 mb-6">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                  disabled={Number(product.stock ?? 0) <= 0}
+                  className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  Add to Cart
+                  {Number(product.stock ?? 0) > 0 ? 'Add to Cart' : 'Out of Stock'}
                 </button>
                 <button className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
                   <Heart className="w-5 h-5" />
