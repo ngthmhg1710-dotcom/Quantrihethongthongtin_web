@@ -1,0 +1,364 @@
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { CartItem, Product, Order, products as localProducts } from '../data/products';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+interface AppContextType {
+  products: Product[];
+  productsLoading: boolean;
+  refreshProducts: () => Promise<void>;
+  cart: CartItem[];
+  addToCart: (product: Product, quantity?: number) => void;
+  removeFromCart: (productId: number) => void;
+  updateQuantity: (productId: number, quantity: number) => void;
+  clearCart: () => void;
+  user: User | null;
+  login: (email: string, password: string) => Promise<User>;
+  register: (payload: { name: string; email: string; password: string }) => Promise<User>;
+  logout: () => Promise<void>;
+  orders: Order[];
+  addOrder: (order: Order) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+const API_BASE_URL = 'http://localhost:5000/api';
+const USER_STORAGE_KEY = 'app_user';
+const TOKEN_STORAGE_KEY = 'app_token';
+const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [products, setProducts] = useState<Product[]>(localProducts);
+  const [productsLoading, setProductsLoading] = useState<boolean>(true);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  const refreshProducts = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+
+      const apiProducts = (await response.json()) as Array<Partial<Product>>;
+      const normalized: Product[] = apiProducts.map((item, index) => ({
+        id: Number(item.id ?? index + 1),
+        name: item.name ?? 'Product',
+        price: Number(item.price ?? 0),
+        stock: Number(item.stock ?? 0),
+        image: item.image ?? '',
+        category: item.category ?? 'General',
+        description: item.description ?? '',
+        ingredients: item.ingredients ?? [],
+        skinTypes: item.skinTypes ?? ['all'],
+        rating: Number(item.rating ?? 0),
+        reviews: item.reviews ?? [],
+        featured: Boolean(item.featured),
+        step: item.step,
+      }));
+
+      setProducts(normalized.length > 0 ? normalized : localProducts);
+    } catch {
+      setProducts(localProducts);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProducts = async () => {
+      try {
+        if (!mounted) return;
+        await refreshProducts();
+      } catch {
+        // handled inside refreshProducts
+      } finally {
+        if (mounted) {
+          setProductsLoading(false);
+        }
+      }
+    };
+
+    loadProducts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem(USER_STORAGE_KEY);
+    return savedUser ? (JSON.parse(savedUser) as User) : null;
+  });
+
+  const refreshAccessToken = async () => {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+    if (!refreshToken) {
+      throw new Error('Session expired');
+    }
+
+    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!refreshResponse.ok) {
+      throw new Error('Session expired');
+    }
+
+    const refreshData = await refreshResponse.json();
+    localStorage.setItem(TOKEN_STORAGE_KEY, refreshData.token as string);
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshData.refreshToken as string);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(refreshData.user));
+    setUser(refreshData.user as User);
+    return refreshData.token as string;
+  };
+
+  const authFetch = async (url: string, options: RequestInit = {}) => {
+    let token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const headers = new Headers(options.headers || {});
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    if (!headers.has('Content-Type') && options.body) headers.set('Content-Type', 'application/json');
+
+    let response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+      token = await refreshAccessToken();
+      const retryHeaders = new Headers(options.headers || {});
+      retryHeaders.set('Authorization', `Bearer ${token}`);
+      if (!retryHeaders.has('Content-Type') && options.body) retryHeaders.set('Content-Type', 'application/json');
+      response = await fetch(url, { ...options, headers: retryHeaders });
+    }
+    return response;
+  };
+
+  useEffect(() => {
+    const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const currentRefreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+    if (!currentToken && !currentRefreshToken) {
+      return;
+    }
+
+    const verifyToken = async () => {
+      try {
+        let token = localStorage.getItem(TOKEN_STORAGE_KEY);
+        let response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok && response.status === 401) {
+          token = await refreshAccessToken();
+
+          response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+
+        if (!response.ok) {
+          throw new Error('Session expired');
+        }
+
+        const data = await response.json();
+        const authenticatedUser = data.user as User;
+        setUser(authenticatedUser);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authenticatedUser));
+      } catch {
+        setUser(null);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+        localStorage.removeItem(USER_STORAGE_KEY);
+      }
+    };
+
+    verifyToken();
+  }, []);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (!user) {
+        setOrders([]);
+        return;
+      }
+
+      try {
+        const endpoint = user.isAdmin ? '/admin/orders' : '/user/orders';
+        const response = await authFetch(`${API_BASE_URL}${endpoint}`);
+        if (!response.ok) {
+          throw new Error('Failed to load orders');
+        }
+        const data = await response.json();
+        setOrders((data.orders || []) as Order[]);
+      } catch {
+        setOrders([]);
+      }
+    };
+
+    loadOrders();
+  }, [user]);
+
+  const addToCart = (product: Product, quantity: number = 1) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      }
+      return [...prev, { product, quantity }];
+    });
+  };
+
+  const removeFromCart = (productId: number) => {
+    setCart(prev => prev.filter(item => item.product.id !== productId));
+  };
+
+  const updateQuantity = (productId: number, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart(prev =>
+      prev.map(item =>
+        item.product.id === productId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const login = async (email: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+
+    const loggedInUser = data.user as User;
+    setUser(loggedInUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
+    localStorage.setItem(TOKEN_STORAGE_KEY, data.token as string);
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, data.refreshToken as string);
+    return loggedInUser;
+  };
+
+  const register = async (payload: { name: string; email: string; password: string }) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
+
+    const createdUser = data.user as User;
+    setUser(createdUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(createdUser));
+    localStorage.setItem(TOKEN_STORAGE_KEY, data.token as string);
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, data.refreshToken as string);
+    return createdUser;
+  };
+
+  const logout = async () => {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+    if (refreshToken) {
+      try {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+      } catch {
+        // ignore network/logout failures on client cleanup
+      }
+    }
+
+    setUser(null);
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+  };
+
+  const addOrder = async (order: Order) => {
+    const response = await authFetch(`${API_BASE_URL}/user/orders`, {
+      method: 'POST',
+      body: JSON.stringify({
+        items: order.items,
+        total: order.total,
+        shippingAddress: order.shippingAddress,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to place order');
+    }
+
+    setOrders((prev) => [data.order as Order, ...prev]);
+  };
+
+  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+    const response = await authFetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update order status');
+    }
+
+    setOrders((prev) => prev.map((order) => (order.id === orderId ? (data.order as Order) : order)));
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        cart,
+        products,
+        productsLoading,
+        refreshProducts,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        user,
+        login,
+        register,
+        logout,
+        orders,
+        addOrder,
+        updateOrderStatus
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+}
+
+export function useApp() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within AppProvider');
+  }
+  return context;
+}
