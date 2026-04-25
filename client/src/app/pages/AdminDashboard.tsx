@@ -1360,33 +1360,43 @@ export function AdminDashboard() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <h2 className="font-['Poppins'] font-semibold text-xl mb-4">Quản lý danh mục</h2>
-              <div className="mb-3 grid md:grid-cols-3 gap-3 items-center">
-                <div className="relative w-full md:col-span-2">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div className="mb-3 flex items-center justify-between w-full">
+                <div className="flex items-center gap-3 max-w-4xl w-full">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      placeholder="Tìm danh mục..."
+                      className="flex-1 w-full border rounded px-3 py-2 pl-9 pr-10"
+                    />
+                    {categorySearch.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setCategorySearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 transition-colors"
+                        aria-label="Xóa từ khóa tìm kiếm danh mục"
+                      >
+                        <X className="w-4 h-4 text-gray-500" />
+                      </button>
+                    )}
+                  </div>
                   <input
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                    placeholder="Tìm danh mục theo tên hoặc mô tả..."
-                    className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] focus:border-transparent transition"
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    placeholder="Tên danh mục"
+                    className="w-1/5 border rounded px-3 py-2"
                   />
-                  {categorySearch.trim() && (
-                    <button
-                      type="button"
-                      onClick={() => setCategorySearch('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 transition-colors"
-                      aria-label="Xóa từ khóa tìm kiếm danh mục"
-                    >
-                      <X className="w-4 h-4 text-gray-500" />
-                    </button>
-                  )}
+                  <input
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                    placeholder="Mô tả"
+                    className="w-1/3 border rounded px-3 py-2"
+                  />
                 </div>
-                <p className="text-xs text-gray-500 md:text-right">
+                <p className="ml-4 whitespace-nowrap text-sm text-gray-600">
                   {filteredCategories.length}/{categories.length} danh mục
                 </p>
-              </div>
-              <div className="grid md:grid-cols-3 gap-3">
-                <input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} placeholder="Tên danh mục" className="px-3 py-2 border rounded-lg" />
-                <input value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} placeholder="Mô tả" className="px-3 py-2 border rounded-lg md:col-span-2" />
               </div>
               <div className="flex gap-2 mt-3">
                 <button onClick={submitCategory} className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors">Thêm danh mục</button>
