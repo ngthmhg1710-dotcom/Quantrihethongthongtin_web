@@ -62,6 +62,7 @@ interface AppContextType {
   orders: Order[];
   addOrder: (order: Order) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
+  addProductReview: (productId: number, payload: { rating: number; comment: string }) => Promise<Product>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -249,25 +250,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error('This product is out of stock');
     }
 
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+    let error: Error | null = null;
+
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         const nextQuantity = existing.quantity + quantity;
         if (nextQuantity > availableStock) {
-          throw new Error(`Only ${availableStock} items left in stock`);
+          error = new Error(`Only ${availableStock} items left in stock`);
+          return prev;
         }
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: nextQuantity } : item
         );
       }
 
       if (quantity > availableStock) {
-        throw new Error(`Only ${availableStock} items left in stock`);
+        error = new Error(`Only ${availableStock} items left in stock`);
+        return prev;
       }
       return [...prev, { product, quantity }];
     });
+
+    if (error) throw error;
   };
 
   const removeFromCart = (productId: number) => {
@@ -439,6 +444,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((order) => (order.id === orderId ? (data.order as Order) : order)));
   };
 
+  const addProductReview = async (productId: number, payload: { rating: number; comment: string }) => {
+    const response = await authFetch(`${API_BASE_URL}/products/${productId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to submit review');
+    }
+    const updatedProduct = data.product as Product;
+    setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p)));
+    return updatedProduct;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -457,7 +476,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateProfile,
         orders,
         addOrder,
-        updateOrderStatus
+        updateOrderStatus,
+        addProductReview,
       }}
     >
       {children}

@@ -151,10 +151,69 @@ async function deleteProduct(req, res) {
   }
 }
 
+async function addProductReview(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const { rating, comment } = req.body;
+
+    const parsedRating = Number(rating);
+    const normalizedComment = String(comment || "").trim();
+    if (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      return res.status(400).json({ message: "Rating must be an integer from 1 to 5" });
+    }
+    if (!normalizedComment || normalizedComment.length < 5) {
+      return res.status(400).json({ message: "Comment must be at least 5 characters" });
+    }
+
+    const product = await Product.findOne({ id });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const reviewerName = req.user?.name || "User";
+    const dateString = new Date().toISOString().split("T")[0];
+    const existingIndex = Array.isArray(product.reviews)
+      ? product.reviews.findIndex((r) => r.user === reviewerName)
+      : -1;
+
+    const nextReviewId =
+      (product.reviews || []).reduce((max, r) => Math.max(max, Number(r.id || 0)), 0) + 1;
+
+    if (existingIndex >= 0) {
+      product.reviews[existingIndex] = {
+        ...product.reviews[existingIndex],
+        rating: parsedRating,
+        comment: normalizedComment,
+        date: dateString,
+      };
+    } else {
+      product.reviews = [
+        ...(product.reviews || []),
+        {
+          id: nextReviewId,
+          user: reviewerName,
+          rating: parsedRating,
+          comment: normalizedComment,
+          date: dateString,
+        },
+      ];
+    }
+
+    const totalRating = (product.reviews || []).reduce((sum, r) => sum + Number(r.rating || 0), 0);
+    product.rating = product.reviews.length > 0 ? totalRating / product.reviews.length : 0;
+
+    await product.save();
+    return res.status(201).json({ message: "Review saved", product: product.toObject() });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to add review" });
+  }
+}
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  addProductReview,
 };

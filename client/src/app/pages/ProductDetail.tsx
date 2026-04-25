@@ -7,11 +7,14 @@ import { toast } from 'sonner';
 export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, products } = useApp();
+  const { addToCart, products, user, addProductReview } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<'description' | 'ingredients' | 'reviews'>('description');
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const product = products.find(p => p.id === parseInt(id || '0'));
+  const availableStock = Number(product?.stock ?? 0);
 
   if (!product) {
     return (
@@ -31,13 +34,43 @@ export function ProductDetail() {
 
   const handleAddToCart = () => {
     try {
-      addToCart(product, quantity);
+      if (availableStock <= 0) {
+        toast.error('Out of stock');
+        return;
+      }
+      const safeQuantity = Math.max(1, Math.min(quantity, availableStock));
+      if (safeQuantity !== quantity) setQuantity(safeQuantity);
+      addToCart(product, safeQuantity);
       toast.success(`${product.name} added to cart!`, {
-        description: `Quantity: ${quantity}`
+        description: `Quantity: ${safeQuantity}`
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to add to cart';
       toast.error(message);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!user) {
+      toast.error('Please sign in to write a review');
+      navigate('/login?redirect=' + encodeURIComponent(`/product/${product.id}`));
+      return;
+    }
+    const comment = reviewForm.comment.trim();
+    if (comment.length < 5) {
+      toast.error('Comment must be at least 5 characters');
+      return;
+    }
+    try {
+      setSubmittingReview(true);
+      await addProductReview(product.id, { rating: reviewForm.rating, comment });
+      toast.success('Review submitted');
+      setReviewForm({ rating: 5, comment: '' });
+      setSelectedTab('reviews');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -92,32 +125,35 @@ export function ProductDetail() {
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center border border-gray-300 rounded-full overflow-hidden">
                   <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    type="button"
+                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
                     className="px-4 py-2 hover:bg-gray-100"
                   >
                     -
                   </button>
                   <span className="px-6 py-2">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="px-4 py-2 hover:bg-gray-100"
+                    type="button"
+                    onClick={() => setQuantity((prev) => Math.min(Math.max(1, availableStock || 1), prev + 1))}
+                    disabled={availableStock > 0 ? quantity >= availableStock : true}
+                    className="px-4 py-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     +
                   </button>
                 </div>
                 <span className="text-gray-600">
-                  {Number(product.stock ?? 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                  {availableStock > 0 ? `${availableStock} in stock` : 'Out of stock'}
                 </span>
               </div>
 
               <div className="flex gap-4 mb-6">
                 <button
                   onClick={handleAddToCart}
-                  disabled={Number(product.stock ?? 0) <= 0}
+                  disabled={availableStock <= 0}
                   className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  {Number(product.stock ?? 0) > 0 ? 'Add to Cart' : 'Out of Stock'}
+                  {availableStock > 0 ? 'Add to Cart' : 'Out of Stock'}
                 </button>
                 <button className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
                   <Heart className="w-5 h-5" />
@@ -201,6 +237,54 @@ export function ProductDetail() {
 
           {selectedTab === 'reviews' && (
             <div className="space-y-6">
+              <div className="border border-gray-200 rounded-xl p-4">
+                <h3 className="font-semibold mb-3">Write a review</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Rating</label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setReviewForm((prev) => ({ ...prev, rating: value }))}
+                            className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+                            aria-label={`${value} star${value > 1 ? 's' : ''}`}
+                          >
+                            <Star
+                              className={`w-6 h-6 ${
+                                value <= reviewForm.rating ? 'fill-[#FFC0CB] text-[#FFC0CB]' : 'text-gray-300'
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">{reviewForm.rating}/5</span>
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">Comment</label>
+                    <textarea
+                      value={reviewForm.comment}
+                      onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="Share your experience..."
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-3">
+                  <button
+                    type="button"
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview}
+                    className="bg-black text-white px-5 py-2 rounded-full hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </div>
+              </div>
               {product.reviews.length > 0 ? (
                 product.reviews.map(review => (
                   <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">

@@ -20,8 +20,10 @@ export function Checkout() {
   const [didPrefillShipping, setDidPrefillShipping] = useState(false);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
+  const [isAddressPickerOpen, setIsAddressPickerOpen] = useState(false);
   const [saveAddressToAccount, setSaveAddressToAccount] = useState(true);
   const [setAsDefaultAddress, setSetAsDefaultAddress] = useState(true);
+  const [makeSelectedDefaultInPicker, setMakeSelectedDefaultInPicker] = useState(false);
 
   const [paymentInfo, setPaymentInfo] = useState({
     cardNumber: '',
@@ -58,6 +60,7 @@ export function Checkout() {
     const address = user.shippingAddresses[index];
     setSelectedAddressIndex(index);
     setIsAddingNewAddress(false);
+    setShippingErrors({});
     setShippingInfo((prev) => ({
       ...prev,
       name: address.name,
@@ -68,6 +71,44 @@ export function Checkout() {
       email: user.email || prev.email,
     }));
   };
+
+  const setDefaultAddressInBook = async (index: number) => {
+    if (!user?.shippingAddresses || !user.shippingAddresses[index]) return;
+    try {
+      const nextBook = user.shippingAddresses.map((addr, idx) => ({
+        label: addr.label || (idx === 0 ? 'Home' : `Address ${idx + 1}`),
+        name: addr.name,
+        address: addr.address,
+        city: addr.city,
+        zipCode: addr.zipCode,
+        country: addr.country,
+        isDefault: idx === index,
+      }));
+      await updateProfile({ shippingAddresses: nextBook });
+      toast.success('Default address updated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to set default address');
+    }
+  };
+
+  const handlePickSavedAddress = async (index: number) => {
+    applyAddressFromBook(index);
+    if (makeSelectedDefaultInPicker) {
+      await setDefaultAddressInBook(index);
+    }
+    setIsAddressPickerOpen(false);
+  };
+
+  const sortedSavedAddresses = (user?.shippingAddresses || [])
+    .map((address, index) => ({ address, index }))
+    .sort((a, b) => {
+      const aDefault = a.address.isDefault ? 1 : 0;
+      const bDefault = b.address.isDefault ? 1 : 0;
+      if (aDefault !== bDefault) return bDefault - aDefault;
+      return (a.address.label || '').localeCompare(b.address.label || '');
+    });
+  const selectedSavedAddress =
+    user?.shippingAddresses && selectedAddressIndex >= 0 ? user.shippingAddresses[selectedAddressIndex] : null;
 
   if (!user) {
     return (
@@ -317,50 +358,23 @@ export function Checkout() {
 
                 <form onSubmit={handleShippingSubmit} className="space-y-4">
                   {user.shippingAddresses && user.shippingAddresses.length > 0 && (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
-                      <p className="text-sm font-medium">Saved addresses</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">Shipping address</p>
+                          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                            {selectedSavedAddress
+                              ? `${selectedSavedAddress.label}${selectedSavedAddress.isDefault ? ' (Default)' : ''} • ${selectedSavedAddress.name} • ${selectedSavedAddress.address}, ${selectedSavedAddress.city}`
+                              : 'No address selected'}
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => {
-                            const defaultIndex = user.shippingAddresses?.findIndex((address) => address.isDefault) ?? -1;
-                            if (defaultIndex >= 0) applyAddressFromBook(defaultIndex);
-                            else applyAddressFromBook(0);
-                          }}
-                          className="px-3 py-1.5 text-xs border rounded-full bg-white hover:bg-gray-100"
+                          onClick={() => setIsAddressPickerOpen(true)}
+                          className="shrink-0 px-3 py-1.5 text-xs border rounded-full bg-white hover:bg-gray-100"
                         >
-                          Dùng thông tin tài khoản
+                          Chọn địa chỉ
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsAddingNewAddress(true);
-                            setSelectedAddressIndex(-1);
-                            setShippingInfo((prev) => ({ ...prev, name: user.name || '', email: user.email || '' }));
-                          }}
-                          className="px-3 py-1.5 text-xs border rounded-full bg-white hover:bg-gray-100"
-                        >
-                          Thêm địa chỉ mới
-                        </button>
-                      </div>
-                      <div className="grid gap-2">
-                        {user.shippingAddresses.map((address, index) => (
-                          <button
-                            key={`${address.label}-${address.address}-${index}`}
-                            type="button"
-                            onClick={() => applyAddressFromBook(index)}
-                            className={`text-left px-3 py-2 rounded-lg border text-sm ${
-                              selectedAddressIndex === index ? 'border-black bg-white' : 'border-gray-200 bg-white hover:bg-gray-100'
-                            }`}
-                          >
-                            <p className="font-medium">
-                              {address.label} {address.isDefault ? '(Default)' : ''}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {address.name} - {address.address}, {address.city}
-                            </p>
-                          </button>
-                        ))}
                       </div>
                     </div>
                   )}
@@ -463,6 +477,32 @@ export function Checkout() {
                     </div>
                   </div>
 
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={saveAddressToAccount}
+                          onChange={(e) => setSaveAddressToAccount(e.target.checked)}
+                        />
+                        Lưu địa chỉ này vào sổ địa chỉ
+                      </label>
+                      {isAddingNewAddress && saveAddressToAccount && (
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={setAsDefaultAddress}
+                            onChange={(e) => setSetAsDefaultAddress(e.target.checked)}
+                          />
+                          Đặt làm địa chỉ mặc định
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Khi đặt hàng, địa chỉ sẽ được lưu vào tài khoản (tùy chọn).
+                    </p>
+                  </div>
+
                   <button
                     type="submit"
                     className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
@@ -481,26 +521,6 @@ export function Checkout() {
                 </div>
 
                 <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={saveAddressToAccount}
-                        onChange={(e) => setSaveAddressToAccount(e.target.checked)}
-                      />
-                      Save this shipping address to my account
-                    </label>
-                    {saveAddressToAccount && (
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={setAsDefaultAddress}
-                          onChange={(e) => setSetAsDefaultAddress(e.target.checked)}
-                        />
-                        Set as default address
-                      </label>
-                    )}
-                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Card Number</label>
                     <input
@@ -636,6 +656,106 @@ export function Checkout() {
           </div>
         </div>
       </div>
+
+      {isAddressPickerOpen && user?.shippingAddresses && (
+        <div
+          className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4"
+          onClick={() => setIsAddressPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-5 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-['Poppins'] font-semibold text-xl">Chọn địa chỉ giao hàng</h3>
+                <p className="text-sm text-gray-500">{user.shippingAddresses.length} saved</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddressPickerOpen(false)}
+                className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const defaultIndex = user.shippingAddresses?.findIndex((address) => address.isDefault) ?? -1;
+                  if (defaultIndex >= 0) applyAddressFromBook(defaultIndex);
+                  else applyAddressFromBook(0);
+                  setIsAddressPickerOpen(false);
+                }}
+                className="px-3 py-1.5 text-xs border rounded-full bg-white hover:bg-gray-100"
+              >
+                Dùng địa chỉ mặc định
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingNewAddress(true);
+                  setSelectedAddressIndex(-1);
+                  setShippingErrors({});
+                  setShippingInfo({
+                    name: user.name || '',
+                    email: user.email || '',
+                    address: '',
+                    city: '',
+                    zipCode: '',
+                    country: 'USA',
+                  });
+                  setSetAsDefaultAddress(true);
+                  setMakeSelectedDefaultInPicker(false);
+                  setIsAddressPickerOpen(false);
+                }}
+                className="px-3 py-1.5 text-xs border rounded-full bg-white hover:bg-gray-100"
+              >
+                Thêm địa chỉ mới
+              </button>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm mb-3">
+              <input
+                type="checkbox"
+                checked={makeSelectedDefaultInPicker}
+                onChange={(e) => setMakeSelectedDefaultInPicker(e.target.checked)}
+              />
+              Đặt địa chỉ đang chọn làm mặc định
+            </label>
+
+            <div className="grid gap-2">
+              {sortedSavedAddresses.map(({ address, index }) => (
+                <label
+                  key={`${address.label}-${address.address}-${index}`}
+                  className={`flex gap-3 items-start px-3 py-2 rounded-lg border text-sm cursor-pointer ${
+                    selectedAddressIndex === index ? 'border-black bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="savedAddressModal"
+                    checked={selectedAddressIndex === index}
+                    onChange={() => void handlePickSavedAddress(index)}
+                    className="mt-1"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">
+                      {address.label} {address.isDefault ? '(Default)' : ''}
+                    </p>
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {address.name} - {address.address}, {address.city}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

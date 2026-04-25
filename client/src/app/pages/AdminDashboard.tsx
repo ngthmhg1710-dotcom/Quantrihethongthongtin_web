@@ -61,6 +61,8 @@ export function AdminDashboard() {
     image: '',
     category: '',
     description: '',
+    ingredients: '',
+    skinTypes: '',
   });
   const [productFormErrors, setProductFormErrors] = useState<{
     name?: string;
@@ -69,6 +71,8 @@ export function AdminDashboard() {
     price?: string;
     stock?: string;
     description?: string;
+    ingredients?: string;
+    skinTypes?: string;
   }>({});
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -161,10 +165,16 @@ export function AdminDashboard() {
   }, []);
 
   const resetProductForm = () => {
-    setProductForm({ name: '', price: '', stock: '', image: '', category: '', description: '' });
+    setProductForm({ name: '', price: '', stock: '', image: '', category: '', description: '', ingredients: '', skinTypes: '' });
     setEditingProductId(null);
     setProductFormErrors({});
   };
+
+  const parseCommaList = (value: string) =>
+    value
+      .split(/[,\n]/g)
+      .map((item) => item.trim())
+      .filter(Boolean);
 
   const validateProductForm = () => {
     const errors: {
@@ -174,6 +184,8 @@ export function AdminDashboard() {
       price?: string;
       stock?: string;
       description?: string;
+      ingredients?: string;
+      skinTypes?: string;
     } = {};
     const name = productForm.name.trim();
     const category = productForm.category.trim();
@@ -181,6 +193,8 @@ export function AdminDashboard() {
     const image = productForm.image.trim();
     const price = Number(productForm.price);
     const stock = Number(productForm.stock);
+    const ingredients = parseCommaList(productForm.ingredients);
+    const skinTypes = parseCommaList(productForm.skinTypes);
 
     if (!name) errors.name = 'Product name is required';
     if (!category) errors.category = 'Please select a category';
@@ -194,6 +208,8 @@ export function AdminDashboard() {
     }
     if (!Number.isFinite(price) || price < 0) errors.price = 'Price must be a non-negative number';
     if (!Number.isInteger(stock) || stock < 0) errors.stock = 'Stock must be an integer >= 0';
+    if (ingredients.length === 0) errors.ingredients = 'Please enter at least 1 ingredient (comma separated)';
+    if (skinTypes.length === 0) errors.skinTypes = 'Please enter at least 1 skin type (comma separated)';
     return errors;
   };
 
@@ -211,6 +227,8 @@ export function AdminDashboard() {
         ...productForm,
         price: Number(productForm.price || 0),
         stock: Number(productForm.stock || 0),
+        ingredients: parseCommaList(productForm.ingredients),
+        skinTypes: parseCommaList(productForm.skinTypes),
       };
       const endpoint = editingProductId ? `${API_BASE_URL}/admin/products/${editingProductId}` : `${API_BASE_URL}/admin/products`;
       const response = await adminFetch(endpoint, {
@@ -692,6 +710,8 @@ export function AdminDashboard() {
                           price: String(product.price),
                           stock: String(product.stock ?? 0),
                           description: product.description,
+                          ingredients: Array.isArray(product.ingredients) ? product.ingredients.join(', ') : '',
+                          skinTypes: Array.isArray(product.skinTypes) ? product.skinTypes.join(', ') : '',
                         });
                         setIsProductModalOpen(true);
                       }}
@@ -727,6 +747,8 @@ export function AdminDashboard() {
                                 price: String(product.price),
                                 stock: String(product.stock ?? 0),
                                 description: product.description,
+                                ingredients: Array.isArray(product.ingredients) ? product.ingredients.join(', ') : '',
+                                skinTypes: Array.isArray(product.skinTypes) ? product.skinTypes.join(', ') : '',
                               });
                               setIsProductModalOpen(true);
                             }}
@@ -891,6 +913,33 @@ export function AdminDashboard() {
                   />
                   {productFormErrors.description && <p className="mt-1 text-xs text-red-600">{productFormErrors.description}</p>}
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Ingredients</label>
+                  <textarea
+                    value={productForm.ingredients}
+                    onChange={(e) => {
+                      setProductForm({ ...productForm, ingredients: e.target.value });
+                      setProductFormErrors((prev) => ({ ...prev, ingredients: undefined }));
+                    }}
+                    placeholder="Hyaluronic Acid, Niacinamide, Vitamin C"
+                    rows={2}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                  {productFormErrors.ingredients && <p className="mt-1 text-xs text-red-600">{productFormErrors.ingredients}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Skin Types</label>
+                  <input
+                    value={productForm.skinTypes}
+                    onChange={(e) => {
+                      setProductForm({ ...productForm, skinTypes: e.target.value });
+                      setProductFormErrors((prev) => ({ ...prev, skinTypes: undefined }));
+                    }}
+                    placeholder="dry, normal, sensitive"
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                  {productFormErrors.skinTypes && <p className="mt-1 text-xs text-red-600">{productFormErrors.skinTypes}</p>}
+                </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button onClick={submitProduct} className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 min-w-[132px]">
                       <Plus className="w-4 h-4" />
@@ -931,6 +980,17 @@ export function AdminDashboard() {
                       <p className="text-xs text-gray-600 mt-2 line-clamp-3">
                         {productForm.description || 'Product description preview will appear here.'}
                       </p>
+                      {parseCommaList(productForm.skinTypes).length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {parseCommaList(productForm.skinTypes)
+                            .slice(0, 3)
+                            .map((type) => (
+                              <span key={type} className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFE4E9]">
+                                {type}
+                              </span>
+                            ))}
+                        </div>
+                      )}
                       <button
                         type="button"
                         disabled={Number(productForm.stock || 0) <= 0}
