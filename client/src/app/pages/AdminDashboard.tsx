@@ -37,6 +37,7 @@ const DEFAULT_CATEGORY_OPTIONS = [
   'Body Care',
   'Makeup Remover',
 ];
+const SKIN_TYPE_OPTIONS = ['all', 'dry', 'oily', 'combination', 'normal', 'sensitive', 'mature'];
 
 export function AdminDashboard() {
   const { user, logout, refreshProducts } = useApp();
@@ -209,7 +210,7 @@ export function AdminDashboard() {
     if (!Number.isFinite(price) || price < 0) errors.price = 'Price must be a non-negative number';
     if (!Number.isInteger(stock) || stock < 0) errors.stock = 'Stock must be an integer >= 0';
     if (ingredients.length === 0) errors.ingredients = 'Please enter at least 1 ingredient (comma separated)';
-    if (skinTypes.length === 0) errors.skinTypes = 'Please enter at least 1 skin type (comma separated)';
+    if (skinTypes.length === 0) errors.skinTypes = 'Please select at least 1 skin type';
     return errors;
   };
 
@@ -931,15 +932,21 @@ export function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Skin Types</label>
-                  <input
-                    value={productForm.skinTypes}
+                  <select
+                    value={parseCommaList(productForm.skinTypes)[0] || ''}
                     onChange={(e) => {
                       setProductForm({ ...productForm, skinTypes: e.target.value });
                       setProductFormErrors((prev) => ({ ...prev, skinTypes: undefined }));
                     }}
-                    placeholder="dry, normal, sensitive"
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
+                    className="w-full px-3 py-2 border rounded-lg bg-white"
+                  >
+                    <option value="">Select skin type</option>
+                    {SKIN_TYPE_OPTIONS.map((skinType) => (
+                      <option key={skinType} value={skinType}>
+                        {skinType.charAt(0).toUpperCase() + skinType.slice(1)}
+                      </option>
+                    ))}
+                  </select>
                   {productFormErrors.skinTypes && <p className="mt-1 text-xs text-red-600">{productFormErrors.skinTypes}</p>}
                 </div>
                   <div className="flex flex-wrap gap-2 pt-1">
