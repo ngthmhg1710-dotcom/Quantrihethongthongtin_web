@@ -44,11 +44,16 @@ export function Header() {
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                   <Link
-                    to={user.isAdmin ? "/admin" : "/dashboard"}
+                    to="/dashboard"
                     className="block px-4 py-2 text-sm hover:bg-gray-50"
                   >
-                    {user.isAdmin ? "Trang quản trị" : "Tài khoản của tôi"}
+                    Tài khoản của tôi
                   </Link>
+                  {user.isAdmin && (
+                    <Link to="/admin" className="block px-4 py-2 text-sm hover:bg-gray-50">
+                      Trang quản trị
+                    </Link>
+                  )}
                   <button
                     onClick={logout}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"

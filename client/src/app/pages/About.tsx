@@ -1,4 +1,42 @@
+import { useState } from "react";
+import { toast } from "sonner";
+
 export function About() {
+  const [communityEmail, setCommunityEmail] = useState("");
+  const [isSubmittingCommunity, setIsSubmittingCommunity] = useState(false);
+  const API_BASE_URL = "http://localhost:5000/api";
+
+  const handleCommunitySignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const email = communityEmail.trim();
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (!isValidEmail) {
+      toast.error("Vui lòng nhập email hợp lệ.");
+      return;
+    }
+
+    try {
+      setIsSubmittingCommunity(true);
+      const response = await fetch(`${API_BASE_URL}/newsletter/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Dang ky that bai");
+      }
+      toast.success(data.message || "Đăng ký thành công! Vui lòng kiểm tra email.");
+      setCommunityEmail("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Dang ky that bai";
+      toast.error(message);
+    } finally {
+      setIsSubmittingCommunity(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <section className="bg-gradient-to-br from-[#FFE4E9] to-white py-20 px-4">
@@ -72,16 +110,22 @@ export function About() {
             <p className="text-lg mb-8 max-w-2xl mx-auto">
               Trở thành một phần của cộng đồng yêu làm đẹp đang phát triển. Nhận mẹo độc quyền, trải nghiệm sản phẩm mới sớm và ưu đãi đặc biệt.
             </p>
-            <div className="flex gap-4 justify-center max-w-md mx-auto">
+            <form onSubmit={handleCommunitySignup} className="flex gap-4 justify-center max-w-md mx-auto">
               <input
                 type="email"
                 placeholder="Nhập email của bạn"
+                value={communityEmail}
+                onChange={(e) => setCommunityEmail(e.target.value)}
                 className="flex-1 px-4 py-3 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-black"
               />
-              <button className="bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors">
-                Đăng ký
+              <button
+                type="submit"
+                disabled={isSubmittingCommunity}
+                className="bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors"
+              >
+                {isSubmittingCommunity ? "Dang ky..." : "Đăng ký"}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </section>

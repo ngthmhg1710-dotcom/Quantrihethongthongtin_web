@@ -1,6 +1,19 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 
+function toProductResponse(product) {
+  const categoryName =
+    product?.category && typeof product.category === "object"
+      ? product.category.name
+      : typeof product?.category === "string"
+        ? product.category
+        : "General";
+  return {
+    ...product,
+    category: categoryName,
+  };
+}
+
 function validateProductPayload(payload, isPartial = false) {
   const errors = [];
   const has = (key) => Object.prototype.hasOwnProperty.call(payload, key);
@@ -46,8 +59,8 @@ function validateProductPayload(payload, isPartial = false) {
 
 async function getProducts(req, res) {
   try {
-    const products = await Product.find().sort({ id: 1 }).lean();
-    return res.json(products);
+    const products = await Product.find().populate("category", "name").sort({ id: 1 }).lean();
+    return res.json(products.map(toProductResponse));
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch products" });
   }
@@ -56,13 +69,13 @@ async function getProducts(req, res) {
 async function getProductById(req, res) {
   try {
     const id = Number(req.params.id);
-    const product = await Product.findOne({ id }).lean();
+    const product = await Product.findOne({ id }).populate("category", "name").lean();
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    return res.json(product);
+    return res.json(toProductResponse(product));
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch product" });
   }
@@ -80,10 +93,10 @@ async function createProduct(req, res) {
     const nextId = (maxProduct?.id || 0) + 1;
     const normalizedCategory = String(category).trim();
 
-    await Category.findOneAndUpdate(
+    const categoryDoc = await Category.findOneAndUpdate(
       { name: normalizedCategory },
       { $setOnInsert: { name: normalizedCategory, description: "" } },
-      { upsert: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     const product = await Product.create({
@@ -92,7 +105,7 @@ async function createProduct(req, res) {
       price: Number(price || 0),
       stock: Number(stock || 0),
       image: String(image).trim(),
-      category: normalizedCategory,
+      category: categoryDoc._id,
       description: String(description).trim(),
       ingredients: Array.isArray(ingredients) ? ingredients : [],
       skinTypes: Array.isArray(skinTypes) ? skinTypes : ["all"],
@@ -102,7 +115,8 @@ async function createProduct(req, res) {
       step: step ? Number(step) : undefined,
     });
 
-    return res.status(201).json({ message: "Product created", product });
+    const populated = await Product.findOne({ id: product.id }).populate("category", "name").lean();
+    return res.status(201).json({ message: "Product created", product: toProductResponse(populated) });
   } catch (error) {
     return res.status(500).json({ message: "Failed to create product" });
   }
@@ -118,21 +132,23 @@ async function updateProduct(req, res) {
     }
     if (updates.category) {
       const normalizedCategory = String(updates.category).trim();
-      updates.category = normalizedCategory;
-      await Category.findOneAndUpdate(
+      const categoryDoc = await Category.findOneAndUpdate(
         { name: normalizedCategory },
         { $setOnInsert: { name: normalizedCategory, description: "" } },
-        { upsert: true }
+        { upsert: true, returnDocument: "after" }
       );
+      updates.category = categoryDoc._id;
     }
 
     const product = await Product.findOneAndUpdate({ id }, updates, {
       returnDocument: "after",
-    }).lean();
+    })
+      .populate("category", "name")
+      .lean();
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    return res.json({ message: "Product updated", product });
+    return res.json({ message: "Product updated", product: toProductResponse(product) });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update product" });
   }

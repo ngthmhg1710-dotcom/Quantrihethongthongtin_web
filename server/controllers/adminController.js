@@ -2,6 +2,8 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Category = require("../models/Category");
+const ContactMessage = require("../models/ContactMessage");
+const mongoose = require("mongoose");
 
 async function getUsers(req, res) {
   try {
@@ -73,11 +75,14 @@ async function updateCategory(req, res) {
 async function deleteCategory(req, res) {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid category id" });
+    }
     const category = await Category.findById(id).lean();
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    const inUse = await Product.countDocuments({ category: category.name });
+    const inUse = await Product.countDocuments({ category: category._id });
     if (inUse > 0) {
       return res.status(400).json({ message: "Cannot delete category in use by products" });
     }
@@ -97,6 +102,52 @@ async function getDashboardSummary(req, res) {
       Order.find().sort({ createdAt: -1 }).lean(),
     ]);
     const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+
+    const salesByProductId = new Map();
+    orders.forEach((order) => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      items.forEach((item) => {
+        const productId = Number(item?.productId);
+        const quantity = Number(item?.quantity || 0);
+        if (!Number.isFinite(productId) || productId <= 0) return;
+        if (!Number.isFinite(quantity) || quantity <= 0) return;
+        salesByProductId.set(productId, (salesByProductId.get(productId) || 0) + quantity);
+      });
+    });
+    const topProductPairs = [...salesByProductId.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    const topProductIds = topProductPairs.map(([productId]) => productId);
+    const topProductsMeta = topProductIds.length > 0
+      ? await Product.find({ id: { $in: topProductIds } }, { id: 1, name: 1, image: 1, price: 1, category: 1 })
+          .populate("category", "name")
+          .lean()
+      : [];
+    const topProductMetaMap = new Map(topProductsMeta.map((p) => [p.id, p]));
+    const topProducts = topProductPairs
+      .map(([productId, sold]) => {
+        const meta = topProductMetaMap.get(productId);
+        return meta
+          ? {
+              id: meta.id,
+              name: meta.name,
+              image: meta.image,
+              price: meta.price,
+              category:
+                meta?.category && typeof meta.category === "object" && meta.category.name
+                  ? meta.category.name
+                  : "General",
+              sold,
+            }
+          : {
+              id: productId,
+              name: `Product ${productId}`,
+              image: "",
+              price: 0,
+              category: "General",
+              sold,
+            };
+      });
 
     const monthlyMap = new Map();
     orders.forEach((order) => {
@@ -119,9 +170,28 @@ async function getDashboardSummary(req, res) {
         averageOrderValue: totalOrders ? totalRevenue / totalOrders : 0,
       },
       monthlyStats,
+      topProducts,
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch dashboard summary" });
+  }
+}
+
+async function getContactMessages(req, res) {
+  try {
+    const messages = await ContactMessage.find().sort({ sentAt: -1, createdAt: -1 }).lean();
+    return res.json({
+      messages: messages.map((item) => ({
+        id: item._id.toString(),
+        name: item.name,
+        email: item.email,
+        subject: item.subject,
+        message: item.message,
+        sentAt: item.sentAt || item.createdAt,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch contact messages" });
   }
 }
 
@@ -132,4 +202,5 @@ module.exports = {
   updateCategory,
   deleteCategory,
   getDashboardSummary,
+  getContactMessages,
 };

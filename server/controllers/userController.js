@@ -9,7 +9,7 @@ function userProfile(req, res) {
 
 async function updateUserProfile(req, res) {
   try {
-    const { name, phone, defaultShippingAddress, shippingAddresses } = req.body;
+    const { name, phone, defaultShippingAddress, shippingAddresses, savedPaymentMethods } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -92,6 +92,42 @@ async function updateUserProfile(req, res) {
       }
     }
 
+    if (Array.isArray(savedPaymentMethods)) {
+      const normalizedMethods = savedPaymentMethods.map((item, index) => ({
+        label: String(item?.label || `Card ${index + 1}`).trim() || `Card ${index + 1}`,
+        cardName: String(item?.cardName || "").trim(),
+        brand: String(item?.brand || "Card").trim() || "Card",
+        last4: String(item?.last4 || "").trim(),
+        expiryDate: String(item?.expiryDate || "").trim(),
+        isDefault: Boolean(item?.isDefault),
+      }));
+
+      const invalidMethod = normalizedMethods.find(
+        (item) =>
+          !item.cardName ||
+          !/^\d{4}$/.test(item.last4) ||
+          !/^(0[1-9]|1[0-2])\/\d{2}$/.test(item.expiryDate)
+      );
+      if (invalidMethod) {
+        return res.status(400).json({ message: "Each saved payment method must have valid card data" });
+      }
+
+      if (normalizedMethods.length > 0) {
+        const hasDefault = normalizedMethods.some((item) => item.isDefault);
+        if (!hasDefault) normalizedMethods[0].isDefault = true;
+        let markedDefault = false;
+        user.savedPaymentMethods = normalizedMethods.map((item) => {
+          if (!markedDefault && item.isDefault) {
+            markedDefault = true;
+            return item;
+          }
+          return { ...item, isDefault: false };
+        });
+      } else {
+        user.savedPaymentMethods = [];
+      }
+    }
+
     await user.save();
 
     return res.json({
@@ -118,6 +154,17 @@ async function updateUserProfile(req, res) {
               city: item.city || "",
               zipCode: item.zipCode || "",
               country: item.country || "",
+              isDefault: Boolean(item.isDefault),
+            }))
+          : [],
+        savedPaymentMethods: Array.isArray(user.savedPaymentMethods)
+          ? user.savedPaymentMethods.map((item) => ({
+              id: item._id.toString(),
+              label: item.label || "Card",
+              cardName: item.cardName || "",
+              brand: item.brand || "Card",
+              last4: item.last4 || "",
+              expiryDate: item.expiryDate || "",
               isDefault: Boolean(item.isDefault),
             }))
           : [],

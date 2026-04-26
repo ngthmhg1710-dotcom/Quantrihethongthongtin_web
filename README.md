@@ -20,6 +20,9 @@ Server se tu dong seed 2 tai khoan mac dinh (neu email chua ton tai):
    - `npm run dev:server`
 5. Chay frontend:
    - `npm run dev:client`
+6. Neu muon gui email newsletter that:
+   - cau hinh SMTP trong `server/.env` (theo mau trong `server/.env.example`)
+   - restart backend sau khi sua env
 
 Frontend mac dinh chay o `http://localhost:5173`  
 Backend mac dinh chay o `http://localhost:5000`
@@ -62,6 +65,7 @@ Luu y:
 - `POST /api/admin/categories` - Tao danh muc
 - `PATCH /api/admin/categories/:id` - Sua danh muc
 - `DELETE /api/admin/categories/:id` - Xoa danh muc
+- `POST /api/newsletter/subscribe` - Dang ky nhan ban tin va gui email xac nhan
 - `POST /api/admin/products` - Tao san pham
 - `PATCH /api/admin/products/:id` - Sua san pham
 - `DELETE /api/admin/products/:id` - Xoa san pham

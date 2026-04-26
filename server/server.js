@@ -1,10 +1,11 @@
 const app = require("./app");
 const env = require("./config/env");
-const { connectDatabase, seedProductsIfNeeded, seedUsersIfNeeded } = require("./config/database");
+const { connectDatabase, migrateProductCategoriesIfNeeded, seedProductsIfNeeded, seedUsersIfNeeded } = require("./config/database");
 
 async function startServer() {
   try {
     await connectDatabase(env.mongoUri);
+    await migrateProductCategoriesIfNeeded();
     await seedProductsIfNeeded();
     await seedUsersIfNeeded();
 

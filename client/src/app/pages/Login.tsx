@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
@@ -15,6 +15,10 @@ export function Login() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const isGoogleClientIdPlaceholder =
     !googleClientId || googleClientId.includes('your_google_oauth_client_id');
+  const googleInitRef = useRef<{ clientId: string | null; initialized: boolean }>({
+    clientId: null,
+    initialized: false,
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -73,6 +77,12 @@ export function Login() {
         return;
       }
 
+      // Avoid multiple initialize() calls (React StrictMode / rerenders).
+      if (googleInitRef.current.initialized && googleInitRef.current.clientId === googleClientId) {
+        if (mounted) setGoogleReady(true);
+        return;
+      }
+
       google.accounts.id.initialize({
         client_id: googleClientId,
         callback: async (response: { credential?: string }) => {
@@ -95,6 +105,7 @@ export function Login() {
         },
       });
 
+      googleInitRef.current = { initialized: true, clientId: googleClientId };
       if (mounted) {
         setGoogleReady(true);
       }

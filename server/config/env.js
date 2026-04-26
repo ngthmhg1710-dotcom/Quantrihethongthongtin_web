@@ -21,6 +21,14 @@ const env = {
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "change_this_refresh_secret_in_production",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
   googleClientId: normalizedServerGoogleClientId || process.env.VITE_GOOGLE_CLIENT_ID || "",
+  smtpHost: process.env.SMTP_HOST || "",
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpSecure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
+  smtpUser: process.env.SMTP_USER || "",
+  smtpPass: String(process.env.SMTP_PASS || "").replace(/\s+/g, ""),
+  newsletterFromEmail: process.env.NEWSLETTER_FROM_EMAIL || "",
+  newsletterReplyTo: process.env.NEWSLETTER_REPLY_TO || "",
+  contactReceiverEmail: process.env.CONTACT_RECEIVER_EMAIL || "",
 };
 
 module.exports = env;

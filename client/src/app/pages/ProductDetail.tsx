@@ -103,6 +103,30 @@ export function ProductDetail() {
     toast.success(nextWishlisted ? 'Đã thêm vào wishlist' : 'Đã xóa khỏi wishlist');
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: product.name,
+          text: `${product.name} - $${product.price.toFixed(2)}`,
+          url,
+        });
+        toast.success('Đã mở chia sẻ');
+        return;
+      }
+    } catch {
+      // user cancelled or share failed -> fallback to copy
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Đã sao chép liên kết sản phẩm');
+    } catch {
+      toast.error('Không thể sao chép liên kết. Vui lòng thử lại.');
+    }
+  };
+
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -192,7 +216,12 @@ export function ProductDetail() {
                 >
                   <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-[#FFC0CB] text-[#FFC0CB]' : ''}`} />
                 </button>
-                <button className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => void handleShare()}
+                  className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Chia sẻ sản phẩm"
+                >
                   <Share2 className="w-5 h-5" />
                 </button>
               </div>

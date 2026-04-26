@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Product = require("../models/Product");
+const Category = require("../models/Category");
 const User = require("../models/User");
 const seedProducts = require("../data/seedProducts");
 
@@ -15,9 +16,47 @@ async function seedProductsIfNeeded() {
   const missingProducts = seedProducts.filter((product) => !existingIds.has(product.id));
 
   if (missingProducts.length > 0) {
-    await Product.insertMany(missingProducts);
+    const categoryCache = new Map();
+    const mapped = [];
+    for (const product of missingProducts) {
+      const categoryName = String(product.category || "General").trim() || "General";
+      let categoryId = categoryCache.get(categoryName);
+      if (!categoryId) {
+        const categoryDoc = await Category.findOneAndUpdate(
+          { name: categoryName },
+          { $setOnInsert: { name: categoryName, description: "" } },
+          { upsert: true, returnDocument: "after" }
+        );
+        categoryId = categoryDoc._id;
+        categoryCache.set(categoryName, categoryId);
+      }
+      mapped.push({ ...product, category: categoryId });
+    }
+    await Product.insertMany(mapped);
     console.log(`Seeded ${missingProducts.length} products`);
   }
+}
+
+async function migrateProductCategoriesIfNeeded() {
+  const productsWithStringCategory = await Product.find({ category: { $type: "string" } }).lean();
+  if (productsWithStringCategory.length === 0) return;
+
+  const categoryCache = new Map();
+  for (const product of productsWithStringCategory) {
+    const categoryName = String(product.category || "General").trim() || "General";
+    let categoryId = categoryCache.get(categoryName);
+    if (!categoryId) {
+      const categoryDoc = await Category.findOneAndUpdate(
+        { name: categoryName },
+        { $setOnInsert: { name: categoryName, description: "" } },
+        { upsert: true, returnDocument: "after" }
+      );
+      categoryId = categoryDoc._id;
+      categoryCache.set(categoryName, categoryId);
+    }
+    await Product.updateOne({ _id: product._id }, { $set: { category: categoryId } });
+  }
+  console.log(`Migrated ${productsWithStringCategory.length} products to category refs`);
 }
 
 async function seedUsersIfNeeded() {
@@ -54,6 +93,7 @@ async function seedUsersIfNeeded() {
 
 module.exports = {
   connectDatabase,
+  migrateProductCategoriesIfNeeded,
   seedProductsIfNeeded,
   seedUsersIfNeeded,
 };

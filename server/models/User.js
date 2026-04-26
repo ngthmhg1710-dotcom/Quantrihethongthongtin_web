@@ -13,6 +13,18 @@ const shippingAddressSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const savedPaymentMethodSchema = new mongoose.Schema(
+  {
+    label: { type: String, default: "Card", trim: true },
+    cardName: { type: String, required: true, trim: true },
+    brand: { type: String, default: "Card", trim: true },
+    last4: { type: String, required: true, trim: true },
+    expiryDate: { type: String, required: true, trim: true },
+    isDefault: { type: Boolean, default: false },
+  },
+  { _id: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -29,6 +41,7 @@ const userSchema = new mongoose.Schema(
       country: { type: String, default: "", trim: true },
     },
     shippingAddresses: { type: [shippingAddressSchema], default: [] },
+    savedPaymentMethods: { type: [savedPaymentMethodSchema], default: [] },
   },
   {
     timestamps: true,

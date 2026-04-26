@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
 
 function formatOrder(order) {
@@ -19,6 +20,7 @@ function formatOrder(order) {
       quantity: item.quantity,
     })),
     total: order.total,
+    paymentMethod: order.paymentMethod || "card",
     status: order.status,
     shippingAddress: order.shippingAddress,
     user: order.userId && typeof order.userId === "object" && order.userId.email
@@ -33,7 +35,7 @@ function formatOrder(order) {
 
 async function createOrder(req, res) {
   try {
-    const { items, shippingAddress } = req.body;
+    const { items, shippingAddress, paymentMethod } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Order items are required" });
@@ -58,9 +60,36 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: "Order items are invalid" });
     }
 
+    const validPaymentMethods = ["card", "cod", "bank_transfer"];
+    const normalizedPaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : "card";
+
     const subtotal = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingFee = subtotal > 50 ? 0 : 5.99;
     const computedTotal = Number((subtotal + shippingFee).toFixed(2));
+
+    // Atomically decrement stock for each item (prevent overselling).
+    // Note: If a later item fails, we roll back previous decrements.
+    const decremented = [];
+    for (const item of normalizedItems) {
+      const updated = await Product.findOneAndUpdate(
+        { id: item.productId, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true, projection: { id: 1, name: 1, stock: 1 } }
+      ).lean();
+
+      if (!updated) {
+        await Promise.all(
+          decremented.map((prev) => Product.updateOne({ id: prev.productId }, { $inc: { stock: prev.quantity } }))
+        );
+        const productMeta = await Product.findOne({ id: item.productId }, { name: 1, stock: 1 }).lean();
+        return res.status(400).json({
+          message: productMeta
+            ? `Not enough stock for ${productMeta.name}. Available: ${Number(productMeta.stock || 0)}`
+            : `Product ${item.productId} is unavailable`,
+        });
+      }
+      decremented.push({ productId: item.productId, quantity: item.quantity });
+    }
 
     const order = await Order.create({
       orderNumber: `ORD-${Date.now()}`,
@@ -68,7 +97,8 @@ async function createOrder(req, res) {
       userId: req.user.id,
       items: normalizedItems,
       total: computedTotal,
-      status: "processing",
+      paymentMethod: normalizedPaymentMethod,
+      status: "pending",
       shippingAddress,
     });
 

@@ -6,6 +6,7 @@ const {
   updateCategory,
   deleteCategory,
   getDashboardSummary,
+  getContactMessages,
 } = require("../controllers/adminController");
 const { getAllOrders, updateOrderStatus } = require("../controllers/orderController");
 const { createProduct, updateProduct, deleteProduct } = require("../controllers/productController");
@@ -17,6 +18,7 @@ router.get("/admin/users", protect, requireAdmin, getUsers);
 router.get("/admin/orders", protect, requireAdmin, getAllOrders);
 router.patch("/admin/orders/:id/status", protect, requireAdmin, updateOrderStatus);
 router.get("/admin/dashboard", protect, requireAdmin, getDashboardSummary);
+router.get("/admin/contact-messages", protect, requireAdmin, getContactMessages);
 router.get("/admin/categories", protect, requireAdmin, getCategories);
 router.post("/admin/categories", protect, requireAdmin, createCategory);
 router.patch("/admin/categories/:id", protect, requireAdmin, updateCategory);

@@ -32,6 +32,10 @@ export function Checkout() {
     cvv: '',
     cardName: ''
   });
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cod' | 'bank_transfer'>('card');
+  const [didPrefillSavedCard, setDidPrefillSavedCard] = useState(false);
+  const [saveCardToAccount, setSaveCardToAccount] = useState(true);
+  const [setAsDefaultCard, setSetAsDefaultCard] = useState(true);
   const [shippingErrors, setShippingErrors] = useState<Partial<Record<keyof typeof shippingInfo, string>>>({});
   const [paymentErrors, setPaymentErrors] = useState<Partial<Record<keyof typeof paymentInfo, string>>>({});
 
@@ -55,6 +59,21 @@ export function Checkout() {
     }));
     setDidPrefillShipping(true);
   }, [user, didPrefillShipping]);
+
+  useEffect(() => {
+    if (!user || didPrefillSavedCard || paymentMethod !== 'card') return;
+    const savedCards = user.savedPaymentMethods || [];
+    if (savedCards.length === 0) return;
+    const defaultCard = savedCards.find((card) => card.isDefault) || savedCards[0];
+    if (!defaultCard) return;
+    setPaymentInfo((prev) => ({
+      ...prev,
+      cardName: defaultCard.cardName || prev.cardName,
+      expiryDate: defaultCard.expiryDate || prev.expiryDate,
+      cardNumber: `**** **** **** ${defaultCard.last4}`,
+    }));
+    setDidPrefillSavedCard(true);
+  }, [user, didPrefillSavedCard, paymentMethod]);
 
   const applyAddressFromBook = (index: number) => {
     if (!user?.shippingAddresses || !user.shippingAddresses[index]) return;
@@ -169,13 +188,18 @@ export function Checkout() {
 
   const validatePaymentInfo = () => {
     const errors: Partial<Record<keyof typeof paymentInfo, string>> = {};
+    if (paymentMethod !== 'card') {
+      return errors;
+    }
     const cardNumber = paymentInfo.cardNumber.replace(/\s+/g, '');
+    const maskedCardPattern = /^\*{12}\d{4}$/;
+    const isUsingSavedMaskedCard = maskedCardPattern.test(cardNumber);
     const cvv = paymentInfo.cvv.trim();
     const cardName = paymentInfo.cardName.trim();
     const expiryDate = paymentInfo.expiryDate.trim();
 
-    if (!/^\d{13,19}$/.test(cardNumber)) errors.cardNumber = 'Số thẻ phải gồm 13-19 chữ số';
-    if (!/^\d{3,4}$/.test(cvv)) errors.cvv = 'CVV phải gồm 3 hoặc 4 chữ số';
+    if (!isUsingSavedMaskedCard && !/^\d{13,19}$/.test(cardNumber)) errors.cardNumber = 'Số thẻ phải gồm 13-19 chữ số';
+    if (!isUsingSavedMaskedCard && !/^\d{3,4}$/.test(cvv)) errors.cvv = 'CVV phải gồm 3 hoặc 4 chữ số';
     if (cardName.length < 2) errors.cardName = 'Vui lòng nhập tên chủ thẻ';
     if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiryDate)) {
       errors.expiryDate = 'Hạn sử dụng phải theo định dạng MM/YY';
@@ -190,6 +214,14 @@ export function Checkout() {
     }
 
     return errors;
+  };
+  const detectCardBrand = (cardNumber: string) => {
+    const digits = cardNumber.replace(/\D/g, '');
+    if (/^4/.test(digits)) return 'Visa';
+    if (/^5[1-5]/.test(digits) || /^2(2[2-9]|[3-7])/.test(digits)) return 'Mastercard';
+    if (/^3[47]/.test(digits)) return 'Amex';
+    if (/^6/.test(digits)) return 'Discover';
+    return 'Card';
   };
 
   const hasInvalidCart = cart.some((item) => item.quantity <= 0 || item.product.price < 0);
@@ -275,13 +307,55 @@ export function Checkout() {
       }
     }
 
+    if (paymentMethod === 'card' && saveCardToAccount && user) {
+      try {
+        const digits = paymentInfo.cardNumber.replace(/\D/g, '');
+        const cardLast4 = digits.slice(-4);
+        const nextMethods = (user.savedPaymentMethods || []).map((method, index) => ({
+          label: method.label || `Card ${index + 1}`,
+          cardName: method.cardName,
+          brand: method.brand || 'Card',
+          last4: method.last4,
+          expiryDate: method.expiryDate,
+          isDefault: Boolean(method.isDefault),
+        }));
+        const existingIndex = nextMethods.findIndex(
+          (method) =>
+            method.last4 === cardLast4 &&
+            method.expiryDate === paymentInfo.expiryDate.trim() &&
+            method.cardName.toLowerCase() === paymentInfo.cardName.trim().toLowerCase()
+        );
+        if (existingIndex === -1) {
+          nextMethods.push({
+            label: `Card ${nextMethods.length + 1}`,
+            cardName: paymentInfo.cardName.trim(),
+            brand: detectCardBrand(digits),
+            last4: cardLast4,
+            expiryDate: paymentInfo.expiryDate.trim(),
+            isDefault: nextMethods.length === 0 || setAsDefaultCard,
+          });
+        } else if (setAsDefaultCard) {
+          nextMethods[existingIndex] = { ...nextMethods[existingIndex], isDefault: true };
+        }
+        if (setAsDefaultCard) {
+          nextMethods.forEach((method, index) => {
+            method.isDefault = index === (existingIndex === -1 ? nextMethods.length - 1 : existingIndex);
+          });
+        }
+        await updateProfile({ savedPaymentMethods: nextMethods });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Không thể lưu thẻ cho lần sau');
+      }
+    }
+
     const orderId = `ORD-${Date.now()}`;
     const order = {
       id: orderId,
       date: new Date().toISOString().split('T')[0],
       items: cart,
       total,
-      status: 'processing' as const,
+      paymentMethod,
+      status: 'pending' as const,
       shippingAddress: shippingInfo
     };
 
@@ -524,6 +598,78 @@ export function Checkout() {
                 </div>
 
                 <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-sm font-medium mb-2">Phương thức thanh toán</p>
+                    <div className="space-y-2 text-sm">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="card"
+                          checked={paymentMethod === 'card'}
+                          onChange={() => {
+                            setPaymentMethod('card');
+                            setPaymentErrors({});
+                          }}
+                        />
+                        Thẻ ngân hàng
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cod"
+                          checked={paymentMethod === 'cod'}
+                          onChange={() => {
+                            setPaymentMethod('cod');
+                            setPaymentErrors({});
+                          }}
+                        />
+                        Thanh toán khi nhận hàng (COD)
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="bank_transfer"
+                          checked={paymentMethod === 'bank_transfer'}
+                          onChange={() => {
+                            setPaymentMethod('bank_transfer');
+                            setPaymentErrors({});
+                          }}
+                        />
+                        Chuyển khoản ngân hàng
+                      </label>
+                    </div>
+                  </div>
+
+                  {paymentMethod === 'card' ? (
+                    <>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={saveCardToAccount}
+                          onChange={(e) => setSaveCardToAccount(e.target.checked)}
+                        />
+                        Lưu thẻ rút gọn cho lần mua sau
+                      </label>
+                      {saveCardToAccount && (
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={setAsDefaultCard}
+                            onChange={(e) => setSetAsDefaultCard(e.target.checked)}
+                          />
+                          Đặt làm thẻ mặc định
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Chỉ lưu tên thẻ, loại thẻ, 4 số cuối và hạn dùng. Không lưu số thẻ đầy đủ/CVV.
+                    </p>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Card Number</label>
                     <input
@@ -596,6 +742,14 @@ export function Checkout() {
                       {paymentErrors.cvv && <p className="mt-1 text-xs text-red-600">{paymentErrors.cvv}</p>}
                     </div>
                   </div>
+                    </>
+                  ) : (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                      {paymentMethod === 'cod'
+                        ? 'Đơn hàng sẽ được thanh toán khi nhận hàng.'
+                        : 'Vui lòng chuyển khoản theo thông tin được gửi sau khi đặt hàng.'}
+                    </div>
+                  )}
 
                   <div className="flex gap-4">
                     <button

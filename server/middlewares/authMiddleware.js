@@ -43,6 +43,17 @@ async function protect(req, res, next) {
             isDefault: Boolean(address.isDefault),
           }))
         : [],
+      savedPaymentMethods: Array.isArray(user.savedPaymentMethods)
+        ? user.savedPaymentMethods.map((method) => ({
+            id: method._id?.toString?.() || "",
+            label: method.label || "Card",
+            cardName: method.cardName || "",
+            brand: method.brand || "Card",
+            last4: method.last4 || "",
+            expiryDate: method.expiryDate || "",
+            isDefault: Boolean(method.isDefault),
+          }))
+        : [],
     };
 
     return next();

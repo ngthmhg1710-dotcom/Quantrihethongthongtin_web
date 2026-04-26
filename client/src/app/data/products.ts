@@ -173,6 +173,7 @@ export interface Order {
   placedAt?: string | null;
   items: CartItem[];
   total: number;
+  paymentMethod?: "card" | "cod" | "bank_transfer";
   status: "pending" | "processing" | "shipped" | "delivered";
   shippingCode?: string;
   trackingCode?: string;

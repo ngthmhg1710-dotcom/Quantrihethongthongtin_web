@@ -69,7 +69,21 @@ export function CustomerDashboard() {
   });
 
   useEffect(() => {
-    if (!user || user.isAdmin) {
+    if (!user) return;
+    setProfileForm({
+      name: user.name || '',
+      phone: user.phone || '',
+    });
+    const book = normalizeAddressBook();
+    setAddressBookDraft(book);
+    const idx = book.findIndex((a) => a.isDefault);
+    setEditingAddressIndex(idx >= 0 ? idx : 0);
+    setSelectedOrder(null);
+    setIsEditingProfile(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
       navigate('/login');
     }
   }, [user, navigate]);
@@ -94,7 +108,7 @@ export function CustomerDashboard() {
     [products, normalizedUserName]
   );
 
-  if (!user || user.isAdmin) return null;
+  if (!user) return null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,6 +124,12 @@ export function CustomerDashboard() {
     if (status === 'shipped') return 'Đã gửi hàng';
     if (status === 'delivered') return 'Đã giao';
     return status;
+  };
+  const getPaymentMethodLabel = (method?: string) => {
+    if (method === 'card') return 'Thẻ ngân hàng';
+    if (method === 'cod') return 'Thanh toán khi nhận hàng';
+    if (method === 'bank_transfer') return 'Chuyển khoản';
+    return 'Không xác định';
   };
 
   const formatOrderDateTime = (order: (typeof orders)[number]) => {
@@ -243,13 +263,14 @@ export function CustomerDashboard() {
                 </div>
                 <div className="border border-gray-200 rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[820px]">
+                    <table className="w-full min-w-[960px]">
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr className="text-left text-sm text-gray-600">
                           <th className="px-4 py-3 font-medium">Mã đơn hàng</th>
                           <th className="px-4 py-3 font-medium">Ngày đặt hàng</th>
                           <th className="px-4 py-3 font-medium">Địa chỉ</th>
                           <th className="px-4 py-3 font-medium">Tổng tiền</th>
+                          <th className="px-4 py-3 font-medium">Thanh toán</th>
                           <th className="px-4 py-3 font-medium">Trạng thái</th>
                           <th className="px-4 py-3 font-medium">Mã vận chuyển</th>
                           <th className="px-4 py-3 font-medium">Thao tác</th>
@@ -275,8 +296,9 @@ export function CustomerDashboard() {
                                 </p>
                               </td>
                               <td className="px-4 py-3 text-sm font-semibold">${order.total.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{getPaymentMethodLabel(order.paymentMethod)}</td>
                               <td className="px-4 py-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                                   {getStatusLabel(order.status)}
                                 </span>
                               </td>
@@ -459,11 +481,12 @@ export function CustomerDashboard() {
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
                 <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
+                <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
                   {getStatusLabel(selectedOrder.status)}
                 </span>
                 <p className="text-sm text-gray-600 mt-3">Ngày đặt: {formatOrderDateTime(selectedOrder)}</p>
                 <p className="text-sm text-gray-600 mt-1">Tổng tiền: ${selectedOrder.total.toFixed(2)}</p>
+                <p className="text-sm text-gray-600 mt-1">Thanh toán: {getPaymentMethodLabel(selectedOrder.paymentMethod)}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
                 <p className="text-xs text-gray-500 mb-1">Địa chỉ giao hàng</p>

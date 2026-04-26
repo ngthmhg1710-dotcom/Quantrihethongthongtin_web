@@ -21,6 +21,17 @@ function sanitizeUser(user) {
       }))
     : [];
   const defaultAddressFromBook = shippingAddresses.find((address) => address.isDefault) || shippingAddresses[0];
+  const savedPaymentMethods = Array.isArray(user.savedPaymentMethods)
+    ? user.savedPaymentMethods.map((method) => ({
+        id: method._id?.toString?.() || "",
+        label: method.label || "Card",
+        cardName: method.cardName || "",
+        brand: method.brand || "Card",
+        last4: method.last4 || "",
+        expiryDate: method.expiryDate || "",
+        isDefault: Boolean(method.isDefault),
+      }))
+    : [];
   return {
     id: user._id.toString(),
     name: user.name,
@@ -35,6 +46,7 @@ function sanitizeUser(user) {
       country: defaultAddressFromBook?.country || user.defaultShippingAddress?.country || "",
     },
     shippingAddresses,
+    savedPaymentMethods,
   };
 }
 

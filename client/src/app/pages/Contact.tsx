@@ -3,17 +3,36 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 export function Contact() {
+  const API_BASE_URL = "http://localhost:5000/api";
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Gửi tin nhắn thành công! Chúng tôi sẽ phản hồi sớm nhất có thể.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`${API_BASE_URL}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Gửi tin nhắn thất bại");
+      }
+      toast.success(data.message || 'Gửi tin nhắn thành công! Chúng tôi sẽ phản hồi sớm nhất có thể.');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gửi tin nhắn thất bại";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,10 +140,11 @@ export function Contact() {
 
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                 >
                   <Send className="w-5 h-5" />
-                  Gửi tin nhắn
+                  {isSubmitting ? "Đang gửi..." : "Gửi tin nhắn"}
                 </button>
               </form>
             </div>

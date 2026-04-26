@@ -18,6 +18,15 @@ interface User {
     country: string;
     isDefault?: boolean;
   }>;
+  savedPaymentMethods?: Array<{
+    id?: string;
+    label: string;
+    cardName: string;
+    brand: string;
+    last4: string;
+    expiryDate: string;
+    isDefault?: boolean;
+  }>;
   defaultShippingAddress?: {
     name: string;
     address: string;
@@ -61,6 +70,14 @@ interface AppContextType {
       city: string;
       zipCode: string;
       country: string;
+      isDefault?: boolean;
+    }>;
+    savedPaymentMethods?: Array<{
+      label: string;
+      cardName: string;
+      brand: string;
+      last4: string;
+      expiryDate: string;
       isDefault?: boolean;
     }>;
   }) => Promise<User>;
@@ -115,6 +132,9 @@ const TOKEN_STORAGE_KEY = 'app_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';
 const WISHLIST_STORAGE_KEY = 'app_wishlist_ids';
 
+const getWishlistStorageKey = (userId?: string | null) =>
+  userId ? `${WISHLIST_STORAGE_KEY}:${userId}` : `${WISHLIST_STORAGE_KEY}:guest`;
+
 const clearAuthStorage = () => {
   localStorage.removeItem(USER_STORAGE_KEY);
   localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -125,15 +145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(localProducts);
   const [productsLoading, setProductsLoading] = useState<boolean>(true);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [wishlistIds, setWishlistIds] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem(WISHLIST_STORAGE_KEY);
-      const parsed = saved ? (JSON.parse(saved) as unknown) : [];
-      return Array.isArray(parsed) ? parsed.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [wishlistIds, setWishlistIds] = useState<number[]>([]);
 
   const refreshProducts = async () => {
     try {
@@ -192,6 +204,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY);
     return savedUser ? (JSON.parse(savedUser) as User) : null;
   });
+
+  useEffect(() => {
+    const key = getWishlistStorageKey(user?.id || null);
+    try {
+      const saved = localStorage.getItem(key);
+      const parsed = saved ? (JSON.parse(saved) as unknown) : [];
+      setWishlistIds(
+        Array.isArray(parsed) ? parsed.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0) : []
+      );
+    } catch {
+      setWishlistIds([]);
+    }
+  }, [user?.id]);
 
   const refreshAccessToken = async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
@@ -292,13 +317,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const endpoint = user.isAdmin ? '/admin/orders' : '/user/orders';
+        // `orders` represents "my orders" for the signed-in account.
+        // Admin dashboard fetches system-wide orders separately.
+        const endpoint = '/user/orders';
+        const currentUserId = user.id;
         const response = await authFetch(`${API_BASE_URL}${endpoint}`);
         if (!response.ok) {
           throw new Error('Không thể tải đơn hàng');
         }
         const data = await response.json();
-        setOrders((data.orders || []) as Order[]);
+        if (currentUserId === user.id) {
+          setOrders((data.orders || []) as Order[]);
+        }
       } catch {
         setOrders([]);
       }
@@ -364,8 +394,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(wishlistIds));
-  }, [wishlistIds]);
+    const key = getWishlistStorageKey(user?.id || null);
+    localStorage.setItem(key, JSON.stringify(wishlistIds));
+  }, [wishlistIds, user?.id]);
 
   const toggleWishlist = (productId: number) => {
     setWishlistIds((prev) =>
@@ -475,6 +506,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       country: string;
       isDefault?: boolean;
     }>;
+    savedPaymentMethods?: Array<{
+      label: string;
+      cardName: string;
+      brand: string;
+      last4: string;
+      expiryDate: string;
+      isDefault?: boolean;
+    }>;
   }) => {
     const response = await authFetch(`${API_BASE_URL}/user/profile`, {
       method: 'PATCH',
@@ -510,6 +549,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({
         items: sanitizedItems,
         total: order.total,
+        paymentMethod: order.paymentMethod || 'card',
         shippingAddress: order.shippingAddress,
       }),
     });
@@ -525,6 +565,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     setOrders((prev) => [data.order as Order, ...prev]);
+    await refreshProducts();
   };
 
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {

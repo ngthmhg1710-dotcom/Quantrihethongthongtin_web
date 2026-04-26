@@ -3,7 +3,7 @@ import { Product, Order } from '../data/products';
 import { useApp } from '../context/AppContext';
 import { localizeCategory, localizeProduct } from '../utils/localization';
 import { useNavigate } from 'react-router';
-import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2, Search, X } from 'lucide-react';
+import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2, Search, X, Mail } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { toast } from 'sonner';
 
@@ -19,6 +19,22 @@ interface DashboardStats {
   totalProducts: number;
   totalCategories: number;
   averageOrderValue: number;
+}
+interface TopProduct {
+  id: number;
+  name: string;
+  image: string;
+  price: number;
+  category: string;
+  sold: number;
+}
+interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  sentAt: string;
 }
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -43,10 +59,11 @@ const SKIN_TYPE_OPTIONS = ['all', 'dry', 'oily', 'combination', 'normal', 'sensi
 export function AdminDashboard() {
   const { user, logout, refreshProducts } = useApp();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'categories' | 'orders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'categories' | 'orders' | 'contacts'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<Array<{ month: string; revenue: number; orders: number }>>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
@@ -55,6 +72,7 @@ export function AdminDashboard() {
     totalCategories: 0,
     averageOrderValue: 0,
   });
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [productForm, setProductForm] = useState({
     name: '',
@@ -142,16 +160,18 @@ export function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
-      const [productsRes, categoriesRes, ordersRes, dashboardRes] = await Promise.all([
+      const [productsRes, categoriesRes, ordersRes, dashboardRes, contactMessagesRes] = await Promise.all([
         fetch(`${API_BASE_URL}/products`),
         adminFetch(`${API_BASE_URL}/admin/categories`),
         adminFetch(`${API_BASE_URL}/admin/orders`),
         adminFetch(`${API_BASE_URL}/admin/dashboard`),
+        adminFetch(`${API_BASE_URL}/admin/contact-messages`),
       ]);
       const productsData = await productsRes.json();
       const categoriesData = await categoriesRes.json();
       const ordersData = await ordersRes.json();
       const dashboardData = await dashboardRes.json();
+      const contactMessagesData = await contactMessagesRes.json();
 
       setProducts(((productsData || []) as Product[]).map(localizeProduct));
       setCategories(
@@ -163,6 +183,8 @@ export function AdminDashboard() {
       setOrders((ordersData.orders || []) as Order[]);
       setStats(dashboardData.stats || stats);
       setMonthlyStats(dashboardData.monthlyStats || []);
+      setTopProducts((dashboardData.topProducts || []) as TopProduct[]);
+      setContactMessages((contactMessagesData.messages || []) as ContactMessage[]);
       await refreshProducts();
     } catch {
       toast.error('Không thể tải dữ liệu quản trị');
@@ -456,6 +478,12 @@ export function AdminDashboard() {
     if (status === 'delivered') return 'Đã giao';
     return status;
   };
+  const getPaymentMethodLabel = (method?: string) => {
+    if (method === 'card') return 'Thẻ ngân hàng';
+    if (method === 'cod') return 'Thanh toán khi nhận hàng';
+    if (method === 'bank_transfer') return 'Chuyển khoản';
+    return 'Không xác định';
+  };
   const toggleOrderSort = (field: 'date' | 'total') => {
     if (orderSortBy === field) {
       setOrderSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -558,6 +586,14 @@ export function AdminDashboard() {
             }`}
           >
             Danh mục
+          </button>
+          <button
+            onClick={() => setActiveTab('contacts')}
+            className={`px-6 py-2 rounded-full whitespace-nowrap transition-colors ${
+              activeTab === 'contacts' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Liên hệ ({contactMessages.length})
           </button>
         </div>
 
@@ -676,20 +712,24 @@ export function AdminDashboard() {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="font-['Poppins'] font-semibold text-xl mb-6">Sản phẩm bán chạy</h2>
               <div className="space-y-4">
-                {products.slice(0, 5).map((product, index) => (
-                  <div key={product.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition-colors">
-                    <span className="text-2xl font-bold text-gray-300 w-8">#{index + 1}</span>
-                    <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
-                    <div className="flex-1">
-                      <p className="font-semibold">{product.name}</p>
-                      <p className="text-sm text-gray-600">{product.category}</p>
+                {topProducts.length > 0 ? (
+                  topProducts.map((product, index) => (
+                    <div key={product.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                      <span className="text-2xl font-bold text-gray-300 w-8">#{index + 1}</span>
+                      <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
+                      <div className="flex-1">
+                        <p className="font-semibold">{localizeProduct(product as unknown as Product).name}</p>
+                        <p className="text-sm text-gray-600">{localizeCategory(product.category)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">${Number(product.price || 0).toFixed(2)}</p>
+                        <p className="text-sm text-gray-600">{product.sold} đã bán</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold">${product.price.toFixed(2)}</p>
-                      <p className="text-sm text-gray-600">245 đã bán</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500">Chưa có dữ liệu bán hàng</div>
+                )}
               </div>
             </div>
           </>
@@ -1125,7 +1165,7 @@ export function AdminDashboard() {
               </div>
               <div className="rounded-xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto max-h-[560px]">
-                  <table className="w-full min-w-[980px]">
+                  <table className="w-full min-w-[1120px]">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Mã đơn hàng</th>
@@ -1152,6 +1192,7 @@ export function AdminDashboard() {
                           </button>
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Trạng thái</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Thanh toán</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Mã vận chuyển</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Thao tác</th>
                       </tr>
@@ -1178,7 +1219,7 @@ export function AdminDashboard() {
                                   toast.error(message);
                                 }
                               }}
-                              className={`px-2.5 py-1 rounded-full text-xs border bg-white ${getOrderStatusBadgeClass(order.status)}`}
+                              className={`px-2.5 py-1 rounded-full text-xs border bg-white whitespace-nowrap min-w-[108px] ${getOrderStatusBadgeClass(order.status)}`}
                             >
                               <option value="pending">Chờ xử lý</option>
                               <option value="processing">Đang xử lý</option>
@@ -1186,6 +1227,7 @@ export function AdminDashboard() {
                               <option value="delivered">Đã giao</option>
                             </select>
                           </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{getPaymentMethodLabel(order.paymentMethod)}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{order.shippingCode || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-2">
@@ -1311,6 +1353,7 @@ export function AdminDashboard() {
                   <p className="text-sm text-gray-600">{selectedOrder.user?.email || 'Chưa có email'}</p>
                   <p className="text-sm text-gray-600 mt-2">Ngày đặt: {formatOrderDate(selectedOrder)}</p>
                   <p className="text-sm text-gray-600 mt-1">Mã vận chuyển: {selectedOrder.shippingCode || '-'}</p>
+                  <p className="text-sm text-gray-600 mt-1">Thanh toán: {getPaymentMethodLabel(selectedOrder.paymentMethod)}</p>
                   <span className={`inline-flex mt-2 px-2 py-0.5 rounded-full text-xs font-medium ${getOrderStatusBadgeClass(selectedOrder.status)}`}>
                     {getOrderStatusLabel(selectedOrder.status)}
                   </span>
@@ -1416,6 +1459,47 @@ export function AdminDashboard() {
                 </div>
               ))}
               {filteredCategories.length === 0 && <p className="text-gray-600">Không tìm thấy danh mục phù hợp.</p>}
+            </div>
+          </div>
+        )}
+        {activeTab === 'contacts' && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#FFE4E9] flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-[#d66b8f]" />
+                </div>
+                <div>
+                  <h2 className="font-['Poppins'] font-semibold text-xl">Hộp thư liên hệ</h2>
+                  <p className="text-sm text-gray-600">Tin nhắn khách gửi từ trang Liên hệ</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={loadAdminData}
+                className="px-4 py-2 border rounded-full hover:bg-gray-100 transition-colors text-sm"
+              >
+                Tải lại
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {contactMessages.length === 0 && (
+                <div className="text-sm text-gray-600">Chưa có tin nhắn liên hệ nào.</div>
+              )}
+              {contactMessages.map((item) => (
+                <div key={item.id} className="border border-gray-200 rounded-xl p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <p className="font-semibold">{item.subject}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(item.sentAt).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-700 mt-1">
+                    Từ: <span className="font-medium">{item.name}</span> ({item.email})
+                  </p>
+                  <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{item.message}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}

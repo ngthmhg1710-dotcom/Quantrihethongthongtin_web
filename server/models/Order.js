@@ -18,10 +18,15 @@ const orderSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     items: { type: [orderItemSchema], default: [] },
     total: { type: Number, required: true },
+    paymentMethod: {
+      type: String,
+      enum: ["card", "cod", "bank_transfer"],
+      default: "card",
+    },
     status: {
       type: String,
       enum: ["pending", "processing", "shipped", "delivered"],
-      default: "processing",
+      default: "pending",
     },
     shippingCode: { type: String, default: "" },
     shippingAddress: {
