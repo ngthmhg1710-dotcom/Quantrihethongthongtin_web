@@ -8,6 +8,7 @@ export function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart, addOrder, user, updateProfile } = useApp();
   const [step, setStep] = useState<'shipping' | 'payment' | 'success'>('shipping');
+  const [confirmedOrderTotal, setConfirmedOrderTotal] = useState<number | null>(null);
 
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
@@ -286,6 +287,7 @@ export function Checkout() {
 
     try {
       await addOrder(order);
+      setConfirmedOrderTotal(total);
       clearCart();
       setStep('success');
       toast.success('Đặt hàng thành công!');
@@ -296,6 +298,7 @@ export function Checkout() {
   };
 
   if (step === 'success') {
+    const displayTotal = confirmedOrderTotal ?? total;
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-md">
@@ -308,7 +311,7 @@ export function Checkout() {
           </p>
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
             <p className="text-sm text-gray-600 mb-2">Tổng đơn hàng</p>
-            <p className="text-3xl font-bold mb-4">${total.toFixed(2)}</p>
+            <p className="text-3xl font-bold mb-4">${displayTotal.toFixed(2)}</p>
             <p className="text-sm text-gray-600">Dự kiến giao hàng: 5-7 ngày làm việc</p>
           </div>
           <div className="flex gap-4">

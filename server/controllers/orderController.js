@@ -33,7 +33,7 @@ function formatOrder(order) {
 
 async function createOrder(req, res) {
   try {
-    const { items, total, shippingAddress } = req.body;
+    const { items, shippingAddress } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Order items are required" });
@@ -58,12 +58,16 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: "Order items are invalid" });
     }
 
+    const subtotal = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const shippingFee = subtotal > 50 ? 0 : 5.99;
+    const computedTotal = Number((subtotal + shippingFee).toFixed(2));
+
     const order = await Order.create({
       orderNumber: `ORD-${Date.now()}`,
       shippingCode: `SHIP-${Math.floor(100000 + Math.random() * 900000)}`,
       userId: req.user.id,
       items: normalizedItems,
-      total: Number(total || 0),
+      total: computedTotal,
       status: "processing",
       shippingAddress,
     });
