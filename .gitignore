@@ -5,3 +5,7 @@ build/
 *.exe
 *.log
 .env
+**/.env
+**/.env.*
+!**/.env.example
+!client/.env.development
