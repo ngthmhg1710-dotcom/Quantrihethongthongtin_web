@@ -11,6 +11,30 @@ export function CustomerDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<(typeof orders)[number] | null>(null);
   const [activeSection, setActiveSection] = useState<'account' | 'reviews' | 'wishlist' | 'orders'>('account');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'delivered'>('all');
+
+  function normalizeSearchText(value: string) {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function getStatusLabel(status: string) {
+    if (status === 'pending') return 'Chờ xử lý';
+    if (status === 'processing') return 'Đang xử lý';
+    if (status === 'shipped') return 'Đã gửi hàng';
+    if (status === 'delivered') return 'Đã giao';
+    return status;
+  }
+
+  function getPaymentMethodLabel(method?: string) {
+    if (method === 'card') return 'Thẻ ngân hàng';
+    if (method === 'cod') return 'Thanh toán khi nhận hàng';
+    if (method === 'bank_transfer') return 'Chuyển khoản';
+    return 'Không xác định';
+  }
 
   const normalizeAddressBook = () => {
     const fromBook =
@@ -107,6 +131,34 @@ export function CustomerDashboard() {
       ),
     [products, normalizedUserName]
   );
+  const filteredOrders = useMemo(() => {
+    const keyword = normalizeSearchText(orderSearch.trim());
+    return orders.filter((order) => {
+      const statusMatched = orderStatusFilter === 'all' || order.status === orderStatusFilter;
+      if (!statusMatched) return false;
+      const shippingCode =
+        ((order as typeof order & { shippingCode?: string; trackingCode?: string }).shippingCode ||
+          (order as typeof order & { trackingCode?: string }).trackingCode ||
+          '') as string;
+      const productNames = order.items.map((item) => item.product.name).join(' ');
+      const searchableText = [
+        order.id,
+        order.shippingAddress.name,
+        order.shippingAddress.address,
+        order.shippingAddress.city,
+        order.shippingAddress.zipCode,
+        order.shippingAddress.country,
+        getStatusLabel(order.status),
+        getPaymentMethodLabel(order.paymentMethod),
+        shippingCode,
+        productNames,
+      ]
+        .filter(Boolean)
+        .join(' ');
+      if (!keyword) return true;
+      return normalizeSearchText(searchableText).includes(keyword);
+    });
+  }, [orders, orderSearch, orderStatusFilter]);
 
   if (!user) return null;
 
@@ -118,20 +170,6 @@ export function CustomerDashboard() {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-  const getStatusLabel = (status: string) => {
-    if (status === 'pending') return 'Chờ xử lý';
-    if (status === 'processing') return 'Đang xử lý';
-    if (status === 'shipped') return 'Đã gửi hàng';
-    if (status === 'delivered') return 'Đã giao';
-    return status;
-  };
-  const getPaymentMethodLabel = (method?: string) => {
-    if (method === 'card') return 'Thẻ ngân hàng';
-    if (method === 'cod') return 'Thanh toán khi nhận hàng';
-    if (method === 'bank_transfer') return 'Chuyển khoản';
-    return 'Không xác định';
-  };
-
   const formatOrderDateTime = (order: (typeof orders)[number]) => {
     const placedAt =
       (order as (typeof order) & { placedAt?: string; createdAt?: string }).placedAt ||
@@ -259,7 +297,31 @@ export function CustomerDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="font-['Poppins'] font-semibold text-xl">Lịch sử mua hàng</h2>
-                  <span className="text-sm text-gray-500">{orders.length} đơn hàng</span>
+                  <span className="text-sm text-gray-500">{filteredOrders.length}/{orders.length} đơn hàng</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    placeholder="Tìm theo mã đơn, sản phẩm, địa chỉ, trạng thái..."
+                    className="w-full max-w-xl px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                  />
+                  <select
+                    value={orderStatusFilter}
+                    onChange={(e) =>
+                      setOrderStatusFilter(
+                        e.target.value as 'all' | 'pending' | 'processing' | 'shipped' | 'delivered'
+                      )
+                    }
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="processing">Đang xử lý</option>
+                    <option value="shipped">Đã gửi hàng</option>
+                    <option value="delivered">Đã giao</option>
+                  </select>
                 </div>
                 <div className="border border-gray-200 rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
@@ -277,7 +339,7 @@ export function CustomerDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {orders.map((order) => {
+                        {filteredOrders.map((order) => {
                           const shippingCode =
                             ((order as typeof order & { shippingCode?: string; trackingCode?: string }).shippingCode ||
                               (order as typeof order & { trackingCode?: string }).trackingCode ||
@@ -332,6 +394,11 @@ export function CustomerDashboard() {
                       >
                         Mua sắm ngay
                       </button>
+                    </div>
+                  )}
+                  {orders.length > 0 && filteredOrders.length === 0 && (
+                    <div className="text-center py-10 text-sm text-gray-600">
+                      Không tìm thấy đơn hàng phù hợp từ khóa.
                     </div>
                   )}
                 </div>
