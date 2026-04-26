@@ -30,16 +30,16 @@ Backend mac dinh chay o `http://localhost:5000`
 2. Them origin vao **Authorized JavaScript origins**:
    - `http://localhost:5173`
    - Neu chay bang IP/LAN (vi du `http://192.168.x.x:5173`) thi them origin do.
-3. Frontend da co san `client/.env.development` de team dung chung.
-   - Truong hop can doi Client ID rieng, tao `client/.env` va dat `VITE_GOOGLE_CLIENT_ID=<your_client_id>.apps.googleusercontent.com` (se uu tien hon).
-4. Backend tu dong doc lai `VITE_GOOGLE_CLIENT_ID` tu frontend env neu `GOOGLE_CLIENT_ID` khong duoc set.
-   - (Tuy chon) ban van co the dat rieng `GOOGLE_CLIENT_ID` trong `server/.env` neu can.
+3. Frontend su dung truc tiep `client/.env`:
+   - dat `VITE_GOOGLE_CLIENT_ID=<your_client_id>.apps.googleusercontent.com`
+4. Backend su dung `server/.env`:
+   - dat `GOOGLE_CLIENT_ID` bang dung gia tri `VITE_GOOGLE_CLIENT_ID`.
 5. Restart ca frontend va backend sau khi sua env.
 
 Luu y:
 - Khong dung gia tri mau `your_google_oauth_client_id...`.
 - Khong dung Client Secret o frontend.
-- De chia se cho nhieu thanh vien: da commit san `client/.env.development` (chi chua Client ID, khong chua secret).
+- De chia se cho nhieu thanh vien: repo da cho phep track `client/.env` va `server/.env` de dong bo nhanh cho team.
 
 ## API backend da co
 

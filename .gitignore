@@ -8,4 +8,5 @@ build/
 **/.env
 **/.env.*
 !**/.env.example
-!client/.env.development
+!client/.env
+!server/.env
