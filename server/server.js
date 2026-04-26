@@ -1,11 +1,12 @@
 const app = require("./app");
 const env = require("./config/env");
-const { connectDatabase, seedProductsIfNeeded } = require("./config/database");
+const { connectDatabase, seedProductsIfNeeded, seedUsersIfNeeded } = require("./config/database");
 
 async function startServer() {
   try {
     await connectDatabase(env.mongoUri);
     await seedProductsIfNeeded();
+    await seedUsersIfNeeded();
 
     app.listen(env.port, () => {
       console.log(`Server running on port ${env.port}`);

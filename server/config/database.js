@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const Product = require("../models/Product");
+const User = require("../models/User");
 const seedProducts = require("../data/seedProducts");
 
 async function connectDatabase(mongoUri) {
@@ -18,7 +20,40 @@ async function seedProductsIfNeeded() {
   }
 }
 
+async function seedUsersIfNeeded() {
+  const defaultUsers = [
+    {
+      name: "Admin",
+      email: "jwtadmin@example.com",
+      password: "abc12345",
+      isAdmin: true,
+    },
+    {
+      name: "User",
+      email: "ngthmhg1710@gmail.com",
+      password: "123456",
+      isAdmin: false,
+    },
+  ];
+
+  for (const seedUser of defaultUsers) {
+    const normalizedEmail = seedUser.email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail }).lean();
+    if (existingUser) continue;
+
+    const hashedPassword = await bcrypt.hash(seedUser.password, 10);
+    await User.create({
+      name: seedUser.name,
+      email: normalizedEmail,
+      password: hashedPassword,
+      isAdmin: seedUser.isAdmin,
+    });
+    console.log(`Seeded user ${normalizedEmail}`);
+  }
+}
+
 module.exports = {
   connectDatabase,
   seedProductsIfNeeded,
+  seedUsersIfNeeded,
 };

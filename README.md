@@ -2,11 +2,11 @@
 # Modern B2C E-commerce Website (Node.js)
 
 Project web ban hang dua tren giao dien co san (React + Vite) va backend Node.js (Express).
-#Tai khoan
-+Admin: jwtadmin@example.com 
-pass : abc12345
-+Nguoi dung: ngthmhg1710@gmail.com
-pass: 123456
+# Tai khoan
+
+Server se tu dong seed 2 tai khoan mac dinh (neu email chua ton tai):
+- Admin: `jwtadmin@example.com` / `abc12345`
+- User: `ngthmhg1710@gmail.com` / `123456`
 ## Chay du an
 
 1. Cai dependency cho tung phan:
@@ -67,6 +67,7 @@ Backend mac dinh chay o `http://localhost:5000`
 
 - Backend dung `mongoose` de ket noi MongoDB.
 - Lan dau chay server, neu collection `products` chua co du lieu thi he thong se tu seed san 4 san pham mau.
+- He thong seed 2 tai khoan mac dinh (chi tao neu chua ton tai email).
 
 ## Cau truc MVC backend
 
