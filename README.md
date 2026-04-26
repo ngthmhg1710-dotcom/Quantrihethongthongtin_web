@@ -27,6 +27,43 @@ Server se tu dong seed 2 tai khoan mac dinh (neu email chua ton tai):
 Frontend mac dinh chay o `http://localhost:5173`  
 Backend mac dinh chay o `http://localhost:5000`
 
+## Chay bang Docker
+
+Project da co san cac file:
+- `docker-compose.yml`
+- `server/Dockerfile`
+- `client/Dockerfile`
+
+### Khoi dong nhanh
+
+Tai thu muc goc project, chay:
+- `docker compose up --build`
+
+Sau khi chay:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:5000`
+- MongoDB: `localhost:27017`
+
+### Dung container
+
+- `docker compose down`
+
+Du lieu MongoDB duoc luu qua volume `mongo-data`, nen van giu lai sau khi dung/chay lai.
+
+### Bien moi truong khi chay Docker
+
+`docker-compose.yml` doc cac bien tu moi truong cua may host (hoac file `.env` cung cap cho compose):
+- `GOOGLE_CLIENT_ID`
+- `VITE_GOOGLE_CLIENT_ID`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `NEWSLETTER_FROM_EMAIL`
+- `NEWSLETTER_REPLY_TO`
+- `CONTACT_RECEIVER_EMAIL`
+
 ## Cau hinh dang nhap Google
 
 1. Tao OAuth Client ID loai **Web application** trong Google Cloud Console.
