@@ -3,7 +3,6 @@ const path = require("path");
 
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, "../../client/.env") });
-dotenv.config({ path: path.resolve(__dirname, "../../client/.env.development") });
 
 function isPlaceholderGoogleClientId(value) {
   return typeof value === "string" && value.includes("your_google_oauth_client_id");
