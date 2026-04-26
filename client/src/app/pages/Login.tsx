@@ -13,6 +13,8 @@ export function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  const isGoogleClientIdPlaceholder =
+    !googleClientId || googleClientId.includes('your_google_oauth_client_id');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -55,7 +57,7 @@ export function Login() {
   };
 
   useEffect(() => {
-    if (!googleClientId || isRegister) {
+    if (isGoogleClientIdPlaceholder || isRegister) {
       setGoogleReady(false);
       return;
     }
@@ -119,10 +121,10 @@ export function Login() {
     return () => {
       mounted = false;
     };
-  }, [googleClientId, isRegister, loginWithGoogle, navigate, redirectPath]);
+  }, [googleClientId, isGoogleClientIdPlaceholder, isRegister, loginWithGoogle, navigate, redirectPath]);
 
   const handleGoogleSignIn = () => {
-    if (!googleClientId) {
+    if (isGoogleClientIdPlaceholder) {
       toast.error('Google login chưa được cấu hình. Thiếu VITE_GOOGLE_CLIENT_ID.');
       return;
     }
@@ -240,9 +242,9 @@ export function Login() {
                     >
                       Tiếp tục với Google
                     </button>
-                    {!googleClientId && (
+                    {isGoogleClientIdPlaceholder && (
                       <p className="text-xs text-amber-600">
-                        Đăng nhập Google sẽ bị tắt cho đến khi cấu hình `VITE_GOOGLE_CLIENT_ID`.
+                        Đăng nhập Google đang tắt do `VITE_GOOGLE_CLIENT_ID` chưa hợp lệ hoặc vẫn là giá trị mẫu.
                       </p>
                     )}
                   </>

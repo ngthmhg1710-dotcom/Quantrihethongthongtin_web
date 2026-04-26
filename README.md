@@ -24,6 +24,24 @@ Server se tu dong seed 2 tai khoan mac dinh (neu email chua ton tai):
 Frontend mac dinh chay o `http://localhost:5173`  
 Backend mac dinh chay o `http://localhost:5000`
 
+## Cau hinh dang nhap Google
+
+1. Tao OAuth Client ID loai **Web application** trong Google Cloud Console.
+2. Them origin vao **Authorized JavaScript origins**:
+   - `http://localhost:5173`
+   - Neu chay bang IP/LAN (vi du `http://192.168.x.x:5173`) thi them origin do.
+3. Tao file env cho frontend:
+   - copy `client/.env.example` thanh `client/.env`
+   - dat `VITE_GOOGLE_CLIENT_ID=<your_client_id>.apps.googleusercontent.com`
+4. Backend tu dong doc lai `VITE_GOOGLE_CLIENT_ID` tu frontend env neu `GOOGLE_CLIENT_ID` khong duoc set.
+   - (Tuy chon) ban van co the dat rieng `GOOGLE_CLIENT_ID` trong `server/.env` neu can.
+5. Restart ca frontend va backend sau khi sua env.
+
+Luu y:
+- Khong dung gia tri mau `your_google_oauth_client_id...`.
+- Khong dung Client Secret o frontend.
+- De chia se cho nhieu thanh vien: chi can dong bo 1 Google Client ID chung (Web app) trong frontend env.
+
 ## API backend da co
 
 - `GET /api/health` - Kiem tra server
