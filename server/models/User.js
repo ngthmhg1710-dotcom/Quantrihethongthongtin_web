@@ -25,6 +25,14 @@ const savedPaymentMethodSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const savedCartItemSchema = new mongoose.Schema(
+  {
+    productId: { type: Number, required: true },
+    quantity: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -44,6 +52,7 @@ const userSchema = new mongoose.Schema(
     shippingAddresses: { type: [shippingAddressSchema], default: [] },
     savedPaymentMethods: { type: [savedPaymentMethodSchema], default: [] },
     wishlistIds: { type: [Number], default: [] },
+    savedCartItems: { type: [savedCartItemSchema], default: [] },
   },
   {
     timestamps: true,

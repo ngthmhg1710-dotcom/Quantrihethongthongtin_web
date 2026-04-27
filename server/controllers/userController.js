@@ -5,6 +5,19 @@ function normalizeWishlistIds(value) {
   return [...new Set(value.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
 }
 
+function normalizeSavedCartItems(value) {
+  if (!Array.isArray(value)) return [];
+  const bucket = new Map();
+  for (const item of value) {
+    const productId = Number(item?.productId);
+    const quantity = Number(item?.quantity);
+    if (!Number.isInteger(productId) || productId <= 0) continue;
+    if (!Number.isInteger(quantity) || quantity <= 0) continue;
+    bucket.set(productId, (bucket.get(productId) || 0) + quantity);
+  }
+  return Array.from(bucket.entries()).map(([productId, quantity]) => ({ productId, quantity }));
+}
+
 function serializeUser(user) {
   return {
     id: user._id.toString(),
@@ -44,6 +57,7 @@ function serializeUser(user) {
         }))
       : [],
     wishlistIds: normalizeWishlistIds(user.wishlistIds),
+    savedCartItems: normalizeSavedCartItems(user.savedCartItems),
   };
 }
 
@@ -217,9 +231,42 @@ async function updateWishlist(req, res) {
   }
 }
 
+async function getCart(req, res) {
+  try {
+    const user = await User.findById(req.user.id).lean();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.json({ savedCartItems: normalizeSavedCartItems(user.savedCartItems) });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to get cart" });
+  }
+}
+
+async function updateCart(req, res) {
+  try {
+    const normalizedSavedCartItems = normalizeSavedCartItems(req.body?.savedCartItems);
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.savedCartItems = normalizedSavedCartItems;
+    await user.save();
+    return res.json({
+      message: "Cart updated successfully",
+      savedCartItems: normalizedSavedCartItems,
+      user: serializeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update cart" });
+  }
+}
+
 module.exports = {
   userProfile,
   updateUserProfile,
   getWishlist,
   updateWishlist,
+  getCart,
+  updateCart,
 };

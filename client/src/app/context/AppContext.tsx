@@ -36,6 +36,10 @@ interface User {
     country: string;
   };
   wishlistIds?: number[];
+  savedCartItems?: Array<{
+    productId: number;
+    quantity: number;
+  }>;
 }
 
 interface AppContextType {
@@ -138,10 +142,29 @@ const TOKEN_STORAGE_KEY = 'app_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';
 const WISHLIST_STORAGE_KEY = 'app_wishlist_ids';
 const GUEST_WISHLIST_STORAGE_KEY = `${WISHLIST_STORAGE_KEY}:guest`;
+const GUEST_CART_STORAGE_KEY = 'app_cart_items:guest';
 
 const normalizeWishlistIds = (value: unknown): number[] => {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0))];
+};
+
+const normalizeSavedCartItems = (
+  value: unknown
+): Array<{
+  productId: number;
+  quantity: number;
+}> => {
+  if (!Array.isArray(value)) return [];
+  const bucket = new Map<number, number>();
+  value.forEach((item) => {
+    const productId = Number((item as { productId?: unknown })?.productId);
+    const quantity = Number((item as { quantity?: unknown })?.quantity);
+    if (!Number.isInteger(productId) || productId <= 0) return;
+    if (!Number.isInteger(quantity) || quantity <= 0) return;
+    bucket.set(productId, (bucket.get(productId) || 0) + quantity);
+  });
+  return Array.from(bucket.entries()).map(([productId, quantity]) => ({ productId, quantity }));
 };
 
 const readGuestWishlistIds = () => {
@@ -149,6 +172,16 @@ const readGuestWishlistIds = () => {
     const saved = localStorage.getItem(GUEST_WISHLIST_STORAGE_KEY);
     const parsed = saved ? (JSON.parse(saved) as unknown) : [];
     return normalizeWishlistIds(parsed);
+  } catch {
+    return [];
+  }
+};
+
+const readGuestCartItems = () => {
+  try {
+    const saved = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+    const parsed = saved ? (JSON.parse(saved) as unknown) : [];
+    return normalizeSavedCartItems(parsed);
   } catch {
     return [];
   }
@@ -163,7 +196,19 @@ const clearAuthStorage = () => {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(localProducts);
   const [productsLoading, setProductsLoading] = useState<boolean>(true);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const buildCartFromSavedItems = (
+    savedItems: Array<{ productId: number; quantity: number }>,
+    sourceProducts: Product[]
+  ): CartItem[] =>
+    normalizeSavedCartItems(savedItems)
+      .map((item) => {
+        const product = sourceProducts.find((p) => p.id === item.productId);
+        if (!product) return null;
+        return { product, quantity: item.quantity };
+      })
+      .filter((item): item is CartItem => item !== null);
+
+  const [cart, setCart] = useState<CartItem[]>(() => buildCartFromSavedItems(readGuestCartItems(), localProducts));
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
 
   const refreshProducts = async () => {
@@ -227,10 +272,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       setWishlistIds(normalizeWishlistIds(user.wishlistIds));
+      setCart(buildCartFromSavedItems(user.savedCartItems || [], products));
       return;
     }
     setWishlistIds(readGuestWishlistIds());
-  }, [user]);
+    setCart(buildCartFromSavedItems(readGuestCartItems(), products));
+  }, [user, products]);
 
   const refreshAccessToken = async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
@@ -279,38 +326,96 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const arraysEqual = (a: number[], b: number[]) =>
     a.length === b.length && a.every((value, index) => value === b[index]);
+  const cartItemsEqual = (
+    a: Array<{ productId: number; quantity: number }>,
+    b: Array<{ productId: number; quantity: number }>
+  ) =>
+    a.length === b.length &&
+    a.every((item, index) => item.productId === b[index]?.productId && item.quantity === b[index]?.quantity);
 
-  const syncGuestWishlistAfterAuth = async (authenticatedUser: User, accessToken: string): Promise<User> => {
+  const syncGuestDataAfterAuth = async (authenticatedUser: User, accessToken: string): Promise<User> => {
     const guestWishlistIds = readGuestWishlistIds();
     const serverWishlistIds = normalizeWishlistIds(authenticatedUser.wishlistIds);
     const mergedWishlistIds = normalizeWishlistIds([...serverWishlistIds, ...guestWishlistIds]);
+    const guestCartItems = readGuestCartItems();
+    const serverCartItems = normalizeSavedCartItems(authenticatedUser.savedCartItems);
+    const mergedCartItems = normalizeSavedCartItems([...serverCartItems, ...guestCartItems]);
 
-    if (arraysEqual(serverWishlistIds, mergedWishlistIds)) {
+    if (arraysEqual(serverWishlistIds, mergedWishlistIds) && cartItemsEqual(serverCartItems, mergedCartItems)) {
       localStorage.removeItem(GUEST_WISHLIST_STORAGE_KEY);
-      return { ...authenticatedUser, wishlistIds: serverWishlistIds };
+      localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+      return { ...authenticatedUser, wishlistIds: serverWishlistIds, savedCartItems: serverCartItems };
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/user/wishlist`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ wishlistIds: mergedWishlistIds }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Không thể đồng bộ wishlist');
+      const [wishlistResponse, cartResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/user/wishlist`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ wishlistIds: mergedWishlistIds }),
+        }),
+        fetch(`${API_BASE_URL}/user/cart`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ savedCartItems: mergedCartItems }),
+        }),
+      ]);
+
+      const wishlistData = await wishlistResponse.json();
+      const cartData = await cartResponse.json();
+      if (!wishlistResponse.ok) {
+        throw new Error(wishlistData.message || 'Không thể đồng bộ wishlist');
+      }
+      if (!cartResponse.ok) {
+        throw new Error(cartData.message || 'Không thể đồng bộ giỏ hàng');
       }
       localStorage.removeItem(GUEST_WISHLIST_STORAGE_KEY);
+      localStorage.removeItem(GUEST_CART_STORAGE_KEY);
       return {
         ...authenticatedUser,
-        wishlistIds: normalizeWishlistIds(data.wishlistIds),
+        wishlistIds: normalizeWishlistIds(wishlistData.wishlistIds),
+        savedCartItems: normalizeSavedCartItems(cartData.savedCartItems),
       };
     } catch {
-      return { ...authenticatedUser, wishlistIds: mergedWishlistIds };
+      return {
+        ...authenticatedUser,
+        wishlistIds: mergedWishlistIds,
+        savedCartItems: mergedCartItems,
+      };
     }
+  };
+
+  const syncCartToServer = async (nextCart: CartItem[]) => {
+    const payload = normalizeSavedCartItems(
+      nextCart.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+      }))
+    );
+    const response = await authFetch(`${API_BASE_URL}/user/cart`, {
+      method: 'PUT',
+      body: JSON.stringify({ savedCartItems: payload }),
+    });
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json') ? await response.json() : { message: await response.text() };
+    if (!response.ok) {
+      throw new Error(data.message || 'Không thể cập nhật giỏ hàng');
+    }
+    const serverCartItems = normalizeSavedCartItems(data.savedCartItems);
+    const nextMappedCart = buildCartFromSavedItems(serverCartItems, products);
+    setCart(nextMappedCart);
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser;
+      const updatedUser = { ...currentUser, savedCartItems: serverCartItems };
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+      return updatedUser;
+    });
   };
 
   useEffect(() => {
@@ -397,29 +502,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
+      let nextCart: CartItem[] = prev;
       if (existing) {
         const nextQuantity = existing.quantity + quantity;
         if (nextQuantity > availableStock) {
           error = new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
           return prev;
         }
-        return prev.map((item) =>
+        nextCart = prev.map((item) =>
           item.product.id === product.id ? { ...item, quantity: nextQuantity } : item
         );
+      } else {
+        if (quantity > availableStock) {
+          error = new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
+          return prev;
+        }
+        nextCart = [...prev, { product, quantity }];
       }
 
-      if (quantity > availableStock) {
-        error = new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
-        return prev;
+      if (user) {
+        const rollbackCart = prev;
+        void syncCartToServer(nextCart).catch(() => {
+          setCart(rollbackCart);
+        });
       }
-      return [...prev, { product, quantity }];
+      return nextCart;
     });
 
     if (error) throw error;
   };
 
   const removeFromCart = (productId: number) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+    setCart((prev) => {
+      const nextCart = prev.filter((item) => item.product.id !== productId);
+      if (user) {
+        const rollbackCart = prev;
+        void syncCartToServer(nextCart).catch(() => {
+          setCart(rollbackCart);
+        });
+      }
+      return nextCart;
+    });
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -432,15 +555,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (availableStock > 0 && quantity > availableStock) {
       throw new Error(`Chỉ còn ${availableStock} sản phẩm trong kho`);
     }
-    setCart(prev =>
-      prev.map(item =>
+    setCart((prev) => {
+      const nextCart = prev.map((item) =>
         item.product.id === productId ? { ...item, quantity } : item
-      )
-    );
+      );
+      if (user) {
+        const rollbackCart = prev;
+        void syncCartToServer(nextCart).catch(() => {
+          setCart(rollbackCart);
+        });
+      }
+      return nextCart;
+    });
   };
 
   const clearCart = () => {
-    setCart([]);
+    setCart((prev) => {
+      if (user) {
+        const rollbackCart = prev;
+        void syncCartToServer([]).catch(() => {
+          setCart(rollbackCart);
+        });
+      }
+      return [];
+    });
   };
 
   useEffect(() => {
@@ -448,6 +586,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(GUEST_WISHLIST_STORAGE_KEY, JSON.stringify(wishlistIds));
     }
   }, [wishlistIds, user]);
+
+  useEffect(() => {
+    if (!user) {
+      const guestCartItems = cart.map((item) => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+      }));
+      localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(normalizeSavedCartItems(guestCartItems)));
+    }
+  }, [cart, user]);
 
   const toggleWishlist = (productId: number) => {
     setWishlistIds((prev) => {
@@ -501,7 +649,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(data.message || 'Đăng nhập thất bại');
     }
 
-    const loggedInUser = await syncGuestWishlistAfterAuth(data.user as User, data.token as string);
+    const loggedInUser = await syncGuestDataAfterAuth(data.user as User, data.token as string);
     setUser(loggedInUser);
     setWishlistIds(normalizeWishlistIds(loggedInUser.wishlistIds));
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
@@ -525,7 +673,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(data.message || 'Đăng nhập Google thất bại');
     }
 
-    const loggedInUser = await syncGuestWishlistAfterAuth(data.user as User, data.token as string);
+    const loggedInUser = await syncGuestDataAfterAuth(data.user as User, data.token as string);
     setUser(loggedInUser);
     setWishlistIds(normalizeWishlistIds(loggedInUser.wishlistIds));
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
@@ -546,7 +694,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(data.message || 'Đăng ký thất bại');
     }
 
-    const createdUser = await syncGuestWishlistAfterAuth(data.user as User, data.token as string);
+    const createdUser = await syncGuestDataAfterAuth(data.user as User, data.token as string);
     setUser(createdUser);
     setWishlistIds(normalizeWishlistIds(createdUser.wishlistIds));
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(createdUser));

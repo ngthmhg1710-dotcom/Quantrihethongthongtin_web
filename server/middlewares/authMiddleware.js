@@ -58,6 +58,20 @@ async function protect(req, res, next) {
       wishlistIds: Array.isArray(user.wishlistIds)
         ? [...new Set(user.wishlistIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))]
         : [],
+      savedCartItems: Array.isArray(user.savedCartItems)
+        ? user.savedCartItems
+            .map((item) => ({
+              productId: Number(item?.productId),
+              quantity: Number(item?.quantity),
+            }))
+            .filter(
+              (item) =>
+                Number.isInteger(item.productId) &&
+                item.productId > 0 &&
+                Number.isInteger(item.quantity) &&
+                item.quantity > 0
+            )
+        : [],
     };
 
     return next();
