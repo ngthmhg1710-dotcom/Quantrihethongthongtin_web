@@ -1,6 +1,97 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const nodemailer = require("nodemailer");
+const env = require("../config/env");
 const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
+
+function isMailerConfigured() {
+  return Boolean(env.smtpHost && env.smtpPort && env.smtpUser && env.smtpPass && env.newsletterFromEmail);
+}
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    host: env.smtpHost,
+    port: env.smtpPort,
+    secure: env.smtpSecure,
+    auth: {
+      user: env.smtpUser,
+      pass: env.smtpPass,
+    },
+  });
+}
+
+function getPaymentMethodLabel(method) {
+  if (method === "cod") return "Thanh toán khi nhận hàng (COD)";
+  if (method === "bank_transfer") return "Chuyển khoản ngân hàng";
+  return "Thẻ ngân hàng";
+}
+
+async function sendOrderConfirmationEmail({ to, orderNumber, shippingCode, paymentMethod, shippingAddress, total, items }) {
+  if (!isMailerConfigured() || !to) return;
+
+  const transporter = createTransporter();
+  const estimatedDelivery = new Date();
+  estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
+  const estimatedDeliveryText = estimatedDelivery.toLocaleDateString("vi-VN");
+  const paymentLabel = getPaymentMethodLabel(paymentMethod);
+  const itemLines = items.map((item) => `- ${item.name} x${item.quantity}: $${(item.price * item.quantity).toFixed(2)}`).join("\n");
+
+  const subject = `Glow | Xác nhận đơn hàng ${orderNumber}`;
+  const text = `Xin chào ${shippingAddress.name},
+
+Đơn hàng của bạn đã được ghi nhận thành công.
+Mã đơn: ${orderNumber}
+Mã vận chuyển: ${shippingCode}
+Phương thức thanh toán: ${paymentLabel}
+Tổng thanh toán: $${Number(total).toFixed(2)}
+Ngày giao dự kiến: ${estimatedDeliveryText}
+
+Sản phẩm:
+${itemLines}
+
+Địa chỉ nhận hàng:
+${shippingAddress.name} - ${shippingAddress.phone}
+${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.zipCode}, ${shippingAddress.country}
+
+Vui lòng giữ email này để tiện theo dõi đơn hàng.
+`;
+
+  const htmlItems = items
+    .map(
+      (item) =>
+        `<li>${item.name} x${item.quantity} - <strong>$${(item.price * item.quantity).toFixed(2)}</strong></li>`
+    )
+    .join("");
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #222;">
+      <h2>Xác nhận đơn hàng ${orderNumber}</h2>
+      <p>Xin chào <strong>${shippingAddress.name}</strong>, đơn hàng của bạn đã được ghi nhận thành công.</p>
+      <p>
+        <strong>Mã vận chuyển:</strong> ${shippingCode}<br/>
+        <strong>Phương thức thanh toán:</strong> ${paymentLabel}<br/>
+        <strong>Tổng thanh toán:</strong> $${Number(total).toFixed(2)}<br/>
+        <strong>Ngày giao dự kiến:</strong> ${estimatedDeliveryText}
+      </p>
+      <p><strong>Sản phẩm:</strong></p>
+      <ul>${htmlItems}</ul>
+      <p>
+        <strong>Địa chỉ nhận hàng:</strong><br/>
+        ${shippingAddress.name} - ${shippingAddress.phone}<br/>
+        ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.zipCode}, ${shippingAddress.country}
+      </p>
+      <p>Vui lòng giữ email này để tiện theo dõi đơn hàng.</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: env.newsletterFromEmail,
+    to,
+    replyTo: env.newsletterReplyTo || env.newsletterFromEmail,
+    subject,
+    text,
+    html,
+  });
+}
 
 function formatOrder(order) {
   const createdAt = order.createdAt ? new Date(order.createdAt) : null;
@@ -117,6 +208,18 @@ async function createOrder(req, res) {
         zipCode: String(shippingAddress.zipCode).trim(),
         country: String(shippingAddress.country).trim(),
       },
+    });
+
+    sendOrderConfirmationEmail({
+      to: req.user?.email || "",
+      orderNumber: order.orderNumber,
+      shippingCode: order.shippingCode,
+      paymentMethod: normalizedPaymentMethod,
+      shippingAddress: order.shippingAddress,
+      total: order.total,
+      items: order.items,
+    }).catch((error) => {
+      console.error("order confirmation email error:", error?.message || error);
     });
 
     return res.status(201).json({
