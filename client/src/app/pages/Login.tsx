@@ -276,13 +276,6 @@ export function Login() {
                 </button>
               </div>
 
-              {!isRegister && (
-                <div className="mt-4 text-center">
-                  <button className="text-sm text-[#FFC0CB] hover:underline">
-                    Quên mật khẩu?
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -41,8 +41,18 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: "Order items are required" });
     }
 
-    if (!shippingAddress?.name || !shippingAddress?.address || !shippingAddress?.city || !shippingAddress?.zipCode || !shippingAddress?.country) {
+    if (
+      !shippingAddress?.name ||
+      !shippingAddress?.phone ||
+      !shippingAddress?.address ||
+      !shippingAddress?.city ||
+      !shippingAddress?.zipCode ||
+      !shippingAddress?.country
+    ) {
       return res.status(400).json({ message: "Shipping information is incomplete" });
+    }
+    if (!/^[0-9+\-() ]{8,20}$/.test(String(shippingAddress.phone).trim())) {
+      return res.status(400).json({ message: "Phone number format is invalid" });
     }
 
     const normalizedItems = items
@@ -99,7 +109,14 @@ async function createOrder(req, res) {
       total: computedTotal,
       paymentMethod: normalizedPaymentMethod,
       status: "pending",
-      shippingAddress,
+      shippingAddress: {
+        name: String(shippingAddress.name).trim(),
+        phone: String(shippingAddress.phone).trim(),
+        address: String(shippingAddress.address).trim(),
+        city: String(shippingAddress.city).trim(),
+        zipCode: String(shippingAddress.zipCode).trim(),
+        country: String(shippingAddress.country).trim(),
+      },
     });
 
     return res.status(201).json({

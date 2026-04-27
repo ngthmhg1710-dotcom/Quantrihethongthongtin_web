@@ -1,9 +1,13 @@
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router';
+import { useApp } from '../context/AppContext';
 
 export function Contact() {
   const API_BASE_URL = "http://localhost:5000/api";
+  const navigate = useNavigate();
+  const { user } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -14,6 +18,11 @@ export function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error('Vui lòng đăng nhập để gửi liên hệ');
+      navigate('/login?redirect=' + encodeURIComponent('/contact'));
+      return;
+    }
     try {
       setIsSubmitting(true);
       const response = await fetch(`${API_BASE_URL}/contact`, {

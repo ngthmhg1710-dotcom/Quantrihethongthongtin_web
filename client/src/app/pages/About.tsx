@@ -1,13 +1,22 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router";
+import { useApp } from "../context/AppContext";
 
 export function About() {
+  const navigate = useNavigate();
+  const { user } = useApp();
   const [communityEmail, setCommunityEmail] = useState("");
   const [isSubmittingCommunity, setIsSubmittingCommunity] = useState(false);
   const API_BASE_URL = "http://localhost:5000/api";
 
   const handleCommunitySignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để đăng ký nhận tin.");
+      navigate("/login?redirect=" + encodeURIComponent("/about"));
+      return;
+    }
     const email = communityEmail.trim();
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 

@@ -1,7 +1,8 @@
 import { Link } from 'react-router';
 import { ShoppingCart, User, Search, Menu, X, Heart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 export function Header() {
   const { cart, user, logout, wishlistIds } = useApp();
@@ -46,6 +47,11 @@ export function Header() {
               to={user ? '/dashboard?tab=wishlist' : '/login?redirect=%2Fdashboard%3Ftab%3Dwishlist'}
               className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Wishlist"
+              onClick={() => {
+                if (!user) {
+                  toast.error('Vui lòng đăng nhập để xem danh sách yêu thích');
+                }
+              }}
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (

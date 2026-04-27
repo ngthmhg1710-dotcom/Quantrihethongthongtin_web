@@ -13,6 +13,7 @@ export function Checkout() {
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     email: '',
+    phone: '',
     address: '',
     city: '',
     zipCode: '',
@@ -52,6 +53,7 @@ export function Checkout() {
     setShippingInfo((prev) => ({
       name: chosenAddress?.name || user.defaultShippingAddress?.name || user.name || prev.name,
       email: user.email || prev.email,
+      phone: user.phone || prev.phone,
       address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
       city: chosenAddress?.city || user.defaultShippingAddress?.city || prev.city,
       zipCode: chosenAddress?.zipCode || user.defaultShippingAddress?.zipCode || prev.zipCode,
@@ -89,6 +91,7 @@ export function Checkout() {
       zipCode: address.zipCode,
       country: address.country,
       email: user.email || prev.email,
+      phone: user.phone || prev.phone,
     }));
   };
 
@@ -171,6 +174,7 @@ export function Checkout() {
     const errors: Partial<Record<keyof typeof shippingInfo, string>> = {};
     const name = shippingInfo.name.trim();
     const email = shippingInfo.email.trim();
+    const phone = shippingInfo.phone.trim();
     const address = shippingInfo.address.trim();
     const city = shippingInfo.city.trim();
     const zipCode = shippingInfo.zipCode.trim();
@@ -178,6 +182,7 @@ export function Checkout() {
 
     if (name.length < 2) errors.name = 'Vui lòng nhập họ tên đầy đủ';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email không hợp lệ';
+    if (!/^[0-9+\-() ]{8,20}$/.test(phone)) errors.phone = 'Số điện thoại không hợp lệ';
     if (address.length < 6) errors.address = 'Địa chỉ quá ngắn';
     if (city.length < 2) errors.city = 'Vui lòng nhập thành phố';
     if (!/^[A-Za-z0-9 -]{4,10}$/.test(zipCode)) errors.zipCode = 'Mã bưu điện không hợp lệ';
@@ -299,7 +304,7 @@ export function Checkout() {
         }
         await updateProfile({
           name: user.name,
-          phone: user.phone || '',
+        phone: shippingInfo.phone.trim(),
           shippingAddresses: nextBook,
         });
       } catch (error) {
@@ -487,6 +492,22 @@ export function Checkout() {
                       />
                       {shippingErrors.email && <p className="mt-1 text-xs text-red-600">{shippingErrors.email}</p>}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Số điện thoại</label>
+                    <input
+                      type="tel"
+                      required
+                      value={shippingInfo.phone}
+                      onChange={(e) => {
+                        setShippingInfo({ ...shippingInfo, phone: e.target.value });
+                        setShippingErrors((prev) => ({ ...prev, phone: undefined }));
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                      placeholder="+84..."
+                    />
+                    {shippingErrors.phone && <p className="mt-1 text-xs text-red-600">{shippingErrors.phone}</p>}
                   </div>
 
                   <div>
@@ -860,6 +881,7 @@ export function Checkout() {
                   setShippingInfo({
                     name: user.name || '',
                     email: user.email || '',
+                    phone: user.phone || '',
                     address: '',
                     city: '',
                     zipCode: '',

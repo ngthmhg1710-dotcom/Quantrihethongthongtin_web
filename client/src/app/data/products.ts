@@ -179,6 +179,7 @@ export interface Order {
   trackingCode?: string;
   shippingAddress: {
     name: string;
+    phone?: string;
     address: string;
     city: string;
     zipCode: string;
