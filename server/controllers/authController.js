@@ -8,6 +8,9 @@ const env = require("../config/env");
 const googleOAuthClient = new OAuth2Client();
 
 function sanitizeUser(user) {
+  const wishlistIds = Array.isArray(user.wishlistIds)
+    ? [...new Set(user.wishlistIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))]
+    : [];
   const shippingAddresses = Array.isArray(user.shippingAddresses)
     ? user.shippingAddresses.map((address) => ({
         id: address._id?.toString?.() || "",
@@ -36,6 +39,7 @@ function sanitizeUser(user) {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
+    hasUsablePassword: user.hasUsablePassword !== false,
     isAdmin: user.isAdmin,
     phone: user.phone || "",
     defaultShippingAddress: {
@@ -47,6 +51,7 @@ function sanitizeUser(user) {
     },
     shippingAddresses,
     savedPaymentMethods,
+    wishlistIds,
   };
 }
 
@@ -99,6 +104,7 @@ async function register(req, res) {
       name: String(name).trim(),
       email: normalizedEmail,
       password: hashedPassword,
+      hasUsablePassword: true,
       isAdmin: false,
     });
 
@@ -123,12 +129,18 @@ async function login(req, res) {
     const normalizedEmail = String(email).toLowerCase().trim();
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+    }
+    if (user.hasUsablePassword === false) {
+      return res.status(400).json({
+        message:
+          "Tài khoản này đang đăng nhập bằng Google. Vui lòng đăng nhập Google và đặt mật khẩu trong trang tài khoản.",
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
     }
 
     const authPayload = await buildAuthResponse(user);
@@ -171,6 +183,7 @@ async function loginWithGoogle(req, res) {
         name,
         email,
         password: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10),
+        hasUsablePassword: false,
         isAdmin: false,
       });
     } else if (!user.name?.trim()) {
@@ -239,6 +252,44 @@ async function logout(req, res) {
   }
 }
 
+async function setPassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    const normalizedNewPassword = String(newPassword || "");
+
+    if (normalizedNewPassword.length < 6) {
+      return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.hasUsablePassword !== false) {
+      const providedCurrentPassword = String(currentPassword || "");
+      if (!providedCurrentPassword) {
+        return res.status(400).json({ message: "Vui lòng nhập mật khẩu hiện tại" });
+      }
+      const isCurrentPasswordValid = await bcrypt.compare(providedCurrentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: "Mật khẩu hiện tại không đúng" });
+      }
+    }
+
+    user.password = await bcrypt.hash(normalizedNewPassword, 10);
+    user.hasUsablePassword = true;
+    await user.save();
+
+    return res.json({
+      message: "Đặt mật khẩu thành công",
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to set password" });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -246,4 +297,5 @@ module.exports = {
   me,
   refresh,
   logout,
+  setPassword,
 };

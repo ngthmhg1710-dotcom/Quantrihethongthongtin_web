@@ -22,6 +22,7 @@ async function protect(req, res, next) {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
+      hasUsablePassword: user.hasUsablePassword !== false,
       isAdmin: user.isAdmin,
       phone: user.phone || "",
       defaultShippingAddress: {
@@ -53,6 +54,9 @@ async function protect(req, res, next) {
             expiryDate: method.expiryDate || "",
             isDefault: Boolean(method.isDefault),
           }))
+        : [],
+      wishlistIds: Array.isArray(user.wishlistIds)
+        ? [...new Set(user.wishlistIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))]
         : [],
     };
 

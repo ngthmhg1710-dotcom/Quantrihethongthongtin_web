@@ -6,6 +6,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  hasUsablePassword?: boolean;
   isAdmin: boolean;
   phone?: string;
   shippingAddresses?: Array<{
@@ -34,6 +35,7 @@ interface User {
     zipCode: string;
     country: string;
   };
+  wishlistIds?: number[];
 }
 
 interface AppContextType {
@@ -52,6 +54,7 @@ interface AppContextType {
   login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: (idToken: string) => Promise<User>;
   register: (payload: { name: string; email: string; password: string }) => Promise<User>;
+  setPassword: (payload: { currentPassword?: string; newPassword: string }) => Promise<User>;
   logout: () => Promise<void>;
   updateProfile: (payload: {
     name?: string;
@@ -109,6 +112,9 @@ const defaultAppContext: AppContextType = {
   register: async () => {
     throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
   },
+  setPassword: async () => {
+    throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
+  },
   logout: async () => {},
   updateProfile: async () => {
     throw new Error('Ngữ cảnh ứng dụng chưa sẵn sàng');
@@ -131,9 +137,22 @@ const USER_STORAGE_KEY = 'app_user';
 const TOKEN_STORAGE_KEY = 'app_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';
 const WISHLIST_STORAGE_KEY = 'app_wishlist_ids';
+const GUEST_WISHLIST_STORAGE_KEY = `${WISHLIST_STORAGE_KEY}:guest`;
 
-const getWishlistStorageKey = (userId?: string | null) =>
-  userId ? `${WISHLIST_STORAGE_KEY}:${userId}` : `${WISHLIST_STORAGE_KEY}:guest`;
+const normalizeWishlistIds = (value: unknown): number[] => {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0))];
+};
+
+const readGuestWishlistIds = () => {
+  try {
+    const saved = localStorage.getItem(GUEST_WISHLIST_STORAGE_KEY);
+    const parsed = saved ? (JSON.parse(saved) as unknown) : [];
+    return normalizeWishlistIds(parsed);
+  } catch {
+    return [];
+  }
+};
 
 const clearAuthStorage = () => {
   localStorage.removeItem(USER_STORAGE_KEY);
@@ -206,17 +225,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    const key = getWishlistStorageKey(user?.id || null);
-    try {
-      const saved = localStorage.getItem(key);
-      const parsed = saved ? (JSON.parse(saved) as unknown) : [];
-      setWishlistIds(
-        Array.isArray(parsed) ? parsed.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0) : []
-      );
-    } catch {
-      setWishlistIds([]);
+    if (user) {
+      setWishlistIds(normalizeWishlistIds(user.wishlistIds));
+      return;
     }
-  }, [user?.id]);
+    setWishlistIds(readGuestWishlistIds());
+  }, [user]);
 
   const refreshAccessToken = async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
@@ -261,6 +275,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
       response = await fetch(url, { ...options, headers: retryHeaders });
     }
     return response;
+  };
+
+  const arraysEqual = (a: number[], b: number[]) =>
+    a.length === b.length && a.every((value, index) => value === b[index]);
+
+  const syncGuestWishlistAfterAuth = async (authenticatedUser: User, accessToken: string): Promise<User> => {
+    const guestWishlistIds = readGuestWishlistIds();
+    const serverWishlistIds = normalizeWishlistIds(authenticatedUser.wishlistIds);
+    const mergedWishlistIds = normalizeWishlistIds([...serverWishlistIds, ...guestWishlistIds]);
+
+    if (arraysEqual(serverWishlistIds, mergedWishlistIds)) {
+      localStorage.removeItem(GUEST_WISHLIST_STORAGE_KEY);
+      return { ...authenticatedUser, wishlistIds: serverWishlistIds };
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/wishlist`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ wishlistIds: mergedWishlistIds }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Không thể đồng bộ wishlist');
+      }
+      localStorage.removeItem(GUEST_WISHLIST_STORAGE_KEY);
+      return {
+        ...authenticatedUser,
+        wishlistIds: normalizeWishlistIds(data.wishlistIds),
+      };
+    } catch {
+      return { ...authenticatedUser, wishlistIds: mergedWishlistIds };
+    }
   };
 
   useEffect(() => {
@@ -394,14 +444,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const key = getWishlistStorageKey(user?.id || null);
-    localStorage.setItem(key, JSON.stringify(wishlistIds));
-  }, [wishlistIds, user?.id]);
+    if (!user) {
+      localStorage.setItem(GUEST_WISHLIST_STORAGE_KEY, JSON.stringify(wishlistIds));
+    }
+  }, [wishlistIds, user]);
 
   const toggleWishlist = (productId: number) => {
-    setWishlistIds((prev) =>
-      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
-    );
+    setWishlistIds((prev) => {
+      const next = prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId];
+
+      if (user) {
+        const previous = prev;
+        const normalizedNext = normalizeWishlistIds(next);
+        void (async () => {
+          try {
+            const response = await authFetch(`${API_BASE_URL}/user/wishlist`, {
+              method: 'PUT',
+              body: JSON.stringify({ wishlistIds: normalizedNext }),
+            });
+            const contentType = response.headers.get('content-type') || '';
+            const data = contentType.includes('application/json')
+              ? await response.json()
+              : { message: await response.text() };
+            if (!response.ok) {
+              throw new Error(data.message || 'Không thể cập nhật wishlist');
+            }
+            const serverWishlistIds = normalizeWishlistIds(data.wishlistIds);
+            setWishlistIds(serverWishlistIds);
+            setUser((currentUser) => {
+              if (!currentUser) return currentUser;
+              const updatedUser = { ...currentUser, wishlistIds: serverWishlistIds };
+              localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+              return updatedUser;
+            });
+          } catch {
+            setWishlistIds(previous);
+          }
+        })();
+      }
+
+      return next;
+    });
   };
 
   const isInWishlist = (productId: number) => wishlistIds.includes(productId);
@@ -418,8 +501,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(data.message || 'Đăng nhập thất bại');
     }
 
-    const loggedInUser = data.user as User;
+    const loggedInUser = await syncGuestWishlistAfterAuth(data.user as User, data.token as string);
     setUser(loggedInUser);
+    setWishlistIds(normalizeWishlistIds(loggedInUser.wishlistIds));
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
     localStorage.setItem(TOKEN_STORAGE_KEY, data.token as string);
     localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, data.refreshToken as string);
@@ -441,8 +525,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(data.message || 'Đăng nhập Google thất bại');
     }
 
-    const loggedInUser = data.user as User;
+    const loggedInUser = await syncGuestWishlistAfterAuth(data.user as User, data.token as string);
     setUser(loggedInUser);
+    setWishlistIds(normalizeWishlistIds(loggedInUser.wishlistIds));
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
     localStorage.setItem(TOKEN_STORAGE_KEY, data.token as string);
     localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, data.refreshToken as string);
@@ -461,8 +546,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(data.message || 'Đăng ký thất bại');
     }
 
-    const createdUser = data.user as User;
+    const createdUser = await syncGuestWishlistAfterAuth(data.user as User, data.token as string);
     setUser(createdUser);
+    setWishlistIds(normalizeWishlistIds(createdUser.wishlistIds));
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(createdUser));
     localStorage.setItem(TOKEN_STORAGE_KEY, data.token as string);
     localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, data.refreshToken as string);
@@ -485,6 +571,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setUser(null);
     clearAuthStorage();
+  };
+
+  const setPassword = async (payload: { currentPassword?: string; newPassword: string }) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/set-password`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Không thể đặt mật khẩu');
+    }
+    const updatedUser = data.user as User;
+    setUser(updatedUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
   };
 
   const updateProfile = async (payload: {
@@ -618,6 +719,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         login,
         loginWithGoogle,
         register,
+        setPassword,
         logout,
         updateProfile,
         orders,

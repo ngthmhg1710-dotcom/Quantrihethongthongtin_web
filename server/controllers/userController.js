@@ -1,5 +1,52 @@
 const User = require("../models/User");
 
+function normalizeWishlistIds(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
+}
+
+function serializeUser(user) {
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    hasUsablePassword: user.hasUsablePassword !== false,
+    isAdmin: user.isAdmin,
+    phone: user.phone || "",
+    defaultShippingAddress: {
+      name: user.defaultShippingAddress?.name || "",
+      address: user.defaultShippingAddress?.address || "",
+      city: user.defaultShippingAddress?.city || "",
+      zipCode: user.defaultShippingAddress?.zipCode || "",
+      country: user.defaultShippingAddress?.country || "",
+    },
+    shippingAddresses: Array.isArray(user.shippingAddresses)
+      ? user.shippingAddresses.map((item) => ({
+          id: item._id.toString(),
+          label: item.label || "Home",
+          name: item.name || "",
+          address: item.address || "",
+          city: item.city || "",
+          zipCode: item.zipCode || "",
+          country: item.country || "",
+          isDefault: Boolean(item.isDefault),
+        }))
+      : [],
+    savedPaymentMethods: Array.isArray(user.savedPaymentMethods)
+      ? user.savedPaymentMethods.map((item) => ({
+          id: item._id.toString(),
+          label: item.label || "Card",
+          cardName: item.cardName || "",
+          brand: item.brand || "Card",
+          last4: item.last4 || "",
+          expiryDate: item.expiryDate || "",
+          isDefault: Boolean(item.isDefault),
+        }))
+      : [],
+    wishlistIds: normalizeWishlistIds(user.wishlistIds),
+  };
+}
+
 function userProfile(req, res) {
   return res.json({
     message: "User profile",
@@ -132,50 +179,47 @@ async function updateUserProfile(req, res) {
 
     return res.json({
       message: "Profile updated successfully",
-      user: {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        phone: user.phone || "",
-        defaultShippingAddress: {
-          name: user.defaultShippingAddress?.name || "",
-          address: user.defaultShippingAddress?.address || "",
-          city: user.defaultShippingAddress?.city || "",
-          zipCode: user.defaultShippingAddress?.zipCode || "",
-          country: user.defaultShippingAddress?.country || "",
-        },
-        shippingAddresses: Array.isArray(user.shippingAddresses)
-          ? user.shippingAddresses.map((item) => ({
-              id: item._id.toString(),
-              label: item.label || "Home",
-              name: item.name || "",
-              address: item.address || "",
-              city: item.city || "",
-              zipCode: item.zipCode || "",
-              country: item.country || "",
-              isDefault: Boolean(item.isDefault),
-            }))
-          : [],
-        savedPaymentMethods: Array.isArray(user.savedPaymentMethods)
-          ? user.savedPaymentMethods.map((item) => ({
-              id: item._id.toString(),
-              label: item.label || "Card",
-              cardName: item.cardName || "",
-              brand: item.brand || "Card",
-              last4: item.last4 || "",
-              expiryDate: item.expiryDate || "",
-              isDefault: Boolean(item.isDefault),
-            }))
-          : [],
-      },
+      user: serializeUser(user),
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update profile" });
   }
 }
 
+async function getWishlist(req, res) {
+  try {
+    const user = await User.findById(req.user.id).lean();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.json({ wishlistIds: normalizeWishlistIds(user.wishlistIds) });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to get wishlist" });
+  }
+}
+
+async function updateWishlist(req, res) {
+  try {
+    const normalizedWishlistIds = normalizeWishlistIds(req.body?.wishlistIds);
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.wishlistIds = normalizedWishlistIds;
+    await user.save();
+    return res.json({
+      message: "Wishlist updated successfully",
+      wishlistIds: normalizedWishlistIds,
+      user: serializeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update wishlist" });
+  }
+}
+
 module.exports = {
   userProfile,
   updateUserProfile,
+  getWishlist,
+  updateWishlist,
 };

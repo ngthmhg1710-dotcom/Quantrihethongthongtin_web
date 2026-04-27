@@ -94,8 +94,13 @@ export function Login() {
           try {
             setSubmitting(true);
             const authUser = await loginWithGoogle(response.credential);
-            toast.success('Đăng nhập Google thành công');
-            navigate(authUser.isAdmin ? '/admin' : redirectPath);
+            if (!authUser.isAdmin && authUser.hasUsablePassword === false) {
+              toast.success('Đăng nhập Google thành công. Vui lòng đặt mật khẩu để đăng nhập thường.');
+              navigate('/dashboard?tab=account&action=set-password');
+            } else {
+              toast.success('Đăng nhập Google thành công');
+              navigate(authUser.isAdmin ? '/admin' : redirectPath);
+            }
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Đăng nhập Google thất bại';
             toast.error(message);
