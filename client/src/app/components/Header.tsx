@@ -1,12 +1,13 @@
 import { Link } from 'react-router';
-import { ShoppingCart, User, Search, Menu, X } from 'lucide-react';
+import { ShoppingCart, User, Search, Menu, X, Heart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useState } from 'react';
 
 export function Header() {
-  const { cart, user, logout } = useApp();
+  const { cart, user, logout, wishlistIds } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const wishlistCount = wishlistIds.length;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -33,9 +34,26 @@ export function Header() {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Link
+              to="/products?focus=search"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Tìm kiếm sản phẩm"
+            >
               <Search className="w-5 h-5" />
-            </button>
+            </Link>
+
+            <Link
+              to={user ? '/dashboard?tab=wishlist' : '/login?redirect=%2Fdashboard%3Ftab%3Dwishlist'}
+              className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Wishlist"
+            >
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#FFC0CB] text-black text-xs min-w-5 h-5 px-1 rounded-full flex items-center justify-center font-semibold">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
 
             {user ? (
               <div className="relative group">

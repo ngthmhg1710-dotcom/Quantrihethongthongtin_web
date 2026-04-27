@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Star, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -9,7 +9,8 @@ export function ProductListing() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedSkinType, setSelectedSkinType] = useState('all');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
   const skinTypes = ['all', 'dry', 'oily', 'combination', 'normal', 'sensitive'];
@@ -25,6 +26,17 @@ export function ProductListing() {
     });
   }, [selectedCategory, selectedSkinType, priceRange, searchQuery]);
 
+  useEffect(() => {
+    setSelectedCategory(searchParams.get('category') || 'all');
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('focus') === 'search') {
+      searchInputRef.current?.focus();
+    }
+  }, [searchParams]);
+
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -36,6 +48,7 @@ export function ProductListing() {
         <div className="mb-8">
           <div className="relative">
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Tìm kiếm sản phẩm..."
               value={searchQuery}

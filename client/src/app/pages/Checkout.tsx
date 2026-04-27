@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import React, { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { CreditCard, MapPin, Check } from 'lucide-react';
@@ -812,6 +812,7 @@ export function Checkout() {
             </div>
           </div>
         </div>
+
       </div>
 
       {isAddressPickerOpen && user?.shippingAddresses && (
