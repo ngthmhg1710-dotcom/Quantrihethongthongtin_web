@@ -3,6 +3,16 @@ import { Link, useSearchParams } from 'react-router';
 import { Star, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function ProductListing() {
   const { products } = useApp();
   const [searchParams] = useSearchParams();
@@ -16,12 +26,25 @@ export function ProductListing() {
   const skinTypes = ['all', 'dry', 'oily', 'combination', 'normal', 'sensitive'];
 
   const filteredProducts = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    const queryWords = normalizedQuery.split(' ').filter(Boolean);
+
     return products.filter(product => {
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
       const matchesSkinType = selectedSkinType === 'all' || product.skinTypes.includes(selectedSkinType);
       const matchesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const searchableText = normalizeSearchText(
+        `${product.name} ${product.description} ${product.category} ${product.skinTypes.join(' ')}`
+      );
+      const compactSearchableText = searchableText.replace(/\s+/g, '');
+      const compactQuery = normalizedQuery.replace(/\s+/g, '');
+      const matchesFullText =
+        !normalizedQuery ||
+        searchableText.includes(normalizedQuery) ||
+        compactSearchableText.includes(compactQuery);
+      const matchesByWords =
+        queryWords.length === 0 || queryWords.every((word) => searchableText.includes(word));
+      const matchesSearch = matchesFullText || matchesByWords;
       return matchesCategory && matchesSkinType && matchesPrice && matchesSearch;
     });
   }, [selectedCategory, selectedSkinType, priceRange, searchQuery]);
