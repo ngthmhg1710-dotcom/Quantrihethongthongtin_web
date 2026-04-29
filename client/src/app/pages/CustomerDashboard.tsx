@@ -137,6 +137,9 @@ export function CustomerDashboard() {
       ),
     [products, normalizedUserName]
   );
+  const defaultShippingAddressText = user?.defaultShippingAddress?.address
+    ? `${user.defaultShippingAddress.name}, ${user.defaultShippingAddress.address}, ${user.defaultShippingAddress.city}`
+    : 'Chưa cập nhật';
   const filteredOrders = useMemo(() => {
     const keyword = normalizeSearchText(orderSearch.trim());
     return orders.filter((order) => {
@@ -412,35 +415,76 @@ export function CustomerDashboard() {
             )}
 
             {activeSection === 'account' && (
-              <div className="max-w-2xl space-y-5">
+              <div className="space-y-5">
                 <h2 className="font-['Poppins'] font-semibold text-xl">Thông tin tài khoản</h2>
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Tên</p>
-                    <p className="font-semibold">{user.name}</p>
+                <div className="grid lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-[#FFE7EC] text-[#C85070] flex items-center justify-center font-semibold">
+                        {(user.name || user.email || 'U').trim().charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-base">{user.name || 'Khách hàng'}</p>
+                        <p className="text-sm text-gray-600">{user.email || 'Chưa cập nhật email'}</p>
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Tên</p>
+                        <p className="font-semibold">{user.name || 'Chưa cập nhật'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Số điện thoại</p>
+                        <p className="font-semibold">{user.phone || 'Chưa cập nhật'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Địa chỉ giao hàng mặc định</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {defaultShippingAddressText}
+                      </p>
+                    </div>
+                    <button
+                      onClick={openEditProfileModal}
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#FFE4E9] text-black text-sm font-medium hover:bg-[#FFD6E0] transition-colors border border-[#FFC0CB] w-fit"
+                    >
+                      Chỉnh sửa hồ sơ
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Email</p>
-                    <p className="font-semibold">{user.email}</p>
+
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                    <p className="text-sm text-gray-600 mb-3">Tổng quan tài khoản</p>
+                    <div className="space-y-3">
+                      <div className="rounded-xl bg-[#FFF7F9] border border-[#FFE4EA] px-3 py-2">
+                        <p className="text-xs text-gray-500">Đơn hàng</p>
+                        <p className="font-semibold">{orders.length}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#FFF7F9] border border-[#FFE4EA] px-3 py-2">
+                        <p className="text-xs text-gray-500">Sản phẩm yêu thích</p>
+                        <p className="font-semibold">{wishlistedProducts.length}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#FFF7F9] border border-[#FFE4EA] px-3 py-2">
+                        <p className="text-xs text-gray-500">Đánh giá đã viết</p>
+                        <p className="font-semibold">{reviewedProducts.length}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveSection('orders')}
+                        className="w-full text-left text-sm text-gray-700 hover:text-black"
+                      >
+                        Xem lịch sử mua hàng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSection('wishlist')}
+                        className="w-full text-left text-sm text-gray-700 hover:text-black"
+                      >
+                        Xem wishlist của tôi
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Số điện thoại</p>
-                    <p className="font-semibold">{user.phone || 'Chưa cập nhật'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Địa chỉ giao hàng mặc định</p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {user.defaultShippingAddress?.address
-                        ? `${user.defaultShippingAddress.name}, ${user.defaultShippingAddress.address}, ${user.defaultShippingAddress.city}`
-                        : 'Chưa cập nhật'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={openEditProfileModal}
-                    className="text-sm text-[#FFC0CB] hover:underline"
-                  >
-                    Chỉnh sửa hồ sơ
-                  </button>
                 </div>
               </div>
             )}
