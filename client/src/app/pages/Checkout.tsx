@@ -77,6 +77,13 @@ export function Checkout() {
     setDidPrefillSavedCard(true);
   }, [user, didPrefillSavedCard, paymentMethod]);
 
+  useEffect(() => {
+    if (!user) return;
+    if (cart.length === 0 && step !== 'success') {
+      navigate('/cart');
+    }
+  }, [user, cart.length, step, navigate]);
+
   const applyAddressFromBook = (index: number) => {
     if (!user?.shippingAddresses || !user.shippingAddresses[index]) return;
     const address = user.shippingAddresses[index];
@@ -159,12 +166,6 @@ export function Checkout() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (cart.length === 0 && step !== 'success') {
-      navigate('/cart');
-    }
-  }, [cart.length, step, navigate]);
 
   if (cart.length === 0 && step !== 'success') {
     return null;
