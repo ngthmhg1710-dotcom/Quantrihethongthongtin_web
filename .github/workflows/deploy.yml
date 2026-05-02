@@ -22,11 +22,8 @@ jobs:
             git clean -fd
             git pull origin main
             
-            # Install and start MongoDB natively in case Docker is not available
-            sudo apt-get update || true
-            sudo apt-get install -y mongodb || true
-            sudo systemctl start mongodb || true
-            sudo systemctl enable mongodb || true
+            # Start MongoDB via Docker (in case docker-compose is missing)
+            sudo docker run -d -p 27017:27017 --name glow-mongo mongo:7 || sudo docker start glow-mongo || true
             
             cd client
             npm install
@@ -34,4 +31,5 @@ jobs:
             
             cd ../server
             npm install
-            pm2 start server.js --name "ecommerce-api" --update-env || pm2 restart "ecommerce-api" --update-env
+            pm2 delete "ecommerce-api" || true
+            pm2 start server.js --name "ecommerce-api"
