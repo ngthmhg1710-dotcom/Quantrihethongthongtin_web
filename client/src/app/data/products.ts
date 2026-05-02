@@ -83,6 +83,7 @@ export const products: Product[] = [
     skinTypes: ["oily", "combination", "normal"],
     rating: 4.7,
     reviews: [],
+    featured: true,
     step: 2
   },
   {
@@ -97,7 +98,8 @@ export const products: Product[] = [
     rating: 4.8,
     reviews: [
       { id: 5, user: "Isabella R.", rating: 5, comment: "Wake up with glowing skin every morning!", date: "2026-04-05" }
-    ]
+    ],
+    featured: true
   },
   {
     id: 6,
@@ -110,6 +112,7 @@ export const products: Product[] = [
     skinTypes: ["all"],
     rating: 4.9,
     reviews: [],
+    featured: true,
     step: 5
   },
   {
