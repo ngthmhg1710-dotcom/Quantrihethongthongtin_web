@@ -1,214 +1,115 @@
-MODERN B2C E-COMMERCE WEBSITE (NODE.JS)
+# 🛒 Modern B2C E-Commerce Website
+
+Dự án Website Thương Mại Điện Tử B2C hiện đại, tập trung vào trải nghiệm người dùng (UI/UX) cùng đầy đủ tính năng cốt lõi cho Khách hàng và Quản trị viên.
 
 =====================================
-1. GIỚI THIỆU
+## 1. 🔗 THÔNG TIN BÁO CÁO (LINKS)
 =====================================
+- **GitHub Repo:** [https://github.com/ngthmhg1710-dotcom/Quantrihethongthongtin_web]
+- **Figma Design:** [https://www.figma.com/design/Widn3Th6JGP7dLFdIjCLLY/Web-CK-QTHTTT?node-id=0-1&t=5SUzlI6ETCZwyHEM-1]
 
-Project gồm:
-- Frontend: React + Vite
-- Backend: Node.js + Express
-- Database: MongoDB (Atlas)
+---
 
-=====================================
-2. YÊU CẦU
-=====================================
+## 2. 🌐 TRẢI NGHIỆM BẰNG URL CÔNG KHAI
 
-- Node.js >= 18
-- npm >= 9
-- MongoDB Atlas (khuyên dùng)
+Cách nhanh nhất để xem và chấm điểm dự án là truy cập trực tiếp vào bản đã được Deploy (không cần cài đặt code):
+- **Live Website:** [https://3-104-106-28.nip.io/](https://3-104-106-28.nip.io/)
 
-=====================================
-3. CHẠY LOCAL
-=====================================
+---
 
-Bước 1: Cài dependencies
+## 3. 🐳 HƯỚNG DẪN CHẠY LOCAL BẰNG DOCKER
 
-npm install --prefix client
-npm install --prefix server
+Dự án này được tối ưu và đóng gói hoàn toàn bằng Docker để đảm bảo có thể chạy mượt mà trên mọi môi trường (Local hoặc lúc Deploy lên Server/EC2) chỉ với 1 câu lệnh duy nhất.
 
--------------------------------------
+### 3.1. Yêu cầu hệ thống
+- Máy tính / Server đã cài đặt sẵn **Docker** và **Docker Compose**.
 
-Bước 2: Cấu hình backend
+### 3.2. Cấu hình biến môi trường (.env)
 
-Copy file:
-server/.env.example -> server/.env
+Trước khi chạy Docker, bạn cần tạo 2 file `.env` cho Client và Server.
 
-Sửa:
+**A. Cấu hình cho Server (Backend)**
+Tạo file `server/.env` (bạn có thể copy từ `.env.example`).
+Lưu ý quan trọng: Khi chạy bằng file `docker-compose.yml` có sẵn, host kết nối Database phải là `mongo` (chứ không phải localhost).
 
+```env
 PORT=5000
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/<db>
+MONGODB_URI=mongodb://mongo:27017/modern_b2c_ecommerce
 
-JWT_SECRET=your_secret
-JWT_REFRESH_SECRET=your_refresh_secret
+# Xác thực JWT (Bắt buộc)
+JWT_SECRET=chuoi_ky_tu_bi_mat_cua_ban
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=chuoi_ky_tu_bi_mat_refresh_cua_ban
+JWT_REFRESH_EXPIRES_IN=30d
 
--------------------------------------
+# Các biến tuỳ chọn khác (Google OAuth, SMTP Email...) bạn có thể xem chi tiết trong file .env.example
+```
 
-Bước 3: Cấu hình frontend
+**B. Cấu hình cho Client (Frontend)**
+Tạo file `client/.env`:
 
-File: client/.env
-
+```env
+# Địa chỉ API của Backend
 VITE_API_URL=http://localhost:5000
-VITE_GOOGLE_CLIENT_ID=your_google_client_id
+```
 
--------------------------------------
+### 3.3. Khởi chạy toàn bộ dự án
+Mở terminal tại thư mục gốc của dự án (nơi chứa file `docker-compose.yml`) và chạy lệnh sau:
 
-Bước 4: Chạy project
+```bash
+docker-compose up -d --build
+```
 
-Backend:
-npm run dev:server
+Lệnh này sẽ tự động:
+1. Tải image MongoDB.
+2. Build image cho Node.js Backend.
+3. Build image cho React Frontend.
+4. Chạy và liên kết tất cả lại với nhau.
 
-Frontend:
-npm run dev:client
+🎉 **Thành công!** Bạn có thể mở trình duyệt và truy cập:
+- **Trải nghiệm Website (Frontend):** `http://localhost:5173`
+- **Backend API:** `http://localhost:5000`
 
--------------------------------------
+Để dừng ứng dụng, bạn chỉ cần gõ:
+```bash
+docker-compose down
+```
 
-Truy cập:
+---
 
-Frontend: http://localhost:5173
-Backend:  http://localhost:5000
+## 4. 🔑 TÀI KHOẢN TEST TRẢI NGHIỆM
 
-=====================================
-4. DEPLOY EC2
-=====================================
+Bạn có thể sử dụng các tài khoản dưới đây để trải nghiệm nhanh các tính năng ẩn trên website mà không cần phải đăng ký tài khoản mới:
 
-Bước 1: Backend .env
+**Tài khoản Quản trị (Admin Dashboard):**
+- **Email:** `jwtadmin@example.com`
+- **Mật khẩu:** `abc12345`
+- *Phân quyền:* Truy cập trang Admin, xem biểu đồ doanh thu, thêm/sửa/xoá sản phẩm, danh mục, cập nhật trạng thái đơn hàng.
 
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/<db>
+**Tài khoản Khách hàng (User Dashboard):**
+- **Email:** `ngthmhg1710@gmail.com`
+- **Mật khẩu:** `123456`
+- *Phân quyền:* Trải nghiệm luồng mua sắm đầy đủ, xem lịch sử mua hàng, quản lý hồ sơ cá nhân và đánh giá sản phẩm.
 
--------------------------------------
+---
 
-Bước 2: Frontend .env
+## 5. 🌟 CÁC TÍNH NĂNG CHÍNH NỔI BẬT
 
-VITE_API_URL=http://<EC2_PUBLIC_IP>:5000
+- **Module Khách hàng:** 
+  - Đăng ký/đăng nhập an toàn (Kết hợp Email/Password và Đăng nhập bằng Google).
+  - Tìm kiếm & Lọc sản phẩm thông minh.
+  - Quản lý Giỏ hàng và luồng Checkout thanh toán mượt mà.
+  - Lịch sử đặt hàng và quản lý tài khoản (Dashboard cá nhân).
+  - Chức năng đánh giá (Review) sản phẩm.
+- **Module Quản trị (Admin):** 
+  - Giao diện Tổng quan (Dashboard) thống kê dữ liệu.
+  - Quản lý toàn diện Sản phẩm & Danh mục (CRUD).
+  - Quản lý và theo dõi Đơn hàng của người dùng.
 
-Ví dụ:
-VITE_API_URL=http://3.104.106.28:5000
+---
 
--------------------------------------
-
-Bước 3: Chạy backend
-
-cd server
-npm start
-
--------------------------------------
-
-Bước 4: Chạy frontend
-
-cd client
-npm run dev -- --host
-
--------------------------------------
-
-Bước 5: Mở port EC2
-
-Mở các port:
-
-5000 (backend)
-5173 (frontend)
-22 (SSH)
-80, 443 (web)
-
-Source: 0.0.0.0/0
-
--------------------------------------
-
-Truy cập:
-
-http://<EC2_PUBLIC_IP>:5173
-
-=====================================
-5. TÀI KHOẢN TEST
-=====================================
-
-Admin:
-jwtadmin@example.com
-abc12345
-
-User:
-ngthmhg1710@gmail.com
-123456
-
-=====================================
-6. LỖI THƯỜNG GẶP
-=====================================
-
-1. ERR_CONNECTION_REFUSED localhost:5000
-
-Nguyên nhân:
-Frontend đang gọi localhost
-
-Fix:
-Sửa client/.env:
-VITE_API_URL=http://<EC2_IP>:5000
-
-Restart frontend:
-Ctrl + C
-npm run dev -- --host
-
--------------------------------------
-
-2. ECONNREFUSED 127.0.0.1:27017
-
-Nguyên nhân:
-Sai biến môi trường
-
-Fix:
-Dùng đúng:
-MONGODB_URI=...
-
--------------------------------------
-
-3. Cannot GET /
-
-Không phải lỗi (backend không có route /)
-
--------------------------------------
-
-4. Không login được
-
-Nguyên nhân:
-Chưa seed user
-
-Fix:
-Đổi database mới:
-MONGODB_URI=.../new_db
-
--------------------------------------
-
-5. Gọi API vẫn về localhost
-
-Nguyên nhân:
-Code bị hardcode localhost
-
-Fix:
-Tìm và sửa:
-http://localhost:5000
-
-=> đổi thành:
-import.meta.env.VITE_API_URL
-
-=====================================
-7. GHI CHÚ
-=====================================
-
-- Vite chỉ đọc .env khi khởi động
-- Luôn restart sau khi sửa .env
-- Backend và frontend phải chạy cùng lúc
-- Không hardcode localhost
-
-=====================================
-8. NÂNG CAO
-=====================================
-
-Chạy backend nền:
-
-npm install -g pm2
-pm2 start index.js
-
--------------------------------------
-
-Có thể thêm:
-- Nginx
-- Domain
-- HTTPS
+## 6. 🚀 CÔNG NGHỆ SỬ DỤNG
+- **Frontend:** React, Vite, Tailwind CSS (Tích hợp Design System chuẩn mực)
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB (Atlas)
+- **Xác thực:** JWT (JSON Web Token) & Google OAuth 2.0

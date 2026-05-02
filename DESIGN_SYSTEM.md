@@ -35,8 +35,9 @@ This project follows a lightweight design system to keep all customer and admin 
 
 ## 3) Typography
 
-- **Primary heading font**: `Poppins`
-- **Body/UI font**: browser default sans-serif stack (Tailwind defaults)
+- **Primary Global Font**: `Be Vietnam Pro` (Tối ưu cho hiển thị tiếng Việt).
+- **Body/UI & Headings**: Đều sử dụng chung `Be Vietnam Pro`.
+- *Lưu ý kỹ thuật:* Trong code hiện tại sử dụng các class tiện ích như `font-['Poppins']` của Tailwind, nhưng đã được ghi đè (remap) CSS trực tiếp trong file `theme.css` để render ra font `Be Vietnam Pro`. Điều này giúp giao diện hiển thị tiếng Việt không bị lỗi dấu.
 
 ### Recommended Sizes
 
