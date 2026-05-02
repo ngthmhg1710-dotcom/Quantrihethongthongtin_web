@@ -5,12 +5,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export function CustomerDashboard() {
-  const { user, orders, products, wishlistIds, updateProfile } = useApp();
+  const { user, orders, products, wishlistIds, updateProfile, setPassword } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [selectedOrder, setSelectedOrder] = useState<(typeof orders)[number] | null>(null);
   const [activeSection, setActiveSection] = useState<'account' | 'reviews' | 'wishlist' | 'orders'>('account');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'delivered'>('all');
 
@@ -123,7 +125,12 @@ export function CustomerDashboard() {
     if (tab === 'account' || tab === 'reviews' || tab === 'wishlist' || tab === 'orders') {
       setActiveSection(tab);
     }
-  }, [searchParams]);
+    const action = searchParams.get('action');
+    if (action === 'set-password') {
+      setIsSettingPassword(true);
+      navigate('/dashboard?tab=account', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const normalizedUserName = user?.name?.trim().toLowerCase() || '';
   const wishlistedProducts = useMemo(
@@ -266,6 +273,28 @@ export function CustomerDashboard() {
       setIsEditingProfile(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
+    }
+  };
+
+  const handleSavePassword = async () => {
+    try {
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        toast.error('Mật khẩu xác nhận không khớp');
+        return;
+      }
+      if (passwordForm.newPassword.length < 6) {
+        toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
+        return;
+      }
+      await setPassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      toast.success('Đã đặt mật khẩu thành công');
+      setIsSettingPassword(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể đặt mật khẩu');
     }
   };
 
@@ -444,12 +473,20 @@ export function CustomerDashboard() {
                         {defaultShippingAddressText}
                       </p>
                     </div>
-                    <button
-                      onClick={openEditProfileModal}
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#FFE4E9] text-black text-sm font-medium hover:bg-[#FFD6E0] transition-colors border border-[#FFC0CB] w-fit"
-                    >
-                      Chỉnh sửa hồ sơ
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={openEditProfileModal}
+                        className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#FFE4E9] text-black text-sm font-medium hover:bg-[#FFD6E0] transition-colors border border-[#FFC0CB] w-fit"
+                      >
+                        Chỉnh sửa hồ sơ
+                      </button>
+                      <button
+                        onClick={() => setIsSettingPassword(true)}
+                        className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-white text-black text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200 w-fit"
+                      >
+                        Đổi mật khẩu
+                      </button>
+                    </div>
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-2xl p-5">
@@ -628,7 +665,7 @@ export function CustomerDashboard() {
                   <div key={`${selectedOrder.id}-${item.product.id}`} className="p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <img
-                        src={item.product.image}
+                        src={products.find(p => p.id === item.product.id)?.image || item.product.image}
                         alt={item.product.name}
                         className="w-12 h-12 object-cover rounded-md"
                       />
@@ -873,6 +910,75 @@ export function CustomerDashboard() {
                   className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800"
                 >
                   Lưu hồ sơ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {isSettingPassword && (
+        <div
+          className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4"
+          onClick={() => setIsSettingPassword(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-['Poppins'] font-semibold text-xl">Đổi mật khẩu</h3>
+              <button
+                type="button"
+                onClick={() => setIsSettingPassword(false)}
+                className="px-3 py-1.5 border rounded-full text-sm hover:bg-gray-100"
+              >
+                Đóng
+              </button>
+            </div>
+            <div className="space-y-4">
+              {user.hasUsablePassword !== false && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Mật khẩu hiện tại</label>
+                  <input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">Mật khẩu mới</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Xác nhận mật khẩu mới</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingPassword(false)}
+                  className="px-4 py-2 border rounded-full hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePassword}
+                  className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800"
+                >
+                  Lưu mật khẩu
                 </button>
               </div>
             </div>

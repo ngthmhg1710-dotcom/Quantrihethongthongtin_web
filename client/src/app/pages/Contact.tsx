@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
 
 export function Contact() {
-  const API_BASE_URL = "http://localhost:5000/api";
+  const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
   const navigate = useNavigate();
   const { user } = useApp();
   const [formData, setFormData] = useState({

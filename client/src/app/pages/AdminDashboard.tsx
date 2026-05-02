@@ -37,7 +37,7 @@ interface ContactMessage {
   sentAt: string;
 }
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
 const DEFAULT_CATEGORY_OPTIONS = [
   'Sữa rửa mặt',
   'Nước cân bằng',
@@ -1377,7 +1377,7 @@ export function AdminDashboard() {
                 <div className="divide-y divide-gray-200">
                   {selectedOrder.items.map((item, idx) => (
                     <div key={`${item.product.id}-${idx}`} className="p-4 flex gap-3 items-center">
-                      <img src={item.product.image} alt={item.product.name} className="w-14 h-14 rounded-lg object-cover" />
+                      <img src={products.find(p => p.id === item.product.id)?.image || item.product.image} alt={item.product.name} className="w-14 h-14 rounded-lg object-cover" />
                       <div className="flex-1">
                         <p className="font-medium">{item.product.name}</p>
                         <p className="text-xs text-gray-500">{item.product.category}</p>
