@@ -77,8 +77,8 @@ export function Login() {
         return;
       }
 
-      // Avoid multiple initialize() calls (React StrictMode / rerenders).
-      if (googleInitRef.current.initialized && googleInitRef.current.clientId === googleClientId) {
+      // Avoid multiple initialize() calls (React StrictMode / rerenders / component remounts).
+      if ((window as any).__googleInitialized === googleClientId) {
         if (mounted) setGoogleReady(true);
         return;
       }
@@ -110,7 +110,7 @@ export function Login() {
         },
       });
 
-      googleInitRef.current = { initialized: true, clientId: googleClientId };
+      (window as any).__googleInitialized = googleClientId;
       if (mounted) {
         setGoogleReady(true);
       }
