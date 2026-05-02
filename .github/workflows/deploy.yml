@@ -21,9 +21,14 @@ jobs:
             git reset --hard HEAD
             git clean -fd
             git pull origin main
+            
+            # Start MongoDB via Docker just in case it's not running
+            docker-compose up -d mongo
+            
             cd client
             npm install
             npm run build
+            
             cd ../server
             npm install
             pm2 start server.js --name "ecommerce-api" --update-env || pm2 restart "ecommerce-api" --update-env
