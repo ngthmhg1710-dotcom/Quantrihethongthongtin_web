@@ -26,4 +26,4 @@ jobs:
             npm run build
             cd ../server
             npm install
-            pm2 restart all
+            pm2 start server.js --name "ecommerce-api" --update-env || pm2 restart "ecommerce-api" --update-env
