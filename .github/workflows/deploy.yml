@@ -22,8 +22,11 @@ jobs:
             git clean -fd
             git pull origin main
             
-            # Start MongoDB via Docker just in case it's not running
-            docker-compose up -d mongo
+            # Install and start MongoDB natively in case Docker is not available
+            sudo apt-get update || true
+            sudo apt-get install -y mongodb || true
+            sudo systemctl start mongodb || true
+            sudo systemctl enable mongodb || true
             
             cd client
             npm install
