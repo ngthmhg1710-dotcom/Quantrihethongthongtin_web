@@ -35,6 +35,16 @@ async function seedProductsIfNeeded() {
     await Product.insertMany(mapped);
     console.log(`Seeded ${missingProducts.length} products`);
   }
+
+  // Force sync images for existing products to ensure EC2 updates
+  for (const product of seedProducts) {
+    if (existingIds.has(product.id)) {
+      await Product.updateOne(
+        { id: product.id },
+        { $set: { image: product.image, imageAlt: product.imageAlt } }
+      );
+    }
+  }
 }
 
 async function migrateProductCategoriesIfNeeded() {
