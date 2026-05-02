@@ -8,14 +8,14 @@ async function startServer() {
     await migrateProductCategoriesIfNeeded();
     await seedProductsIfNeeded();
     await seedUsersIfNeeded();
-
-    app.listen(env.port, () => {
-      console.log(`Server running on port ${env.port}`);
-    });
   } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
+    console.error("Database connection or seeding failed:", error.message);
   }
+
+  // Always start the server so Nginx doesn't return 502 Bad Gateway
+  app.listen(env.port, () => {
+    console.log(`Server running on port ${env.port}`);
+  });
 }
 
 startServer();
