@@ -62,7 +62,7 @@ async function getProducts(req, res) {
     const products = await Product.find().populate("category", "name").sort({ id: 1 }).lean();
     return res.json(products.map(toProductResponse));
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch products" });
+    return res.status(500).json({ message: "Failed to fetch products", error: error.message });
   }
 }
 
