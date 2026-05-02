@@ -136,7 +136,7 @@ const defaultAppContext: AppContextType = {
 };
 
 const AppContext = createContext<AppContextType>(defaultAppContext);
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
 const USER_STORAGE_KEY = 'app_user';
 const TOKEN_STORAGE_KEY = 'app_token';
 const REFRESH_TOKEN_STORAGE_KEY = 'app_refresh_token';

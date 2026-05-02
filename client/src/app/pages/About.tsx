@@ -8,7 +8,7 @@ export function About() {
   const { user } = useApp();
   const [communityEmail, setCommunityEmail] = useState("");
   const [isSubmittingCommunity, setIsSubmittingCommunity] = useState(false);
-  const API_BASE_URL = "http://localhost:5000/api";
+  const API_BASE_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 
   const handleCommunitySignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

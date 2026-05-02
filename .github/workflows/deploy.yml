@@ -18,6 +18,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/Quantrihethongthongtin_web
+            git reset --hard HEAD
+            git clean -fd
             git pull origin main
             cd client
             npm install
