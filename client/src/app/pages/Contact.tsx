@@ -89,7 +89,7 @@ export function Contact() {
           <div className="grid md:grid-cols-2 gap-12">
             <div>
               <img
-                src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=800&h=600&fit=crop"
+                src="/images/hero.png"
                 alt="Liên hệ"
                 className="rounded-2xl shadow-2xl w-full h-full object-cover"
               />

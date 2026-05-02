@@ -169,7 +169,7 @@ export function Login() {
                   : 'Đăng nhập để truy cập tài khoản và tiếp tục hành trình làm đẹp của bạn.'}
               </p>
               <img
-                src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=600&fit=crop"
+                src="/images/hero.png"
                 alt="Sản phẩm làm đẹp"
                 className="rounded-xl shadow-2xl"
               />

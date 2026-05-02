@@ -5,10 +5,10 @@ import { useApp } from '../context/AppContext';
 export function Homepage() {
   const { products } = useApp();
   const featuredProducts = products.filter(p => p.featured);
-  const routineSteps = products
-    .filter(p => p.step)
-    .sort((a, b) => (a.step || 0) - (b.step || 0))
-    .slice(0, 5);
+  const routineProductIds = [2, 4, 1, 3, 6];
+  const routineSteps = routineProductIds
+    .map(id => products.find(p => p.id === id))
+    .filter(p => p !== undefined);
 
   return (
     <div className="min-h-screen">
@@ -41,7 +41,7 @@ export function Homepage() {
             </div>
             <div className="relative">
               <img
-                src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=600&h=600&fit=crop"
+                src="/images/hero.png"
                 alt="Hero"
                 className="rounded-2xl shadow-2xl"
               />

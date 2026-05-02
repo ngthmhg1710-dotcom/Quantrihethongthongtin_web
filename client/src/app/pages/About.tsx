@@ -74,7 +74,7 @@ export function About() {
             </div>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&h=600&fit=crop"
+                src="/images/hero.png"
                 alt="Câu chuyện thương hiệu"
                 className="rounded-2xl shadow-2xl"
               />
@@ -84,7 +84,7 @@ export function About() {
           <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
             <div className="order-2 md:order-1">
               <img
-                src="https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&h=600&fit=crop"
+                src="/images/products/exfoliating_toner.png"
                 alt="Giá trị cốt lõi"
                 className="rounded-2xl shadow-2xl"
               />
@@ -144,9 +144,9 @@ export function About() {
           <h2 className="font-['Poppins'] text-4xl font-bold text-center mb-12">Đội ngũ của chúng tôi</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { name: 'Sarah Chen', role: 'Nhà sáng lập & CEO', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop' },
-              { name: 'Emily Rodriguez', role: 'Trưởng bộ phận sản phẩm', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop' },
-              { name: 'Jessica Kim', role: 'Chuyên gia hóa mỹ phẩm', image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop' }
+              { name: 'Sarah Chen', role: 'Nhà sáng lập & CEO', image: '/images/team/sarah.png' },
+              { name: 'Emily Rodriguez', role: 'Trưởng bộ phận sản phẩm', image: '/images/team/emily.png' },
+              { name: 'Jessica Kim', role: 'Chuyên gia hóa mỹ phẩm', image: '/images/team/jessica.png' }
             ].map(member => (
               <div key={member.name} className="bg-white rounded-2xl overflow-hidden shadow-sm">
                 <img src={member.image} alt={member.name} className="w-full aspect-square object-cover" />
