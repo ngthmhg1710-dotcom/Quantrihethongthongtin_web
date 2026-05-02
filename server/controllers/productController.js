@@ -228,13 +228,13 @@ async function addProductReview(req, res) {
       { id },
       { reviews: safeReviews, rating: nextRating },
       { new: true, runValidators: false }
-    ).lean();
+    ).populate("category", "name").lean();
 
     if (!updatedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    return res.status(201).json({ message: "Review saved", product: updatedProduct });
+    return res.status(201).json({ message: "Review saved", product: toProductResponse(updatedProduct) });
   } catch (error) {
     console.error("addProductReview error:", error);
     return res.status(500).json({
