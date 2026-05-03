@@ -45,7 +45,7 @@ export function CustomerDashboard() {
         name: a.name || '',
         address: a.address || '',
         city: a.city || '',
-        zipCode: a.zipCode || '',
+        district: a.district || a.zipCode || '',
         country: a.country || 'Việt Nam',
         isDefault: Boolean(a.isDefault),
       })) || [];
@@ -63,7 +63,7 @@ export function CustomerDashboard() {
           name: user.defaultShippingAddress.name || user.name || '',
           address: user.defaultShippingAddress.address || '',
           city: user.defaultShippingAddress.city || '',
-          zipCode: user.defaultShippingAddress.zipCode || '',
+          district: user.defaultShippingAddress.district || user.defaultShippingAddress.zipCode || '',
           country: user.defaultShippingAddress.country || 'Việt Nam',
           isDefault: true,
         },
@@ -83,7 +83,7 @@ export function CustomerDashboard() {
       name: string;
       address: string;
       city: string;
-      zipCode: string;
+      district: string;
       country: string;
       isDefault: boolean;
     }>
@@ -145,7 +145,7 @@ export function CustomerDashboard() {
     [products, normalizedUserName]
   );
   const defaultShippingAddressText = user?.defaultShippingAddress?.address
-    ? `${user.defaultShippingAddress.name}, ${user.defaultShippingAddress.address}, ${user.defaultShippingAddress.city}`
+    ? `${user.defaultShippingAddress.name}, ${user.defaultShippingAddress.address}, ${user.defaultShippingAddress.district || user.defaultShippingAddress.zipCode || ''}, ${user.defaultShippingAddress.city}`
     : 'Chưa cập nhật';
   const filteredOrders = useMemo(() => {
     const keyword = normalizeSearchText(orderSearch.trim());
@@ -162,6 +162,7 @@ export function CustomerDashboard() {
         order.shippingAddress.name,
         order.shippingAddress.address,
         order.shippingAddress.city,
+        order.shippingAddress.district,
         order.shippingAddress.zipCode,
         order.shippingAddress.country,
         getStatusLabel(order.status),
@@ -248,12 +249,12 @@ export function CustomerDashboard() {
         name: item.name.trim(),
         address: item.address.trim(),
         city: item.city.trim(),
-        zipCode: item.zipCode.trim(),
+        district: item.district.trim(),
         country: item.country.trim() || 'Việt Nam',
         isDefault: Boolean(item.isDefault),
       }));
 
-      const invalid = normalizedBook.find((a) => !a.name || !a.address || !a.city || !a.zipCode || !a.country);
+      const invalid = normalizedBook.find((a) => !a.name || !a.address || !a.city || !a.district || !a.country);
       if (normalizedBook.length > 0 && invalid) {
         toast.error('Vui lòng điền đầy đủ thông tin địa chỉ đang lưu');
         return;
@@ -392,7 +393,9 @@ export function CustomerDashboard() {
                               <td className="px-4 py-3 text-sm text-gray-600">{formatOrderDateTime(order)}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 max-w-[280px]">
                                 <p className="line-clamp-2">
-                                  {order.shippingAddress.address}, {order.shippingAddress.city}
+                                  {order.shippingAddress.address},{' '}
+                                  {order.shippingAddress.district || order.shippingAddress.zipCode || ''},{' '}
+                                  {order.shippingAddress.city}
                                 </p>
                               </td>
                               <td className="px-4 py-3 text-sm font-semibold">${order.total.toFixed(2)}</td>
@@ -648,11 +651,11 @@ export function CustomerDashboard() {
                   {selectedOrder.shippingAddress.name}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}
+                  {selectedOrder.shippingAddress.address},{' '}
+                  {selectedOrder.shippingAddress.district || selectedOrder.shippingAddress.zipCode || ''},{' '}
+                  {selectedOrder.shippingAddress.city}
                 </p>
-                <p className="text-sm text-gray-600">
-                  {selectedOrder.shippingAddress.zipCode}, {selectedOrder.shippingAddress.country}
-                </p>
+                <p className="text-sm text-gray-600">{selectedOrder.shippingAddress.country}</p>
               </div>
             </div>
 
@@ -735,7 +738,7 @@ export function CustomerDashboard() {
                             name: user.name || '',
                             address: '',
                             city: '',
-                            zipCode: '',
+                            district: '',
                             country: 'Việt Nam',
                             isDefault: prev.length === 0,
                           },
@@ -770,7 +773,7 @@ export function CustomerDashboard() {
                           </p>
                         </div>
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                          {addr.name} - {addr.address || '—'}, {addr.city || '—'}
+                          {addr.name} - {addr.address || '—'}, {addr.district || '—'}, {addr.city || '—'}
                         </p>
                       </button>
                     ))}
@@ -834,7 +837,7 @@ export function CustomerDashboard() {
                         </div>
                         <div className="grid md:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-sm font-medium mb-1">Thành phố</label>
+                            <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
                             <input
                               value={addressBookDraft[editingAddressIndex].city}
                               onChange={(e) =>
@@ -846,12 +849,12 @@ export function CustomerDashboard() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">Mã bưu điện</label>
+                            <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
                             <input
-                              value={addressBookDraft[editingAddressIndex].zipCode}
+                              value={addressBookDraft[editingAddressIndex].district}
                               onChange={(e) =>
                                 setAddressBookDraft((prev) =>
-                                  prev.map((a, i) => (i === editingAddressIndex ? { ...a, zipCode: e.target.value } : a))
+                                  prev.map((a, i) => (i === editingAddressIndex ? { ...a, district: e.target.value } : a))
                                 )
                               }
                               className="w-full px-3 py-2 border rounded-lg"

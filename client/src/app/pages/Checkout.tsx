@@ -4,6 +4,77 @@ import { useApp } from '../context/AppContext';
 import { CreditCard, MapPin, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
+const CITY_DISTRICTS: Record<string, string[]> = {
+  'TP HCM': [
+    'Quận 1',
+    'Quận 3',
+    'Quận 4',
+    'Quận 5',
+    'Quận 7',
+    'Quận 10',
+    'Quận Bình Thạnh',
+    'Quận Gò Vấp',
+    'Quận Tân Bình',
+    'TP Thủ Đức',
+    'Huyện Bình Chánh',
+    'Huyện Củ Chi',
+  ],
+  'Hà Nội': [
+    'Quận Ba Đình',
+    'Quận Hoàn Kiếm',
+    'Quận Hai Bà Trưng',
+    'Quận Đống Đa',
+    'Quận Cầu Giấy',
+    'Quận Thanh Xuân',
+    'Quận Hà Đông',
+    'Quận Long Biên',
+    'Huyện Gia Lâm',
+    'Huyện Đông Anh',
+  ],
+  'Đà Nẵng': ['Quận Hải Châu', 'Quận Thanh Khê', 'Quận Sơn Trà', 'Quận Ngũ Hành Sơn', 'Quận Liên Chiểu'],
+  'Cần Thơ': ['Quận Ninh Kiều', 'Quận Bình Thủy', 'Quận Cái Răng', 'Quận Ô Môn', 'Huyện Phong Điền'],
+  'Hải Phòng': ['Quận Hồng Bàng', 'Quận Lê Chân', 'Quận Ngô Quyền', 'Quận Hải An', 'Quận Kiến An'],
+};
+
+const CITY_OPTIONS = Object.keys(CITY_DISTRICTS);
+
+function normalizeVietnamCityKey(city: string) {
+  return city
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+/** Gom tên cũ (HCM, TP. Hồ Chí Minh, …) về một mục duy nhất trong dropdown: TP HCM */
+const LEGACY_VIETNAM_CITY_MAP: Record<string, string> = {
+  'tp. ho chi minh': 'TP HCM',
+  'tp ho chi minh': 'TP HCM',
+  'ho chi minh': 'TP HCM',
+  'hcm': 'TP HCM',
+  'tp hcm': 'TP HCM',
+  'tp. hcm': 'TP HCM',
+  'tphcm': 'TP HCM',
+  'tp.hcm': 'TP HCM',
+  'sai gon': 'TP HCM',
+  'sg': 'TP HCM',
+};
+
+function canonicalVietnamCity(city: string) {
+  const raw = String(city || '').trim();
+  if (!raw) return '';
+  const key = normalizeVietnamCityKey(raw);
+  return LEGACY_VIETNAM_CITY_MAP[key] || raw;
+}
+
+function normalizeDistrict(value?: string) {
+  const text = String(value || '').trim();
+  // Ignore legacy zip-like numeric values such as "7000".
+  if (/^\d{3,10}$/.test(text)) return '';
+  return text;
+}
+
 export function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart, addOrder, user, updateProfile } = useApp();
@@ -16,7 +87,7 @@ export function Checkout() {
     phone: '',
     address: '',
     city: '',
-    zipCode: '',
+    district: '',
     country: 'Việt Nam'
   });
   const [didPrefillShipping, setDidPrefillShipping] = useState(false);
@@ -50,17 +121,42 @@ export function Checkout() {
     const defaultAddressIndex = addressBook.findIndex((address) => address.isDefault);
     const chosenAddress = addressBook[defaultAddressIndex >= 0 ? defaultAddressIndex : 0];
     setSelectedAddressIndex(chosenAddress ? (defaultAddressIndex >= 0 ? defaultAddressIndex : 0) : -1);
-    setShippingInfo((prev) => ({
-      name: chosenAddress?.name || user.defaultShippingAddress?.name || user.name || prev.name,
-      email: user.email || prev.email,
-      phone: user.phone || prev.phone,
-      address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
-      city: chosenAddress?.city || user.defaultShippingAddress?.city || prev.city,
-      zipCode: chosenAddress?.zipCode || user.defaultShippingAddress?.zipCode || prev.zipCode,
-      country: chosenAddress?.country || user.defaultShippingAddress?.country || prev.country,
-    }));
+    setShippingInfo((prev) => {
+      const resolvedCountry =
+        chosenAddress?.country || user.defaultShippingAddress?.country || prev.country;
+      const rawCity = chosenAddress?.city || user.defaultShippingAddress?.city || prev.city;
+      return {
+        name: chosenAddress?.name || user.defaultShippingAddress?.name || user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
+        city: resolvedCountry === 'Việt Nam' ? canonicalVietnamCity(rawCity) : rawCity,
+        district:
+          normalizeDistrict(chosenAddress?.district) ||
+          normalizeDistrict(user.defaultShippingAddress?.district) ||
+          normalizeDistrict(chosenAddress?.zipCode) ||
+          normalizeDistrict(user.defaultShippingAddress?.zipCode) ||
+          prev.district,
+        country: resolvedCountry,
+      };
+    });
     setDidPrefillShipping(true);
   }, [user, didPrefillShipping]);
+
+  useEffect(() => {
+    if (shippingInfo.country !== 'Việt Nam') return;
+    const canon = canonicalVietnamCity(shippingInfo.city);
+    if (!canon || canon === shippingInfo.city) return;
+    if (!CITY_DISTRICTS[canon]) return;
+    setShippingInfo((prev) => {
+      if (prev.country !== 'Việt Nam') return prev;
+      const c = canonicalVietnamCity(prev.city);
+      if (c === prev.city) return prev;
+      const nextDistricts = CITY_DISTRICTS[c] || [];
+      const keepDistrict = nextDistricts.includes(prev.district) ? prev.district : '';
+      return { ...prev, city: c, district: keepDistrict };
+    });
+  }, [shippingInfo.country, shippingInfo.city]);
 
   useEffect(() => {
     if (!user || didPrefillSavedCard || paymentMethod !== 'card') return;
@@ -94,8 +190,8 @@ export function Checkout() {
       ...prev,
       name: address.name,
       address: address.address,
-      city: address.city,
-      zipCode: address.zipCode,
+      city: address.country === 'Việt Nam' ? canonicalVietnamCity(address.city) : address.city,
+      district: normalizeDistrict(address.district) || normalizeDistrict(address.zipCode),
       country: address.country,
       email: user.email || prev.email,
       phone: user.phone || prev.phone,
@@ -110,7 +206,7 @@ export function Checkout() {
         name: addr.name,
         address: addr.address,
         city: addr.city,
-        zipCode: addr.zipCode,
+        district: normalizeDistrict(addr.district) || normalizeDistrict(addr.zipCode),
         country: addr.country,
         isDefault: idx === index,
       }));
@@ -139,6 +235,16 @@ export function Checkout() {
     });
   const selectedSavedAddress =
     user?.shippingAddresses && selectedAddressIndex >= 0 ? user.shippingAddresses[selectedAddressIndex] : null;
+  const effectiveCityVN =
+    shippingInfo.country === 'Việt Nam' ? canonicalVietnamCity(shippingInfo.city) : shippingInfo.city.trim();
+  const currentDistrictOptions = effectiveCityVN ? CITY_DISTRICTS[effectiveCityVN] || [] : [];
+  const cityOptionsWithCurrent = effectiveCityVN && !CITY_OPTIONS.includes(effectiveCityVN)
+    ? [effectiveCityVN, ...CITY_OPTIONS]
+    : CITY_OPTIONS;
+  const districtOptionsWithCurrent =
+    shippingInfo.district && !currentDistrictOptions.includes(shippingInfo.district)
+      ? [shippingInfo.district, ...currentDistrictOptions]
+      : currentDistrictOptions;
 
   if (!user) {
     return (
@@ -177,16 +283,19 @@ export function Checkout() {
     const email = shippingInfo.email.trim();
     const phone = shippingInfo.phone.trim();
     const address = shippingInfo.address.trim();
-    const city = shippingInfo.city.trim();
-    const zipCode = shippingInfo.zipCode.trim();
     const country = shippingInfo.country.trim();
+    const city =
+      country === 'Việt Nam'
+        ? canonicalVietnamCity(shippingInfo.city.trim())
+        : shippingInfo.city.trim();
+    const district = shippingInfo.district.trim();
 
     if (name.length < 2) errors.name = 'Vui lòng nhập họ tên đầy đủ';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email không hợp lệ';
     if (!/^[0-9+\-() ]{8,20}$/.test(phone)) errors.phone = 'Số điện thoại không hợp lệ';
     if (address.length < 6) errors.address = 'Địa chỉ quá ngắn';
-    if (city.length < 2) errors.city = 'Vui lòng nhập thành phố';
-    if (!/^[A-Za-z0-9 -]{4,10}$/.test(zipCode)) errors.zipCode = 'Mã bưu điện không hợp lệ';
+    if (city.length < 2) errors.city = 'Vui lòng nhập thành phố / tỉnh';
+    if (district.length < 2) errors.district = 'Vui lòng nhập quận / huyện';
     if (!country) errors.country = 'Vui lòng chọn quốc gia';
 
     return errors;
@@ -269,15 +378,18 @@ export function Checkout() {
           name: address.name,
           address: address.address,
           city: address.city,
-          zipCode: address.zipCode,
+          district: normalizeDistrict(address.district) || normalizeDistrict(address.zipCode),
           country: address.country,
           isDefault: Boolean(address.isDefault),
         }));
         const normalizedCurrent = {
           name: shippingInfo.name.trim(),
           address: shippingInfo.address.trim(),
-          city: shippingInfo.city.trim(),
-          zipCode: shippingInfo.zipCode.trim(),
+          city:
+            shippingInfo.country.trim() === 'Việt Nam'
+              ? canonicalVietnamCity(shippingInfo.city.trim())
+              : shippingInfo.city.trim(),
+          district: shippingInfo.district.trim(),
           country: shippingInfo.country.trim(),
         };
         const existingIndex = currentBook.findIndex(
@@ -285,7 +397,7 @@ export function Checkout() {
             item.name === normalizedCurrent.name &&
             item.address === normalizedCurrent.address &&
             item.city === normalizedCurrent.city &&
-            item.zipCode === normalizedCurrent.zipCode &&
+            item.district === normalizedCurrent.district &&
             item.country === normalizedCurrent.country
         );
         const nextBook = [...currentBook];
@@ -362,7 +474,18 @@ export function Checkout() {
       total,
       paymentMethod,
       status: 'pending' as const,
-      shippingAddress: shippingInfo
+      shippingAddress: {
+        ...shippingInfo,
+        city:
+          shippingInfo.country === 'Việt Nam'
+            ? canonicalVietnamCity(shippingInfo.city.trim())
+            : shippingInfo.city.trim(),
+        district: shippingInfo.district.trim(),
+        address: shippingInfo.address.trim(),
+        name: shippingInfo.name.trim(),
+        phone: shippingInfo.phone.trim(),
+        country: shippingInfo.country.trim(),
+      },
     };
 
     try {
@@ -447,7 +570,7 @@ export function Checkout() {
                           <p className="text-sm font-medium">Địa chỉ giao hàng</p>
                           <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
                             {selectedSavedAddress
-                              ? `${selectedSavedAddress.label}${selectedSavedAddress.isDefault ? ' (Mặc định)' : ''} • ${selectedSavedAddress.name} • ${selectedSavedAddress.address}, ${selectedSavedAddress.city}`
+                              ? `${selectedSavedAddress.label}${selectedSavedAddress.isDefault ? ' (Mặc định)' : ''} • ${selectedSavedAddress.name} • ${selectedSavedAddress.address}, ${normalizeDistrict(selectedSavedAddress.district) || normalizeDistrict(selectedSavedAddress.zipCode) || ''}, ${selectedSavedAddress.city}`
                               : 'Chưa chọn địa chỉ'}
                           </p>
                         </div>
@@ -529,41 +652,94 @@ export function Checkout() {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Thành phố</label>
-                      <input
-                        type="text"
-                        required
-                        value={shippingInfo.city}
-                        onChange={(e) => {
-                          setShippingInfo({ ...shippingInfo, city: e.target.value });
-                          setShippingErrors((prev) => ({ ...prev, city: undefined }));
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                        placeholder="New York"
-                      />
+                      <label className="block text-sm font-medium mb-2">Thành phố / Tỉnh</label>
+                      {shippingInfo.country === 'Việt Nam' ? (
+                        <select
+                          required
+                          value={effectiveCityVN}
+                          onChange={(e) => {
+                            const nextCity = e.target.value;
+                            setShippingInfo((prev) => {
+                              const nextDistricts = CITY_DISTRICTS[nextCity] || [];
+                              const keepDistrict = nextDistricts.includes(prev.district) ? prev.district : '';
+                              return { ...prev, city: nextCity, district: keepDistrict };
+                            });
+                            setShippingErrors((prev) => ({ ...prev, city: undefined, district: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                        >
+                          <option value="">Chọn thành phố / tỉnh</option>
+                          {cityOptionsWithCurrent.map((city) => (
+                            <option key={city} value={city}>
+                              {city}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          required
+                          value={shippingInfo.city}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, city: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, city: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                          placeholder="Thành phố / Tỉnh"
+                        />
+                      )}
                       {shippingErrors.city && <p className="mt-1 text-xs text-red-600">{shippingErrors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Mã bưu điện</label>
-                      <input
-                        type="text"
-                        required
-                        value={shippingInfo.zipCode}
-                        onChange={(e) => {
-                          setShippingInfo({ ...shippingInfo, zipCode: e.target.value });
-                          setShippingErrors((prev) => ({ ...prev, zipCode: undefined }));
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                        placeholder="10001"
-                      />
-                      {shippingErrors.zipCode && <p className="mt-1 text-xs text-red-600">{shippingErrors.zipCode}</p>}
+                      <label className="block text-sm font-medium mb-2">Quận / Huyện</label>
+                      {shippingInfo.country === 'Việt Nam' ? (
+                        <select
+                          required
+                          disabled={!effectiveCityVN}
+                          value={shippingInfo.district}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, district: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, district: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                          <option value="">{effectiveCityVN ? 'Chọn quận / huyện' : 'Chọn thành phố trước'}</option>
+                          {districtOptionsWithCurrent.map((district) => (
+                            <option key={district} value={district}>
+                              {district}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          required
+                          value={shippingInfo.district}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, district: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, district: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                          placeholder="Quận / Huyện"
+                        />
+                      )}
+                      {shippingErrors.district && <p className="mt-1 text-xs text-red-600">{shippingErrors.district}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Quốc gia</label>
                       <select
                         value={shippingInfo.country}
                         onChange={(e) => {
-                          setShippingInfo({ ...shippingInfo, country: e.target.value });
+                          const nextCountry = e.target.value;
+                          setShippingInfo((prev) => {
+                            const next = { ...prev, country: nextCountry };
+                            if (nextCountry === 'Việt Nam') {
+                              next.city = canonicalVietnamCity(prev.city);
+                              const d = CITY_DISTRICTS[next.city] || [];
+                              next.district = d.includes(prev.district) ? prev.district : '';
+                            }
+                            return next;
+                          });
                           setShippingErrors((prev) => ({ ...prev, country: undefined }));
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
@@ -885,7 +1061,7 @@ export function Checkout() {
                     phone: user.phone || '',
                     address: '',
                     city: '',
-                    zipCode: '',
+                    district: '',
                     country: 'Việt Nam',
                   });
                   setSetAsDefaultAddress(true);
@@ -927,7 +1103,7 @@ export function Checkout() {
                       {address.label} {address.isDefault ? '(Mặc định)' : ''}
                     </p>
                     <p className="text-xs text-gray-600 line-clamp-2">
-                      {address.name} - {address.address}, {address.city}
+                      {address.name} - {address.address}, {normalizeDistrict(address.district) || normalizeDistrict(address.zipCode) || ''}, {address.city}
                     </p>
                   </div>
                 </label>

@@ -15,7 +15,9 @@ interface User {
     name: string;
     address: string;
     city: string;
-    zipCode: string;
+    district: string;
+    /** @deprecated legacy field from older accounts; prefer district */
+    zipCode?: string;
     country: string;
     isDefault?: boolean;
   }>;
@@ -32,7 +34,8 @@ interface User {
     name: string;
     address: string;
     city: string;
-    zipCode: string;
+    district: string;
+    zipCode?: string;
     country: string;
   };
   wishlistIds?: number[];
@@ -67,7 +70,7 @@ interface AppContextType {
       name: string;
       address: string;
       city: string;
-      zipCode: string;
+      district: string;
       country: string;
     };
     shippingAddresses?: Array<{
@@ -75,7 +78,7 @@ interface AppContextType {
       name: string;
       address: string;
       city: string;
-      zipCode: string;
+      district: string;
       country: string;
       isDefault?: boolean;
     }>;
@@ -743,7 +746,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       name: string;
       address: string;
       city: string;
-      zipCode: string;
+      district: string;
       country: string;
     };
     shippingAddresses?: Array<{
@@ -751,7 +754,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       name: string;
       address: string;
       city: string;
-      zipCode: string;
+      district: string;
       country: string;
       isDefault?: boolean;
     }>;

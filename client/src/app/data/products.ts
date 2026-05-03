@@ -184,8 +184,10 @@ export interface Order {
     name: string;
     phone?: string;
     address: string;
+    district?: string;
     city: string;
-    zipCode: string;
+    /** @deprecated legacy orders only */
+    zipCode?: string;
     country: string;
   };
   user?: {

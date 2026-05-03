@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useApp } from '../context/AppContext';
-import { Star, ShoppingCart, Heart, Share2, Check } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Share2, Check, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function ProductDetail() {
@@ -73,6 +73,25 @@ export function ProductDetail() {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể thêm vào giỏ hàng';
+      toast.error(message);
+    }
+  };
+
+  const handleBuyNow = () => {
+    try {
+      if (availableStock <= 0) {
+        toast.error('Sản phẩm đã hết hàng');
+        return;
+      }
+      const safeQuantity = Math.max(1, Math.min(quantity, availableStock));
+      if (safeQuantity !== quantity) setQuantity(safeQuantity);
+      addToCart(product, safeQuantity);
+      toast.success('Đã thêm vào giỏ hàng', {
+        description: `Chuyển tới thanh toán · SL: ${safeQuantity}`,
+      });
+      void navigate('/checkout');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể mua ngay';
       toast.error(message);
     }
   };
@@ -207,8 +226,9 @@ export function ProductDetail() {
                 </span>
               </div>
 
-              <div className="flex gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <button
+                  type="button"
                   onClick={handleAddToCart}
                   disabled={availableStock <= 0}
                   className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
@@ -216,6 +236,17 @@ export function ProductDetail() {
                   <ShoppingCart className="w-5 h-5" />
                   {availableStock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
                 </button>
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  disabled={availableStock <= 0}
+                  className="flex-1 bg-[#FFC0CB] text-black py-3 rounded-full hover:bg-[#ffb3c1] transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+                >
+                  <Zap className="w-5 h-5" />
+                  Mua ngay
+                </button>
+              </div>
+              <div className="flex gap-3 mb-6">
                 <button
                   type="button"
                   onClick={handleToggleWishlist}

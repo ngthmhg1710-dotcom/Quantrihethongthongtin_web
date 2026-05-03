@@ -30,6 +30,7 @@ function serializeUser(user) {
       name: user.defaultShippingAddress?.name || "",
       address: user.defaultShippingAddress?.address || "",
       city: user.defaultShippingAddress?.city || "",
+      district: user.defaultShippingAddress?.district || "",
       zipCode: user.defaultShippingAddress?.zipCode || "",
       country: user.defaultShippingAddress?.country || "",
     },
@@ -40,6 +41,7 @@ function serializeUser(user) {
           name: item.name || "",
           address: item.address || "",
           city: item.city || "",
+          district: item.district || "",
           zipCode: item.zipCode || "",
           country: item.country || "",
           isDefault: Boolean(item.isDefault),
@@ -97,12 +99,14 @@ async function updateUserProfile(req, res) {
         name: String(defaultShippingAddress.name || "").trim(),
         address: String(defaultShippingAddress.address || "").trim(),
         city: String(defaultShippingAddress.city || "").trim(),
-        zipCode: String(defaultShippingAddress.zipCode || "").trim(),
+        district: String(defaultShippingAddress.district || "").trim(),
+        zipCode: "",
         country: String(defaultShippingAddress.country || "").trim(),
       };
 
-      const hasAnyAddressField = Object.values(nextAddress).some(Boolean);
-      const hasAllAddressFields = Object.values(nextAddress).every(Boolean);
+      const addressParts = [nextAddress.name, nextAddress.address, nextAddress.city, nextAddress.district, nextAddress.country];
+      const hasAnyAddressField = addressParts.some(Boolean);
+      const hasAllAddressFields = addressParts.every(Boolean);
       if (hasAnyAddressField && !hasAllAddressFields) {
         return res.status(400).json({ message: "Please fill all shipping address fields" });
       }
@@ -115,13 +119,14 @@ async function updateUserProfile(req, res) {
         name: String(item?.name || "").trim(),
         address: String(item?.address || "").trim(),
         city: String(item?.city || "").trim(),
-        zipCode: String(item?.zipCode || "").trim(),
+        district: String(item?.district || "").trim(),
+        zipCode: "",
         country: String(item?.country || "").trim(),
         isDefault: Boolean(item?.isDefault),
       }));
 
       const invalidAddress = normalizedAddresses.find(
-        (item) => !item.name || !item.address || !item.city || !item.zipCode || !item.country
+        (item) => !item.name || !item.address || !item.city || !item.district || !item.country
       );
       if (invalidAddress) {
         return res.status(400).json({ message: "Each saved address must have full information" });
@@ -144,7 +149,8 @@ async function updateUserProfile(req, res) {
             name: chosenDefault.name,
             address: chosenDefault.address,
             city: chosenDefault.city,
-            zipCode: chosenDefault.zipCode,
+            district: chosenDefault.district,
+            zipCode: "",
             country: chosenDefault.country,
           };
         }

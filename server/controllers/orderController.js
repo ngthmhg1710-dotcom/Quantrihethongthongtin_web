@@ -150,14 +150,6 @@ async function sendOrderConfirmationEmail({ to, orderNumber, shippingCode, payme
   const estimatedDeliveryText = estimatedDelivery.toLocaleDateString("vi-VN");
   const paymentLabel = getPaymentMethodLabel(paymentMethod);
   const itemLines = items.map((item) => `- ${item.name} x${item.quantity}: $${(item.price * item.quantity).toFixed(2)}`).join("\n");
-  const afterSalesLines = items
-    .map((item) => {
-      const guide = getAfterSalesGuideForCategory(item.category);
-      const howTo = guide.howTo.map((line) => `  • ${line}`).join("\n");
-      const cautions = guide.cautions.map((line) => `  • ${line}`).join("\n");
-      return `\n${item.name}:\nHướng dẫn sử dụng:\n${howTo}\nLưu ý:\n${cautions}\n`;
-    })
-    .join("\n");
 
   const subject = `Glow | Xác nhận đơn hàng ${orderNumber}`;
   const text = `Xin chào ${shippingAddress.name},
@@ -172,12 +164,11 @@ Ngày giao dự kiến: ${estimatedDeliveryText}
 Sản phẩm:
 ${itemLines}
 
-Dịch vụ hậu mãi – hướng dẫn sử dụng & lưu ý:
-${afterSalesLines}
+Nhằm hỗ trợ sử dụng sản phẩm tốt nhất, vui lòng xem phần hướng dẫn sử dụng trong email tiếp theo chúng tôi gửi tới bạn (cùng địa chỉ email này).
 
 Địa chỉ nhận hàng:
 ${shippingAddress.name} - ${shippingAddress.phone}
-${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.zipCode}, ${shippingAddress.country}
+${shippingAddress.address}, ${shippingAddress.district || shippingAddress.zipCode || ""}, ${shippingAddress.city}, ${shippingAddress.country}
 
 Vui lòng giữ email này để tiện theo dõi đơn hàng.
 `;
@@ -188,6 +179,62 @@ Vui lòng giữ email này để tiện theo dõi đơn hàng.
         `<li>${item.name} x${item.quantity} - <strong>$${(item.price * item.quantity).toFixed(2)}</strong></li>`
     )
     .join("");
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #222;">
+      <h2>Xác nhận đơn hàng ${orderNumber}</h2>
+      <p>Xin chào <strong>${shippingAddress.name}</strong>, đơn hàng của bạn đã được ghi nhận thành công.</p>
+      <p>
+        <strong>Mã vận chuyển:</strong> ${shippingCode}<br/>
+        <strong>Phương thức thanh toán:</strong> ${paymentLabel}<br/>
+        <strong>Tổng thanh toán:</strong> $${Number(total).toFixed(2)}<br/>
+        <strong>Ngày giao dự kiến:</strong> ${estimatedDeliveryText}
+      </p>
+      <p><strong>Sản phẩm:</strong></p>
+      <ul>${htmlItems}</ul>
+      <p style="margin: 14px 0; padding: 12px; background: #fff7f9; border: 1px solid #f0d6dd; border-radius: 10px; color: #444;">
+        Nhằm hỗ trợ sử dụng sản phẩm tốt nhất, vui lòng xem phần hướng dẫn sử dụng trong <strong>email tiếp theo</strong> chúng tôi gửi tới bạn (cùng địa chỉ email này).
+      </p>
+      <p>
+        <strong>Địa chỉ nhận hàng:</strong><br/>
+        ${shippingAddress.name} - ${shippingAddress.phone}<br/>
+        ${shippingAddress.address}, ${shippingAddress.district || shippingAddress.zipCode || ""}, ${shippingAddress.city}, ${shippingAddress.country}
+      </p>
+      <p>Vui lòng giữ email này để tiện theo dõi đơn hàng.</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: env.newsletterFromEmail,
+    to,
+    replyTo: env.newsletterReplyTo || env.newsletterFromEmail,
+    subject,
+    text,
+    html,
+  });
+}
+
+async function sendAfterSalesGuideEmail({ to, orderNumber, items, customerName }) {
+  if (!isMailerConfigured() || !to) return;
+
+  const transporter = createTransporter();
+  const afterSalesLines = items
+    .map((item) => {
+      const guide = getAfterSalesGuideForCategory(item.category);
+      const howTo = guide.howTo.map((line) => `  • ${line}`).join("\n");
+      const cautions = guide.cautions.map((line) => `  • ${line}`).join("\n");
+      return `\n${item.name}:\nHướng dẫn sử dụng:\n${howTo}\nLưu ý:\n${cautions}\n`;
+    })
+    .join("\n");
+
+  const subject = `Glow | Hướng dẫn sử dụng cho đơn ${orderNumber}`;
+  const text = `Xin chào ${customerName || "bạn"},
+
+Cảm ơn bạn đã mua hàng tại Glow. Dưới đây là hướng dẫn sử dụng & lưu ý (dịch vụ hậu mãi) cho các sản phẩm trong đơn ${orderNumber}:
+${afterSalesLines}
+
+Nếu bạn cần tư vấn theo tình trạng da, hãy phản hồi email này để được hỗ trợ.
+`;
+
   const htmlAfterSales = items
     .map((item) => {
       const guide = getAfterSalesGuideForCategory(item.category);
@@ -204,29 +251,15 @@ Vui lòng giữ email này để tiện theo dõi đơn hàng.
       `;
     })
     .join("");
+
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #222;">
-      <h2>Xác nhận đơn hàng ${orderNumber}</h2>
-      <p>Xin chào <strong>${shippingAddress.name}</strong>, đơn hàng của bạn đã được ghi nhận thành công.</p>
-      <p>
-        <strong>Mã vận chuyển:</strong> ${shippingCode}<br/>
-        <strong>Phương thức thanh toán:</strong> ${paymentLabel}<br/>
-        <strong>Tổng thanh toán:</strong> $${Number(total).toFixed(2)}<br/>
-        <strong>Ngày giao dự kiến:</strong> ${estimatedDeliveryText}
-      </p>
-      <p><strong>Sản phẩm:</strong></p>
-      <ul>${htmlItems}</ul>
-      <h3 style="margin-top: 18px;">Dịch vụ hậu mãi – hướng dẫn sử dụng & lưu ý</h3>
+      <h2>Hướng dẫn sử dụng & lưu ý</h2>
+      <p>Xin chào <strong>${escapeHtml(customerName || "bạn")}</strong>, cảm ơn bạn đã mua hàng tại Glow.</p>
       <p style="margin: 0 0 10px 0; color: #444;">
-        Dưới đây là hướng dẫn nhanh theo nhóm sản phẩm. Nếu bạn cần tư vấn theo tình trạng da, hãy phản hồi email này để được hỗ trợ.
+        Đây là hướng dẫn nhanh theo nhóm sản phẩm cho đơn <strong>${escapeHtml(orderNumber)}</strong>. Nếu bạn cần tư vấn theo tình trạng da, hãy phản hồi email này để được hỗ trợ.
       </p>
       ${htmlAfterSales}
-      <p>
-        <strong>Địa chỉ nhận hàng:</strong><br/>
-        ${shippingAddress.name} - ${shippingAddress.phone}<br/>
-        ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.zipCode}, ${shippingAddress.country}
-      </p>
-      <p>Vui lòng giữ email này để tiện theo dõi đơn hàng.</p>
     </div>
   `;
 
@@ -283,11 +316,15 @@ async function createOrder(req, res) {
       !shippingAddress?.name ||
       !shippingAddress?.phone ||
       !shippingAddress?.address ||
+      !shippingAddress?.district ||
       !shippingAddress?.city ||
-      !shippingAddress?.zipCode ||
       !shippingAddress?.country
     ) {
       return res.status(400).json({ message: "Shipping information is incomplete" });
+    }
+    const district = String(shippingAddress.district || "").trim();
+    if (district.length < 2) {
+      return res.status(400).json({ message: "District is invalid" });
     }
     if (!/^[0-9+\-() ]{8,20}$/.test(String(shippingAddress.phone).trim())) {
       return res.status(400).json({ message: "Phone number format is invalid" });
@@ -351,8 +388,9 @@ async function createOrder(req, res) {
         name: String(shippingAddress.name).trim(),
         phone: String(shippingAddress.phone).trim(),
         address: String(shippingAddress.address).trim(),
+        district,
         city: String(shippingAddress.city).trim(),
-        zipCode: String(shippingAddress.zipCode).trim(),
+        zipCode: "",
         country: String(shippingAddress.country).trim(),
       },
     });
@@ -367,6 +405,15 @@ async function createOrder(req, res) {
       items: order.items,
     }).catch((error) => {
       console.error("order confirmation email error:", error?.message || error);
+    });
+
+    sendAfterSalesGuideEmail({
+      to: req.user?.email || "",
+      orderNumber: order.orderNumber,
+      items: order.items,
+      customerName: order.shippingAddress?.name || req.user?.name || "",
+    }).catch((error) => {
+      console.error("after sales guide email error:", error?.message || error);
     });
 
     return res.status(201).json({

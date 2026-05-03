@@ -1362,11 +1362,11 @@ export function AdminDashboard() {
                   <p className="text-xs text-gray-500 mb-1">Địa chỉ giao hàng</p>
                   <p className="font-semibold">{selectedOrder.shippingAddress.name}</p>
                   <p className="text-sm text-gray-700">
-                    {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}
+                    {selectedOrder.shippingAddress.address},{' '}
+                    {selectedOrder.shippingAddress.district || selectedOrder.shippingAddress.zipCode || ''},{' '}
+                    {selectedOrder.shippingAddress.city}
                   </p>
-                  <p className="text-sm text-gray-700">
-                    {selectedOrder.shippingAddress.zipCode}, {selectedOrder.shippingAddress.country}
-                  </p>
+                  <p className="text-sm text-gray-700">{selectedOrder.shippingAddress.country}</p>
                 </div>
               </div>
 

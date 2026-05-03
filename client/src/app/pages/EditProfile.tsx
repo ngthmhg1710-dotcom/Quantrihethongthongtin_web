@@ -9,7 +9,7 @@ type AddressDraft = {
   name: string;
   address: string;
   city: string;
-  zipCode: string;
+  district: string;
   country: string;
   isDefault: boolean;
 };
@@ -25,7 +25,7 @@ export function EditProfile() {
         name: a.name || '',
         address: a.address || '',
         city: a.city || '',
-        zipCode: a.zipCode || '',
+        district: a.district || a.zipCode || '',
         country: a.country || 'Việt Nam',
         isDefault: Boolean(a.isDefault),
       })) || [];
@@ -43,7 +43,7 @@ export function EditProfile() {
           name: user.defaultShippingAddress.name || user.name || '',
           address: user.defaultShippingAddress.address || '',
           city: user.defaultShippingAddress.city || '',
-          zipCode: user.defaultShippingAddress.zipCode || '',
+          district: user.defaultShippingAddress.district || user.defaultShippingAddress.zipCode || '',
           country: user.defaultShippingAddress.country || 'Việt Nam',
           isDefault: true,
         },
@@ -90,12 +90,12 @@ export function EditProfile() {
         name: item.name.trim(),
         address: item.address.trim(),
         city: item.city.trim(),
-        zipCode: item.zipCode.trim(),
+        district: item.district.trim(),
         country: item.country.trim() || 'Việt Nam',
         isDefault: Boolean(item.isDefault),
       }));
 
-      const invalid = normalizedBook.find((a) => !a.name || !a.address || !a.city || !a.zipCode || !a.country);
+      const invalid = normalizedBook.find((a) => !a.name || !a.address || !a.city || !a.district || !a.country);
       if (normalizedBook.length > 0 && invalid) {
         toast.error('Vui lòng điền đầy đủ thông tin địa chỉ đang lưu');
         return;
@@ -173,7 +173,7 @@ export function EditProfile() {
                           name: user.name || '',
                           address: '',
                           city: '',
-                          zipCode: '',
+                          district: '',
                           country: 'Việt Nam',
                           isDefault: prev.length === 0,
                         },
@@ -208,7 +208,7 @@ export function EditProfile() {
                         </p>
                       </div>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                        {addr.name} - {addr.address || '—'}, {addr.city || '—'}
+                        {addr.name} - {addr.address || '—'}, {addr.district || '—'}, {addr.city || '—'}
                       </p>
                     </button>
                   ))}
@@ -272,7 +272,7 @@ export function EditProfile() {
                       </div>
                       <div className="grid md:grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-sm font-medium mb-1">Thành phố</label>
+                          <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].city}
                             onChange={(e) =>
@@ -284,12 +284,12 @@ export function EditProfile() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-1">Mã bưu điện</label>
+                          <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
                           <input
-                            value={addressBookDraft[editingAddressIndex].zipCode}
+                            value={addressBookDraft[editingAddressIndex].district}
                             onChange={(e) =>
                               setAddressBookDraft((prev) =>
-                                prev.map((a, i) => (i === editingAddressIndex ? { ...a, zipCode: e.target.value } : a))
+                                prev.map((a, i) => (i === editingAddressIndex ? { ...a, district: e.target.value } : a))
                               )
                             }
                             className="w-full px-3 py-2 border rounded-lg"
