@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
+const Order = require("../models/Order");
 
 function toProductResponse(product) {
   const categoryName =
@@ -184,6 +185,16 @@ async function addProductReview(req, res) {
     const product = await Product.findOne({ id }).lean();
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    const hasPurchased = await Order.exists({
+      userId: req.user.id,
+      "items.productId": id,
+    });
+    if (!hasPurchased) {
+      return res.status(403).json({
+        message: "You must purchase this product before leaving a review",
+      });
     }
 
     const reviewerName = String(req.user?.name || "User").trim() || "User";

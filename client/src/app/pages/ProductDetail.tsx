@@ -8,7 +8,7 @@ export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addToCart, products, user, addProductReview, toggleWishlist, isInWishlist } = useApp();
+  const { addToCart, products, user, orders, addProductReview, toggleWishlist, isInWishlist } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<'description' | 'ingredients' | 'reviews'>('description');
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
@@ -17,6 +17,10 @@ export function ProductDetail() {
 
   const product = products.find(p => p.id === parseInt(id || '0'));
   const availableStock = Number(product?.stock ?? 0);
+  const hasPurchased = Boolean(
+    user &&
+      orders.some((order) => order.items.some((item) => Number(item.product?.id) === Number(product?.id)))
+  );
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -77,6 +81,10 @@ export function ProductDetail() {
     if (!user) {
       toast.error('Vui lòng đăng nhập để viết đánh giá');
       navigate('/login?redirect=' + encodeURIComponent(`/products/${product.id}`));
+      return;
+    }
+    if (!hasPurchased) {
+      toast.error('Bạn cần mua sản phẩm này trước khi viết đánh giá');
       return;
     }
     const comment = reviewForm.comment.trim();
@@ -302,6 +310,11 @@ export function ProductDetail() {
             <div className="space-y-6">
               <div className="border border-gray-200 rounded-xl p-4">
                 <h3 className="font-semibold mb-3">Viết đánh giá</h3>
+                {!hasPurchased && (
+                  <div className="mb-4 rounded-lg bg-[#FFF7F9] border border-[#FFE4EA] px-4 py-3 text-sm text-gray-700">
+                    Bạn cần mua sản phẩm này trước khi có thể viết đánh giá.
+                  </div>
+                )}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Chấm sao</label>
@@ -312,6 +325,7 @@ export function ProductDetail() {
                             key={value}
                             type="button"
                             onClick={() => setReviewForm((prev) => ({ ...prev, rating: value }))}
+                            disabled={!hasPurchased}
                             className="p-1 rounded-md hover:bg-gray-100 transition-colors"
                             aria-label={`${value} star${value > 1 ? 's' : ''}`}
                           >
@@ -332,7 +346,8 @@ export function ProductDetail() {
                       value={reviewForm.comment}
                       onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
                       rows={3}
-                      className="w-full px-3 py-2 border rounded-lg"
+                      disabled={!hasPurchased}
+                      className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-50 disabled:text-gray-500"
                       placeholder="Chia sẻ trải nghiệm của bạn..."
                     />
                   </div>
@@ -341,7 +356,7 @@ export function ProductDetail() {
                   <button
                     type="button"
                     onClick={handleSubmitReview}
-                    disabled={submittingReview}
+                    disabled={submittingReview || !hasPurchased}
                     className="bg-black text-white px-5 py-2 rounded-full hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
                     {submittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
