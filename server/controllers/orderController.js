@@ -26,6 +26,121 @@ function getPaymentMethodLabel(method) {
   return "Thẻ ngân hàng";
 }
 
+function normalizeCategory(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+}
+
+function getAfterSalesGuideForCategory(category) {
+  const c = normalizeCategory(category);
+
+  if (c.includes("cleanser") || c.includes("sữa rửa") || c.includes("clean gel")) {
+    return {
+      howTo: [
+        "Làm ướt mặt, lấy lượng vừa đủ, tạo bọt (nếu có) và massage 30–60 giây.",
+        "Rửa lại với nước, lau khô nhẹ nhàng.",
+        "Dùng 1–2 lần/ngày (sáng và/hoặc tối).",
+      ],
+      cautions: [
+        "Tránh để sản phẩm vào mắt; nếu dính mắt hãy rửa kỹ với nước.",
+        "Nếu da khô căng, giảm tần suất hoặc dùng thêm kem dưỡng phục hồi.",
+      ],
+    };
+  }
+
+  if (c.includes("toner") || c.includes("essence")) {
+    return {
+      howTo: [
+        "Sau rửa mặt, cho vài giọt ra tay/bông và vỗ nhẹ lên da.",
+        "Dùng sáng & tối; ưu tiên lớp mỏng và có thể lặp 1–2 lớp nếu da khô.",
+      ],
+      cautions: [
+        "Nếu có AHA/BHA, dùng từ từ (2–3 lần/tuần) rồi tăng dần theo khả năng chịu đựng.",
+        "Ban ngày luôn dùng kem chống nắng.",
+      ],
+    };
+  }
+
+  if (c.includes("serum")) {
+    return {
+      howTo: [
+        "Dùng sau toner/essence, 2–4 giọt cho toàn mặt, vỗ nhẹ đến khi thấm.",
+        "Ưu tiên dùng theo routine: sáng (dưỡng ẩm/niacinamide) hoặc tối (treatment).",
+      ],
+      cautions: [
+        "Nếu có hoạt chất mạnh (retinol/vitamin C), nên test trước ở vùng nhỏ 24–48h.",
+        "Không dùng chung nhiều hoạt chất mạnh cùng lúc khi mới bắt đầu; ưu tiên tăng dần tần suất.",
+      ],
+    };
+  }
+
+  if (c.includes("moisturizer") || c.includes("cream") || c.includes("night")) {
+    return {
+      howTo: [
+        "Dùng sau serum, lấy lượng vừa đủ thoa đều mặt và cổ.",
+        "Buổi tối có thể dùng dày hơn ở vùng khô (khóa ẩm).",
+      ],
+      cautions: [
+        "Nếu có retinol, tránh dùng cùng lúc với AHA/BHA khi mới bắt đầu.",
+        "Ngưng dùng nếu kích ứng kéo dài và liên hệ hỗ trợ.",
+      ],
+    };
+  }
+
+  if (c.includes("sunscreen") || c.includes("spf") || c.includes("chống nắng")) {
+    return {
+      howTo: [
+        "Dùng bước cuối buổi sáng. Thoa lượng đủ (2 ngón tay cho mặt/cổ).",
+        "Thoa lại mỗi 2–3 giờ khi hoạt động ngoài trời/đổ mồ hôi/lau mặt.",
+      ],
+      cautions: [
+        "Không thay thế kem chống nắng bằng makeup có SPF.",
+        "Nếu da dễ kích ứng, thử lượng nhỏ trước khi dùng toàn mặt.",
+      ],
+    };
+  }
+
+  if (c.includes("mask") || c.includes("mặt nạ")) {
+    return {
+      howTo: [
+        "Dùng sau rửa mặt/toner. Thoa lớp mỏng đều, tránh vùng mắt.",
+        "Để 10–15 phút rồi rửa sạch (hoặc theo hướng dẫn trên bao bì).",
+        "Dùng 1–3 lần/tuần tùy nhu cầu da.",
+      ],
+      cautions: [
+        "Không để mặt nạ khô căng quá lâu (đặc biệt mask đất sét) để tránh khô da.",
+        "Giảm tần suất nếu có dấu hiệu kích ứng/đỏ rát.",
+      ],
+    };
+  }
+
+  if (c.includes("lip")) {
+    return {
+      howTo: [
+        "Tẩy tế bào chết môi 1–2 lần/tuần; sau đó dùng son dưỡng hằng ngày.",
+        "Thoa lại khi môi khô hoặc trước khi ngủ.",
+      ],
+      cautions: ["Tránh chà xát mạnh khi môi đang nứt/rách.", "Ngưng dùng nếu có kích ứng."],
+    };
+  }
+
+  return {
+    howTo: ["Dùng theo routine chăm sóc da phù hợp và theo hướng dẫn trên bao bì."],
+    cautions: ["Ngưng dùng nếu có kích ứng kéo dài và liên hệ hỗ trợ."],
+  };
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 async function sendOrderConfirmationEmail({ to, orderNumber, shippingCode, paymentMethod, shippingAddress, total, items }) {
   if (!isMailerConfigured() || !to) return;
 
@@ -35,6 +150,14 @@ async function sendOrderConfirmationEmail({ to, orderNumber, shippingCode, payme
   const estimatedDeliveryText = estimatedDelivery.toLocaleDateString("vi-VN");
   const paymentLabel = getPaymentMethodLabel(paymentMethod);
   const itemLines = items.map((item) => `- ${item.name} x${item.quantity}: $${(item.price * item.quantity).toFixed(2)}`).join("\n");
+  const afterSalesLines = items
+    .map((item) => {
+      const guide = getAfterSalesGuideForCategory(item.category);
+      const howTo = guide.howTo.map((line) => `  • ${line}`).join("\n");
+      const cautions = guide.cautions.map((line) => `  • ${line}`).join("\n");
+      return `\n${item.name}:\nHướng dẫn sử dụng:\n${howTo}\nLưu ý:\n${cautions}\n`;
+    })
+    .join("\n");
 
   const subject = `Glow | Xác nhận đơn hàng ${orderNumber}`;
   const text = `Xin chào ${shippingAddress.name},
@@ -49,6 +172,9 @@ Ngày giao dự kiến: ${estimatedDeliveryText}
 Sản phẩm:
 ${itemLines}
 
+Dịch vụ hậu mãi – hướng dẫn sử dụng & lưu ý:
+${afterSalesLines}
+
 Địa chỉ nhận hàng:
 ${shippingAddress.name} - ${shippingAddress.phone}
 ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.zipCode}, ${shippingAddress.country}
@@ -62,6 +188,22 @@ Vui lòng giữ email này để tiện theo dõi đơn hàng.
         `<li>${item.name} x${item.quantity} - <strong>$${(item.price * item.quantity).toFixed(2)}</strong></li>`
     )
     .join("");
+  const htmlAfterSales = items
+    .map((item) => {
+      const guide = getAfterSalesGuideForCategory(item.category);
+      const howTo = guide.howTo.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+      const cautions = guide.cautions.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+      return `
+        <div style="padding: 12px; border: 1px solid #f0d6dd; border-radius: 10px; margin: 12px 0; background: #fff7f9;">
+          <p style="margin: 0 0 8px 0;"><strong>${escapeHtml(item.name)}</strong></p>
+          <p style="margin: 0 0 6px 0;"><strong>Hướng dẫn sử dụng</strong></p>
+          <ul style="margin: 0 0 10px 18px; padding: 0;">${howTo}</ul>
+          <p style="margin: 0 0 6px 0;"><strong>Lưu ý</strong></p>
+          <ul style="margin: 0 0 0 18px; padding: 0;">${cautions}</ul>
+        </div>
+      `;
+    })
+    .join("");
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #222;">
       <h2>Xác nhận đơn hàng ${orderNumber}</h2>
@@ -74,6 +216,11 @@ Vui lòng giữ email này để tiện theo dõi đơn hàng.
       </p>
       <p><strong>Sản phẩm:</strong></p>
       <ul>${htmlItems}</ul>
+      <h3 style="margin-top: 18px;">Dịch vụ hậu mãi – hướng dẫn sử dụng & lưu ý</h3>
+      <p style="margin: 0 0 10px 0; color: #444;">
+        Dưới đây là hướng dẫn nhanh theo nhóm sản phẩm. Nếu bạn cần tư vấn theo tình trạng da, hãy phản hồi email này để được hỗ trợ.
+      </p>
+      ${htmlAfterSales}
       <p>
         <strong>Địa chỉ nhận hàng:</strong><br/>
         ${shippingAddress.name} - ${shippingAddress.phone}<br/>
