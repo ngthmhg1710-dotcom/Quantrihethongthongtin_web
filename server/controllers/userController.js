@@ -135,7 +135,10 @@ async function updateUserProfile(req, res) {
         (item) => !item.name || !item.address || !item.city || !item.district || !item.country
       );
       if (invalidAddress) {
-        return res.status(400).json({ message: "Each saved address must have full information" });
+        return res.status(400).json({
+          message:
+            "Mỗi địa chỉ đã lưu cần đủ: họ tên, địa chỉ, thành phố, quận/huyện, quốc gia. Kiểm tra quận/huyện (chọn trong danh sách, không để trống).",
+        });
       }
 
       if (normalizedAddresses.length > 0) {

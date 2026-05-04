@@ -844,7 +844,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (response.status === 413) {
         throw new Error('Dữ liệu đơn hàng quá lớn. Vui lòng dùng ảnh sản phẩm nhỏ hơn.');
       }
-      throw new Error(data.detail || data.message || 'Không thể đặt hàng');
+      const raw = (data.detail || data.message || '') as string;
+      const missing = Array.isArray(data.missing) ? (data.missing as string[]).join(', ') : '';
+      const extra = missing ? ` (thiếu: ${missing})` : '';
+      if (/shipping information is incomplete/i.test(raw)) {
+        throw new Error(
+          'Thông tin giao hàng chưa đủ. Quay lại bước 1 và điền đủ họ tên, SĐT, địa chỉ, quận/huyện (chọn trong danh sách), thành phố.' +
+            extra
+        );
+      }
+      throw new Error(raw ? raw + extra : 'Không thể đặt hàng');
     }
 
     setOrders((prev) => [data.order as Order, ...prev]);

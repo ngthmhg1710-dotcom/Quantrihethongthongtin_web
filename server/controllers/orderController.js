@@ -313,23 +313,31 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: "Order items are required" });
     }
 
+    const name = String(shippingAddress?.name ?? "").trim();
+    const address = String(shippingAddress?.address ?? "").trim();
+    const district = String(shippingAddress?.district ?? "").trim();
+    const city = String(shippingAddress?.city ?? "").trim();
+    const country = String(shippingAddress?.country ?? "").trim();
     const normalizedPhone = normalizePhoneInput(shippingAddress?.phone);
-    if (
-      !shippingAddress?.name ||
-      !normalizedPhone ||
-      !shippingAddress?.address ||
-      !shippingAddress?.district ||
-      !shippingAddress?.city ||
-      !shippingAddress?.country
-    ) {
-      return res.status(400).json({ message: "Shipping information is incomplete" });
+
+    const missing = [];
+    if (!name) missing.push("name");
+    if (!normalizedPhone) missing.push("phone");
+    if (!address) missing.push("address");
+    if (!district) missing.push("district");
+    if (!city) missing.push("city");
+    if (!country) missing.push("country");
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: "Thông tin giao hàng chưa đủ (kiểm tra lại bước 1: họ tên, SĐT, địa chỉ, quận/huyện, TP, quốc gia).",
+        missing,
+      });
     }
-    const district = String(shippingAddress.district || "").trim();
     if (district.length < 2) {
-      return res.status(400).json({ message: "District is invalid" });
+      return res.status(400).json({ message: "Quận / huyện không hợp lệ (quá ngắn hoặc trống)." });
     }
     if (!isValidPhoneNormalized(normalizedPhone)) {
-      return res.status(400).json({ message: "Phone number format is invalid" });
+      return res.status(400).json({ message: "Số điện thoại không đúng định dạng." });
     }
 
     const normalizedItems = items
@@ -387,13 +395,13 @@ async function createOrder(req, res) {
       paymentMethod: normalizedPaymentMethod,
       status: "pending",
       shippingAddress: {
-        name: String(shippingAddress.name).trim(),
+        name,
         phone: normalizedPhone,
-        address: String(shippingAddress.address).trim(),
+        address,
         district,
-        city: String(shippingAddress.city).trim(),
+        city,
         zipCode: "",
-        country: String(shippingAddress.country).trim(),
+        country,
       },
     });
 

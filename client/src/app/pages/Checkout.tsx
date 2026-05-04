@@ -472,6 +472,10 @@ export function Checkout() {
 
   const hasInvalidCart = cart.some((item) => item.quantity <= 0 || item.product.price < 0);
 
+  const paymentShippingErrors = step === 'payment' ? validateShippingInfo() : {};
+  const paymentShippingBlocked =
+    step === 'payment' && Object.keys(paymentShippingErrors).length > 0;
+
   const handleShippingSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (hasInvalidCart) {
@@ -952,6 +956,39 @@ export function Checkout() {
                 </div>
 
                 <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                  {paymentShippingBlocked ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                      <p className="font-semibold mb-2">Thông tin giao hàng chưa đủ — không thể đặt hàng</p>
+                      <ul className="list-disc pl-5 space-y-1 mb-3">
+                        {Object.entries(paymentShippingErrors).map(([key, msg]) => (
+                          <li key={key}>{msg}</li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => setStep('shipping')}
+                        className="font-medium underline"
+                      >
+                        ← Quay lại bước 1 để sửa
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+                      <p className="font-semibold text-gray-900 mb-2">Giao hàng tới</p>
+                      <p>
+                        {shippingInfo.name.trim()} · {normalizeCheckoutPhone(shippingInfo.phone) || '—'}
+                      </p>
+                      <p className="mt-1">{shippingInfo.address.trim()}</p>
+                      <p className="mt-1">
+                        {shippingInfo.district.trim() ? `${shippingInfo.district.trim()}, ` : ''}
+                        {shippingInfo.country === 'Việt Nam'
+                          ? canonicalVietnamCity(shippingInfo.city.trim())
+                          : shippingInfo.city.trim()}
+                        {shippingInfo.country.trim() ? ` · ${shippingInfo.country.trim()}` : ''}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                     <p className="text-sm font-medium mb-2">Phương thức thanh toán</p>
                     <div className="space-y-2 text-sm">
@@ -1115,7 +1152,12 @@ export function Checkout() {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
+                      disabled={paymentShippingBlocked}
+                      className={`flex-1 py-3 rounded-full transition-colors ${
+                        paymentShippingBlocked
+                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                          : 'bg-black text-white hover:bg-gray-800'
+                      }`}
                     >
                       Đặt hàng
                     </button>
