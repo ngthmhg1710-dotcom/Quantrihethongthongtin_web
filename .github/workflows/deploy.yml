@@ -38,24 +38,20 @@ jobs:
             sudo docker rm glow-server glow-client 2>/dev/null || true
 
             pm2 delete ecommerce-api ecommerce-frontend 2>/dev/null || true
-            
-            echo ">>> Build client"
+
+            echo ">>> Build client (cài serve — phục vụ dist, tránh vite preview / npx trên PM2)"
             cd client
             npm ci || npm install
             npm run build
-            
-            # Forcefully kill any process occupying port 5173
-            sudo fuser -k 5173/tcp 2>/dev/null || true
-            # Serve the built frontend via PM2
-            pm2 start "npx --yes vite preview --port 5173 --host 0.0.0.0" --name ecommerce-frontend
 
-            echo ">>> Install server deps & PM2"
+            echo ">>> Install server deps"
             cd ../server
             npm ci || npm install
 
-            # Forcefully kill any process occupying port 5000 (the API port)
+            cd "$APP_DIR"
+            sudo fuser -k 5173/tcp 2>/dev/null || true
             sudo fuser -k 5000/tcp 2>/dev/null || true
-            pm2 start index.js --name ecommerce-api
+            pm2 start ecosystem.config.cjs
             pm2 save || true
 
             echo ">>> Reload Nginx (nếu có)"

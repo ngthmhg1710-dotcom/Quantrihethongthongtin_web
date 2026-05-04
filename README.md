@@ -95,12 +95,15 @@ git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env'
 
 cd client && (npm ci || npm install) && npm run build
 cd ../server && (npm ci || npm install)
-pm2 restart ecommerce-api --update-env || pm2 start index.js --name ecommerce-api
+cd ..
+sudo fuser -k 5173/tcp 2>/dev/null || true
+sudo fuser -k 5000/tcp 2>/dev/null || true
+pm2 start ecosystem.config.cjs
 pm2 save || true
 sudo nginx -t && sudo systemctl reload nginx || true
 ```
 
-Đảm bảo Nginx `root` (hoặc `alias`) trỏ tới `client/dist` sau mỗi lần build. Nếu dùng toàn **Docker Compose** trên EC2 thay vì PM2, thay các lệnh `npm`/`pm2` bằng: `docker compose up -d --build` tại thư mục gốc dự án.
+PM2 dùng file `ecosystem.config.cjs` ở thư mục gốc: API cổng **5000**, static build (`client/dist`) qua **serve** cổng **5173** (ổn định hơn `vite preview`). Nginx nên `proxy_pass` tới hai cổng đó — xem mẫu `deploy/nginx-site.example.conf`. Nếu dùng toàn **Docker Compose** trên EC2 thay vì PM2, thay các lệnh `npm`/`pm2` bằng: `docker compose up -d --build` tại thư mục gốc dự án.
 
 ---
 
