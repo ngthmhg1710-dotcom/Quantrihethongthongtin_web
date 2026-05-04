@@ -234,7 +234,12 @@ export function AdminDashboard() {
       errors.image = 'Vui lòng tải ảnh từ thiết bị của bạn';
     } else if (!editingProductId && !image.startsWith('data:image/')) {
       errors.image = 'Ảnh sản phẩm mới phải được tải từ thiết bị';
-    } else if (editingProductId && !image.startsWith('data:image/') && !/^https?:\/\//i.test(image)) {
+    } else if (
+      editingProductId &&
+      !image.startsWith('data:image/') &&
+      !/^https?:\/\//i.test(image) &&
+      !image.startsWith('/')
+    ) {
       errors.image = 'Định dạng ảnh không hợp lệ';
     }
     if (!Number.isFinite(price) || price < 0) errors.price = 'Giá phải là số không âm';
@@ -385,7 +390,11 @@ export function AdminDashboard() {
   const categoryOptions = Array.from(
     new Set([...DEFAULT_CATEGORY_OPTIONS, ...categories.map((category) => category.name)])
   ).sort((a, b) => a.localeCompare(b));
-  const isUploadedImage = productForm.image.startsWith('data:image/');
+  const productImageSrc = productForm.image.trim();
+  const isDataUrlImage = productImageSrc.startsWith('data:image/');
+  const isExternalHttpImage = /^https?:\/\//i.test(productImageSrc);
+  const imageSourceLabel = isDataUrlImage ? 'Từ thiết bị' : isExternalHttpImage ? 'Từ URL' : 'Ảnh trong site';
+  const showExternalUrlImageHint = Boolean(productImageSrc) && isExternalHttpImage;
   const latestMonthStats = monthlyStats[monthlyStats.length - 1];
   const previousMonthStats = monthlyStats[monthlyStats.length - 2];
   const revenueDeltaPercent =
@@ -926,7 +935,7 @@ export function AdminDashboard() {
                     <p className="text-xs font-semibold text-gray-700">Ảnh sản phẩm</p>
                     {productForm.image && (
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
-                        {isUploadedImage ? 'Từ thiết bị' : 'Từ URL'}
+                        {imageSourceLabel}
                       </span>
                     )}
                   </div>
@@ -942,9 +951,10 @@ export function AdminDashboard() {
                       />
                     </label>
                     <p className="mt-2 text-[11px] text-gray-500">PNG, JPG, WEBP (khuyên dùng dưới 2MB)</p>
-                    {!isUploadedImage && productForm.image && (
+                    {showExternalUrlImageHint && (
                       <p className="mt-2 text-[11px] text-amber-700">
-                        Sản phẩm này đang dùng ảnh URL cũ. Hãy tải ảnh mới để thay thế.
+                        Ảnh đang trỏ tới liên kết ngoài (HTTP/HTTPS). Có thể đổi hoặc chậm tải; bạn có thể tải ảnh từ
+                        thiết bị để lưu cố định trên server.
                       </p>
                     )}
                   </div>
