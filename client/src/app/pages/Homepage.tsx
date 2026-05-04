@@ -144,8 +144,8 @@ export function Homepage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="font-['Poppins'] font-semibold mb-2">100% Tự nhiên</h3>
-              <p className="text-sm text-gray-600">Thành phần lành tính, đáng tin cậy</p>
+              <h3 className="font-['Poppins'] font-semibold mb-2">Sản phẩm an toàn</h3>
+              <p className="text-sm text-gray-600">Kiểm nghiệm không gây kích ứng</p>
             </div>
 
             <div className="text-center p-8">
