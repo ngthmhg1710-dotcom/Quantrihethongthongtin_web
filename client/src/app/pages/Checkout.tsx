@@ -993,7 +993,7 @@ export function Checkout() {
                 </div>
 
                 <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                  {paymentShippingBlocked ? (
+                  {paymentShippingBlocked && (
                     <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
                       <p className="font-semibold mb-2">Thông tin giao hàng chưa đủ — không thể đặt hàng</p>
                       <ul className="list-disc pl-5 space-y-1 mb-3">
@@ -1008,21 +1008,6 @@ export function Checkout() {
                       >
                         ← Quay lại bước 1 để sửa
                       </button>
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-[#f2dce2] bg-[#fffafc] p-4 text-sm text-gray-800">
-                      <p className="font-semibold text-gray-900 mb-2">Giao hàng tới</p>
-                      <p>
-                        {shippingInfo.name.trim()} · {normalizeCheckoutPhone(shippingInfo.phone) || '—'}
-                      </p>
-                      <p className="mt-1">{shippingInfo.address.trim()}</p>
-                      <p className="mt-1">
-                        {shippingInfo.district.trim() ? `${shippingInfo.district.trim()}, ` : ''}
-                        {shippingInfo.country === 'Việt Nam'
-                          ? canonicalVietnamCity(shippingInfo.city.trim())
-                          : shippingInfo.city.trim()}
-                        {shippingInfo.country.trim() ? ` · ${shippingInfo.country.trim()}` : ''}
-                      </p>
                     </div>
                   )}
 
