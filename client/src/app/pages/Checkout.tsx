@@ -82,6 +82,10 @@ function districtForProfileSync(district?: string, zipCode?: string) {
   return String(district || zipCode || '').trim();
 }
 
+function isCompleteAddressRow(row: { name?: string; address?: string; city?: string; district?: string; country?: string }) {
+  return [row.name, row.address, row.city, row.district, row.country].every((v) => String(v ?? '').trim().length > 0);
+}
+
 export function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart, addOrder, user, updateProfile } = useApp();
@@ -392,7 +396,7 @@ export function Checkout() {
 
     if (saveAddressToAccount && user) {
       try {
-        const currentBook = (user.shippingAddresses || []).map((address, index) => ({
+        const mappedBook = (user.shippingAddresses || []).map((address, index) => ({
           label: address.label || (index === 0 ? 'Nhà riêng' : `Địa chỉ ${index + 1}`),
           name: address.name,
           address: address.address,
@@ -401,6 +405,8 @@ export function Checkout() {
           country: address.country,
           isDefault: Boolean(address.isDefault),
         }));
+        const skippedIncomplete = mappedBook.length - mappedBook.filter(isCompleteAddressRow).length;
+        const currentBook = mappedBook.filter(isCompleteAddressRow);
         const normalizedCurrent = {
           name: shippingInfo.name.trim(),
           address: shippingInfo.address.trim(),
@@ -436,9 +442,14 @@ export function Checkout() {
         }
         await updateProfile({
           name: user.name,
-        phone: shippingInfo.phone.trim(),
+          phone: shippingInfo.phone.trim(),
           shippingAddresses: nextBook,
         });
+        if (skippedIncomplete > 0) {
+          toast.warning(
+            `Đã bỏ qua ${skippedIncomplete} địa chỉ cũ thiếu thông tin khi lưu. Bạn có thể sửa lại trong trang tài khoản.`
+          );
+        }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Không thể lưu địa chỉ vào tài khoản');
       }
