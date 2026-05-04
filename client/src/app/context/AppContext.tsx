@@ -847,7 +847,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const raw = (data.detail || data.message || '') as string;
       const missing = Array.isArray(data.missing) ? (data.missing as string[]).join(', ') : '';
       const extra = missing ? ` (thiếu: ${missing})` : '';
-      if (/shipping information is incomplete/i.test(raw)) {
+      if (/shipping information is incomplete/i.test(raw) || /Thông tin giao hàng chưa đủ/i.test(raw)) {
         throw new Error(
           'Thông tin giao hàng chưa đủ. Quay lại bước 1 và điền đủ họ tên, SĐT, địa chỉ, quận/huyện (chọn trong danh sách), thành phố.' +
             extra

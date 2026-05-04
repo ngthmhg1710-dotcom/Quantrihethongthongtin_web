@@ -126,6 +126,18 @@ function normalizeCheckoutPhone(value: string) {
   return value.trim().replace(/[\s().\-_]/g, '');
 }
 
+/** Khớp quận/huyện với danh sách (Unicode NFC) — tránh lệch ký tự vô hình giữa <select> và state. */
+function resolveDistrictForVietnamOrder(country: string, cityRaw: string, districtRaw: string) {
+  const cty = country.trim();
+  const cityCanon = cty === 'Việt Nam' ? canonicalVietnamCity(cityRaw.trim()) : cityRaw.trim();
+  let d = districtRaw.trim().normalize('NFC');
+  if (cty !== 'Việt Nam' || !cityCanon || !CITY_DISTRICTS[cityCanon]?.length || !d) return d;
+  const list = CITY_DISTRICTS[cityCanon];
+  if (list.includes(d)) return d;
+  const matched = list.find((opt) => opt.normalize('NFC') === d);
+  return matched || d;
+}
+
 export function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart, addOrder, user, updateProfile } = useApp();
@@ -513,6 +525,9 @@ export function Checkout() {
       return;
     }
 
+    /** Snapshot ngay sau khi pass validate — tránh await làm state/ effect ghi đè mất quận-huyện trước khi tạo đơn. */
+    const ship = { ...shippingInfo };
+
     if (saveAddressToAccount && user) {
       try {
         const mappedBook = (user.shippingAddresses || []).map((address, index) => ({
@@ -527,14 +542,14 @@ export function Checkout() {
         const skippedIncomplete = mappedBook.length - mappedBook.filter(isCompleteAddressRow).length;
         const currentBook = mappedBook.filter(isCompleteAddressRow);
         const normalizedCurrent = {
-          name: shippingInfo.name.trim(),
-          address: shippingInfo.address.trim(),
+          name: ship.name.trim(),
+          address: ship.address.trim(),
           city:
-            shippingInfo.country.trim() === 'Việt Nam'
-              ? canonicalVietnamCity(shippingInfo.city.trim())
-              : shippingInfo.city.trim(),
-          district: shippingInfo.district.trim(),
-          country: shippingInfo.country.trim(),
+            ship.country.trim() === 'Việt Nam'
+              ? canonicalVietnamCity(ship.city.trim())
+              : ship.city.trim(),
+          district: resolveDistrictForVietnamOrder(ship.country, ship.city, ship.district),
+          country: ship.country.trim(),
         };
         const existingIndex = currentBook.findIndex(
           (item) =>
@@ -568,7 +583,7 @@ export function Checkout() {
         } else {
           // Không gửi `name`: tránh 400 nếu user.name trong DB ngắn hơn 2 ký tự (rule PATCH profile).
           await updateProfile({
-            phone: normalizeCheckoutPhone(shippingInfo.phone),
+            phone: normalizeCheckoutPhone(ship.phone),
             shippingAddresses: sanitizedBook,
           });
           if (skippedIncomplete > 0) {
@@ -627,9 +642,10 @@ export function Checkout() {
 
     const orderId = `ORD-${Date.now()}`;
     const orderCity =
-      shippingInfo.country.trim() === 'Việt Nam'
-        ? canonicalVietnamCity(shippingInfo.city.trim())
-        : shippingInfo.city.trim();
+      ship.country.trim() === 'Việt Nam'
+        ? canonicalVietnamCity(ship.city.trim())
+        : ship.city.trim();
+    const orderDistrict = resolveDistrictForVietnamOrder(ship.country, ship.city, ship.district);
     const order = {
       id: orderId,
       date: new Date().toISOString().split('T')[0],
@@ -638,13 +654,13 @@ export function Checkout() {
       paymentMethod,
       status: 'pending' as const,
       shippingAddress: {
-        name: shippingInfo.name.trim(),
-        email: shippingInfo.email.trim(),
-        phone: normalizeCheckoutPhone(shippingInfo.phone),
-        address: shippingInfo.address.trim(),
+        name: ship.name.trim(),
+        email: ship.email.trim(),
+        phone: normalizeCheckoutPhone(ship.phone),
+        address: ship.address.trim(),
         city: orderCity,
-        district: shippingInfo.district.trim(),
-        country: shippingInfo.country.trim(),
+        district: orderDistrict,
+        country: ship.country.trim(),
       },
     };
 
