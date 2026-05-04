@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { Star, ShoppingCart, Heart, Share2, Check, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatVnd, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
+import { skinTypeLabelVi } from '../utils/skinTypes';
 
 export function ProductDetail() {
   const { id } = useParams();
@@ -196,8 +197,8 @@ export function ProductDetail() {
                 <h3 className="font-semibold mb-2">Phù hợp với:</h3>
                 <div className="flex gap-2 flex-wrap">
                   {product.skinTypes.map(type => (
-                    <span key={type} className="px-3 py-1 bg-[#FFE4E9] rounded-full text-sm capitalize">
-                      Da {type}
+                    <span key={type} className="px-3 py-1 bg-[#FFE4E9] rounded-full text-sm">
+                      {skinTypeLabelVi(type)}
                     </span>
                   ))}
                 </div>

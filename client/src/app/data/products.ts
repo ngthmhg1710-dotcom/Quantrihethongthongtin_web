@@ -22,147 +22,251 @@ export interface Review {
   date: string;
 }
 
+/** Giá là đơn vị legacy (~×25.000 ₫ để hiển thị; 8–32 ≈ 200k–800k ₫) */
 export const products: Product[] = [
   {
     id: 1,
-    name: "Hydrating Rose Serum",
-    price: 45.00,
-    image: "/images/products/rose_serum.png",
-    category: "Serum",
-    description: "A lightweight, fast-absorbing serum infused with rose extract to deeply hydrate and brighten your skin. Perfect for all skin types.",
-    ingredients: ["Rose Extract", "Hyaluronic Acid", "Vitamin C", "Niacinamide"],
-    skinTypes: ["dry", "normal", "sensitive"],
+    name: 'Serum hoa hồng cấp ẩm Glow',
+    price: 32,
+    stock: 30,
+    image: '/images/products/rose_serum.png',
+    category: 'Serum',
+    description:
+      'Serum nhẹ, thấm nhanh với chiết xuất hoa hồng, giúp cấp ẩm sâu và làm mịn ẩm cho làn da. Kết hợp HA và niacinamide, phù hợp dùng sáng tối trước kem dưỡng.',
+    ingredients: ['Chiết xuất hoa hồng', 'Acid hyaluronic', 'Vitamin C', 'Niacinamide'],
+    skinTypes: ['dry', 'normal', 'sensitive'],
     rating: 4.8,
     reviews: [
-      { id: 1, user: "Emma S.", rating: 5, comment: "This serum is amazing! My skin feels so soft and hydrated.", date: "2026-04-15" },
-      { id: 2, user: "Sophia M.", rating: 5, comment: "Love the rose scent and how it absorbs quickly!", date: "2026-04-10" }
+      { id: 1, user: 'Mai P.', rating: 5, comment: 'Da mình được cấp ẩm rõ rệt, serum thơm nhẹ không bết dính.', date: '2026-04-15' },
+      { id: 2, user: 'Lan T.', rating: 5, comment: 'Thích mùi hoa hồng dịu, thấm nhanh, makeup lên không bị vón.', date: '2026-04-10' },
     ],
     featured: true,
-    step: 3
+    step: 3,
   },
   {
     id: 2,
-    name: "Gentle Foam Cleanser",
-    price: 28.00,
-    image: "/images/products/foam_cleanser.png",
-    category: "Cleanser",
-    description: "A gentle, pH-balanced foam cleanser that removes makeup and impurities without stripping your skin's natural moisture.",
-    ingredients: ["Glycerin", "Chamomile Extract", "Green Tea", "Aloe Vera"],
-    skinTypes: ["oily", "normal", "combination"],
+    name: 'Sữa rửa mặt bọt nhẹ nhàng',
+    price: 10,
+    stock: 45,
+    image: '/images/products/foam_cleanser.png',
+    category: 'Cleanser',
+    description:
+      'Sữa rửa bọt cân bằng độ ẩm tự nhiên, làm sạch bụi bẩn và lớp trang nhẹ nhàng mà không gây khô căng. Chứa panthenol và chiết xuất làm dịu, phù hợp dùng hằng ngày.',
+    ingredients: ['Glycerin', 'Chiết xuất cúc chamomile', 'Trà xanh', 'Lô hội'],
+    skinTypes: ['oily', 'normal', 'combination'],
     rating: 4.6,
-    reviews: [
-      { id: 3, user: "Olivia K.", rating: 5, comment: "Perfect for my sensitive skin!", date: "2026-04-12" }
-    ],
+    reviews: [{ id: 3, user: 'Hương K.', rating: 5, comment: 'Rửa xong da mềm, không bị rít, hợp da dầu vùng chữ T.', date: '2026-04-12' }],
     featured: true,
-    step: 1
+    step: 1,
   },
   {
     id: 3,
-    name: "Vitamin C Brightening Cream",
-    price: 52.00,
-    image: "/images/products/vitc_cream.png",
-    category: "Moisturizer",
-    description: "A rich moisturizing cream packed with Vitamin C to brighten and even out skin tone while providing intense hydration.",
-    ingredients: ["Vitamin C", "Shea Butter", "Jojoba Oil", "Peptides"],
-    skinTypes: ["dry", "normal", "combination"],
+    name: 'Kem dưỡng sáng da vitamin C',
+    price: 30,
+    stock: 28,
+    image: '/images/products/vitc_cream.png',
+    category: 'Moisturizer',
+    description:
+      'Kem dưỡng đậm đặc với vitamin C ổn định, hỗ trợ làm đều tông da và mờ vết thâm nhẹ. Bơ hạt mỡ và jojoba giúp khóa ẩm, da căng mịn cả ngày.',
+    ingredients: ['Vitamin C', 'Bơ hạt mỡ', 'Dầu jojoba', 'Peptide'],
+    skinTypes: ['dry', 'normal', 'combination'],
     rating: 4.9,
-    reviews: [
-      { id: 4, user: "Ava L.", rating: 5, comment: "My skin looks so much brighter!", date: "2026-04-08" }
-    ],
+    reviews: [{ id: 4, user: 'An L.', rating: 5, comment: 'Dùng được 3 tuần thấy da sáng hơn một chút, kem không gây kích ứng.', date: '2026-04-08' }],
     featured: true,
-    step: 4
+    step: 4,
   },
   {
     id: 4,
-    name: "Exfoliating Toner",
-    price: 32.00,
-    image: "/images/products/exfoliating_toner.png",
-    category: "Toner",
-    description: "An alcohol-free toner with gentle AHA/BHA to exfoliate dead skin cells and refine pores for a smoother complexion.",
-    ingredients: ["Glycolic Acid", "Salicylic Acid", "Rose Water", "Witch Hazel"],
-    skinTypes: ["oily", "combination", "normal"],
+    name: 'Nước cân bằng AHA/BHA dịu',
+    price: 11,
+    stock: 36,
+    image: '/images/products/exfoliating_toner.png',
+    category: 'Toner',
+    description:
+      'Toner không cồn với AHA/BHA nhẹ, giúp loại bỏ tế bào già và làm lỗ chân lông thoáng hơn cho bề mặt da đều mịn. Nên bắt đầu 2–3 lần/tuần rồi tăng dần.',
+    ingredients: ['Acid glycolic', 'Acid salicylic', 'Nước hoa hồng', 'Cây phỉ'],
+    skinTypes: ['oily', 'combination', 'normal'],
     rating: 4.7,
     reviews: [],
-    featured: true,
-    step: 2
+    featured: false,
+    step: 2,
   },
   {
     id: 5,
-    name: "Nourishing Night Cream",
-    price: 58.00,
-    image: "/images/products/night_cream.png",
-    category: "Night Cream",
-    description: "A deeply nourishing night cream that works while you sleep to repair and rejuvenate your skin.",
-    ingredients: ["Retinol", "Ceramides", "Squalane", "Vitamin E"],
-    skinTypes: ["dry", "normal", "mature"],
+    name: 'Kem dưỡng đêm phục hồi',
+    price: 31,
+    stock: 20,
+    image: '/images/products/night_cream.png',
+    category: 'Night Cream',
+    description:
+      'Kem đêm nuôi dưỡng với retinol nồng độ vừa, ceramide và squalane, hỗ trợ phục hồi hàng rào da và giảm nếp nhăn nông khi dùng kiên trì. Dùng buổi tối, kèm kem chống nắng ban ngày.',
+    ingredients: ['Retinol', 'Ceramide', 'Squalane', 'Vitamin E'],
+    skinTypes: ['dry', 'normal', 'mature'],
     rating: 4.8,
-    reviews: [
-      { id: 5, user: "Isabella R.", rating: 5, comment: "Wake up with glowing skin every morning!", date: "2026-04-05" }
-    ],
-    featured: true
+    reviews: [{ id: 5, user: 'Hà R.', rating: 5, comment: 'Thức dậy thấy da mềm và đủ ẩm, thích hợp da khô như mình.', date: '2026-04-05' }],
+    featured: true,
+    step: 5,
   },
   {
     id: 6,
-    name: "SPF 50 Sunscreen",
-    price: 35.00,
-    image: "/images/products/sunscreen.png",
-    category: "Sunscreen",
-    description: "Lightweight, non-greasy sunscreen with SPF 50 that protects against UVA/UVB rays without leaving a white cast.",
-    ingredients: ["Zinc Oxide", "Titanium Dioxide", "Vitamin E", "Aloe Vera"],
-    skinTypes: ["all"],
+    name: 'Kem chống nắng SPF 50 không vệt trắng',
+    price: 12,
+    stock: 40,
+    image: '/images/products/sunscreen.png',
+    category: 'Sunscreen',
+    description:
+      'Kem chống nắng phổ rộng SPF 50 nhẹ mặt, lớp finish trong tự nhiên, ít vệt trắng. Thích hợp lớp nền hằng ngày ở khí hậu ẩm nóng.',
+    ingredients: ['Kẽm oxide', 'Titan dioxide', 'Vitamin E', 'Lô hội'],
+    skinTypes: ['all'],
     rating: 4.9,
     reviews: [],
     featured: true,
-    step: 5
+    step: 5,
   },
   {
     id: 7,
-    name: "Hydrating Face Mask",
-    price: 42.00,
-    image: "/images/products/face_mask.png",
-    category: "Mask",
-    description: "A cooling gel mask that instantly hydrates and soothes stressed skin. Use 2-3 times a week for best results.",
-    ingredients: ["Hyaluronic Acid", "Cucumber Extract", "Aloe Vera", "Green Tea"],
-    skinTypes: ["dry", "sensitive", "normal"],
+    name: 'Mặt nạ gel cấp ẩm tức thì',
+    price: 14,
+    stock: 24,
+    image: '/images/products/face_mask.png',
+    category: 'Mask',
+    description:
+      'Mặt nạ gel mát giúp cấp ẩm và làm dịu da căng khô chỉ sau khoảng 10 phút. Dùng khi da mệt hoặc sau nắng với tần suất 2 lần/tuần.',
+    ingredients: ['Acid hyaluronic', 'Chiết xuất dưa chuột', 'Lô hội', 'Trà xanh'],
+    skinTypes: ['dry', 'sensitive', 'normal'],
     rating: 4.7,
-    reviews: []
+    reviews: [],
   },
   {
     id: 8,
-    name: "Eye Renewal Cream",
-    price: 48.00,
-    image: "/images/products/eye_cream.png",
-    category: "Eye Cream",
-    description: "A targeted eye cream that reduces dark circles, puffiness, and fine lines for a refreshed, youthful look.",
-    ingredients: ["Caffeine", "Peptides", "Vitamin K", "Hyaluronic Acid"],
-    skinTypes: ["all"],
+    name: 'Kem mắt giảm quầng thâm',
+    price: 16,
+    stock: 18,
+    image: '/images/products/eye_cream.png',
+    category: 'Eye Cream',
+    description:
+      'Kem vùng mắt tập trung vào quầng thâm và bọng nhẹ, kết hợp caffeine và peptide. Kết cấu mỏng, dễ tán, phù hợp dùng sáng tối.',
+    ingredients: ['Caffeine', 'Peptide', 'Vitamin K', 'Acid hyaluronic'],
+    skinTypes: ['all'],
     rating: 4.6,
-    reviews: []
+    reviews: [],
   },
   {
     id: 9,
-    name: "Clarifying Clay Mask",
-    price: 38.00,
-    image: "/images/products/clay_mask.png",
-    category: "Mask",
-    description: "A purifying clay mask that draws out impurities and excess oil, leaving skin clean and refreshed.",
-    ingredients: ["Kaolin Clay", "Bentonite Clay", "Tea Tree Oil", "Charcoal"],
-    skinTypes: ["oily", "combination"],
+    name: 'Mặt nạ đất sét làm sạch sâu',
+    price: 11,
+    stock: 22,
+    image: '/images/products/clay_mask.png',
+    category: 'Mask',
+    description:
+      'Mặt nạ đất sét hút dầu thừa và bụi trong lỗ chân lông mà không làm da bột phát khô. Dùng 1 lần/tuần cho vùng T hoặc toàn mặt da dầu.',
+    ingredients: ['Đất sét kaolin', 'Đất sét bentonite', 'Dầu cây tràm trà', 'Than hoạt tính'],
+    skinTypes: ['oily', 'combination'],
     rating: 4.5,
-    reviews: []
+    reviews: [],
   },
   {
     id: 10,
-    name: "Lip Care Set",
-    price: 25.00,
-    image: "/images/products/lip_care.png",
-    category: "Lip Care",
-    description: "A nourishing lip balm and scrub duo to keep your lips soft, smooth, and perfectly moisturized.",
-    ingredients: ["Shea Butter", "Coconut Oil", "Vitamin E", "Beeswax"],
-    skinTypes: ["all"],
+    name: 'Bộ dưỡng môi (tẩy + son dưỡng)',
+    price: 8,
+    stock: 35,
+    image: '/images/products/lip_care.png',
+    category: 'Lip Care',
+    description:
+      'Combo tẩy tế bào chết môi và son dưỡng giúp môi mềm, bớt nứt nẻ. Ẩm vừa, không quá bóng, dùng trước khi đánh son màu.',
+    ingredients: ['Bơ hạt mỡ', 'Dầu dừa', 'Vitamin E', 'Sáp ong'],
+    skinTypes: ['all'],
     rating: 4.8,
-    reviews: []
-  }
+    reviews: [],
+  },
+  {
+    id: 11,
+    name: 'Xịt tinh chất cân bằng độ ẩm',
+    price: 13,
+    stock: 28,
+    image: '/images/products/exfoliating_toner.png',
+    category: 'Essence',
+    description:
+      'Xịt khoáng dưỡng ẩm nhanh, dùng sau rửa mặt hoặc xịt giữa ngày khi ngồi máy lạnh. Hỗ trợ các bước serum/kem sau thấm tốt hơn.',
+    ingredients: ['Nước hoa hồng', 'Panthenol', 'Niacinamide', 'Rau má'],
+    skinTypes: ['all'],
+    rating: 4.7,
+    reviews: [],
+  },
+  {
+    id: 12,
+    name: 'Kem dưỡng phục hồi hàng rào da',
+    price: 28,
+    stock: 26,
+    image: '/images/products/night_cream.png',
+    category: 'Moisturizer',
+    description:
+      'Kem dưỡng đậm với hỗn hợp ceramide–cholesterol–acid béo, củng cố hàng rào da và giảm mất nước qua da. Phù hợp da khô, da vừa peel hoặc dùng retinol.',
+    ingredients: ['Ceramide', 'Squalane', 'Cholesterol', 'Acid béo'],
+    skinTypes: ['dry', 'sensitive', 'normal'],
+    rating: 4.9,
+    reviews: [],
+    featured: true,
+    step: 5,
+  },
+  {
+    id: 13,
+    name: 'Gel rửa mặt dịu nhẹ pH thấp',
+    price: 15,
+    stock: 50,
+    image: '/images/products/foam_cleanser.png',
+    category: 'Cleanser',
+    description:
+      'Gel rửa mặt pH thấp gần với da, làm sạch dịu mà không làm mất lớp dầu tự nhiên. Thích hợp mọi loại da, kể cả da nhạy cảm.',
+    ingredients: ['Glycerin', 'Allantoin', 'Betaine', 'Trà xanh'],
+    skinTypes: ['all'],
+    rating: 4.6,
+    reviews: [],
+  },
+  {
+    id: 14,
+    name: 'Serum niacinamide sáng da',
+    price: 18,
+    stock: 33,
+    image: '/images/products/rose_serum.png',
+    category: 'Serum',
+    description:
+      'Serum cô đặc niacinamide kết hợp kẽm PCA, hỗ trợ sebum ổn định, lỗ chân lông gọn hơn và tông da đều hơn theo thời gian.',
+    ingredients: ['Niacinamide', 'Kẽm PCA', 'Rễ cam thảo', 'Panthenol'],
+    skinTypes: ['oily', 'combination', 'normal'],
+    rating: 4.8,
+    reviews: [],
+    featured: true,
+    step: 3,
+  },
+  {
+    id: 15,
+    name: 'Serum retinol tái tạo ban đêm',
+    price: 29,
+    stock: 17,
+    image: '/images/products/rose_serum.png',
+    category: 'Serum',
+    description:
+      'Serum đêm với retinol và peptide, hỗ trợ texture da mịn và giảm nếp nhăn nhìn thấy khi kiên trì. Bắt đầu 2 đêm/tuần, luôn dùng chống nắng ban ngày.',
+    ingredients: ['Retinol', 'Peptide', 'Ceramide', 'Acid hyaluronic'],
+    skinTypes: ['normal', 'combination', 'mature'],
+    rating: 4.7,
+    reviews: [],
+  },
+  {
+    id: 16,
+    name: 'Kem làm dịu Cica',
+    price: 20,
+    stock: 30,
+    image: '/images/products/vitc_cream.png',
+    category: 'Moisturizer',
+    description:
+      'Kem dưỡng làm dịu với centella và madecassoside, giảm đỏ do kích ứng nhẹ và bổ sung ẩm. Kết cấu mịn, không nặng mặt.',
+    ingredients: ['Centella asiatica', 'Madecassoside', 'Panthenol', 'Bơ hạt mỡ'],
+    skinTypes: ['sensitive', 'dry', 'normal'],
+    rating: 4.8,
+    reviews: [],
+  },
 ];
 
 export interface CartItem {
@@ -176,8 +280,8 @@ export interface Order {
   placedAt?: string | null;
   items: CartItem[];
   total: number;
-  paymentMethod?: "card" | "cod" | "bank_transfer";
-  status: "pending" | "processing" | "shipped" | "delivered";
+  paymentMethod?: 'card' | 'cod' | 'bank_transfer';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered';
   shippingCode?: string;
   trackingCode?: string;
   shippingAddress: {

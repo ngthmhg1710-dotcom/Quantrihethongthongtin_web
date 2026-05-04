@@ -36,18 +36,41 @@ async function seedProductsIfNeeded() {
     console.log(`Seeded ${missingProducts.length} products`);
   }
 
-  // Force sync images for existing products to ensure EC2 updates
+  // Đồng bộ dữ liệu catalog từ seed (tên, mô tả, giá, loại da, …) cho sản phẩm đã có — kèm đường ảnh khi deploy
   try {
+    const categoryCache = new Map();
     for (const product of seedProducts) {
-      if (existingIds.has(product.id)) {
-        await Product.updateOne(
-          { id: product.id },
-          { $set: { image: product.image } }
+      const categoryName = String(product.category || "General").trim() || "General";
+      let categoryId = categoryCache.get(categoryName);
+      if (!categoryId) {
+        const categoryDoc = await Category.findOneAndUpdate(
+          { name: categoryName },
+          { $setOnInsert: { name: categoryName, description: "" } },
+          { upsert: true, returnDocument: "after" }
         );
+        categoryId = categoryDoc._id;
+        categoryCache.set(categoryName, categoryId);
       }
+
+      const setDoc = {
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        category: categoryId,
+        description: product.description,
+        ingredients: product.ingredients,
+        skinTypes: product.skinTypes,
+        rating: product.rating,
+        reviews: product.reviews || [],
+        featured: Boolean(product.featured),
+        step: product.step,
+      };
+      if (product.stock !== undefined) setDoc.stock = product.stock;
+
+      await Product.updateOne({ id: product.id }, { $set: setDoc }, { upsert: false });
     }
   } catch (err) {
-    console.error("Image sync failed:", err);
+    console.error("Product seed sync failed:", err);
   }
 }
 

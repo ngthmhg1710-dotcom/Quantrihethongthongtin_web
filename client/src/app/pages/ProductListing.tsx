@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Star, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatVnd } from '../utils/currency';
+import { skinTypeLabelVi } from '../utils/skinTypes';
 
 function normalizeSearchText(value: string) {
   return value
@@ -19,12 +20,12 @@ export function ProductListing() {
   const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedSkinType, setSelectedSkinType] = useState('all');
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 35 });
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
-  const skinTypes = ['all', 'dry', 'oily', 'combination', 'normal', 'sensitive'];
+  const skinTypes = ['all', 'dry', 'oily', 'combination', 'normal', 'sensitive', 'mature'];
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = normalizeSearchText(searchQuery);
@@ -123,7 +124,7 @@ export function ProductListing() {
                         onChange={() => setSelectedSkinType(skinType)}
                         className="w-4 h-4 text-[#FFC0CB] focus:ring-[#FFC0CB]"
                       />
-                      <span className="text-sm capitalize">{skinType}</span>
+                      <span className="text-sm">{skinTypeLabelVi(skinType)}</span>
                     </label>
                   ))}
                 </div>
@@ -135,7 +136,7 @@ export function ProductListing() {
                   <input
                     type="range"
                     min="0"
-                    max="100"
+                    max="35"
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) })}
                     className="w-full accent-[#FFC0CB]"
@@ -151,7 +152,7 @@ export function ProductListing() {
                 onClick={() => {
                   setSelectedCategory('all');
                   setSelectedSkinType('all');
-                  setPriceRange({ min: 0, max: 100 });
+                  setPriceRange({ min: 0, max: 35 });
                   setSearchQuery('');
                 }}
                 className="w-full mt-6 py-2 text-sm text-[#FFC0CB] hover:underline"
@@ -195,7 +196,7 @@ export function ProductListing() {
                     <div className="flex items-center gap-1 mb-3 flex-wrap">
                       {product.skinTypes.slice(0, 2).map(type => (
                         <span key={type} className="px-2 py-1 bg-[#FFE4E9] text-xs rounded-full">
-                          {type}
+                          {skinTypeLabelVi(type)}
                         </span>
                       ))}
                     </div>
@@ -215,7 +216,7 @@ export function ProductListing() {
                   onClick={() => {
                     setSelectedCategory('all');
                     setSelectedSkinType('all');
-                    setPriceRange({ min: 0, max: 100 });
+                    setPriceRange({ min: 0, max: 35 });
                     setSearchQuery('');
                   }}
                   className="mt-4 text-[#FFC0CB] hover:underline"

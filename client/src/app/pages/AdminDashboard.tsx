@@ -3,6 +3,7 @@ import { Product, Order } from '../data/products';
 import { useApp } from '../context/AppContext';
 import { localizeCategory, localizeProduct } from '../utils/localization';
 import { formatVnd } from '../utils/currency';
+import { skinTypeLabelVi } from '../utils/skinTypes';
 import { useNavigate } from 'react-router';
 import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2, Search, X, Mail } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -1036,7 +1037,7 @@ export function AdminDashboard() {
                     <option value="">Chọn loại da</option>
                     {SKIN_TYPE_OPTIONS.map((skinType) => (
                       <option key={skinType} value={skinType}>
-                        {skinType.charAt(0).toUpperCase() + skinType.slice(1)}
+                        {skinTypeLabelVi(skinType)}
                       </option>
                     ))}
                   </select>
@@ -1088,7 +1089,7 @@ export function AdminDashboard() {
                             .slice(0, 3)
                             .map((type) => (
                               <span key={type} className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFE4E9]">
-                                {type}
+                                {skinTypeLabelVi(type)}
                               </span>
                             ))}
                         </div>
