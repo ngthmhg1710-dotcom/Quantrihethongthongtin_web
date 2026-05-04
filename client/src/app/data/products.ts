@@ -109,7 +109,7 @@ export const products: Product[] = [
   },
   {
     id: 6,
-    name: 'Kem chống nắng SPF 50 không vệt trắng',
+    name: 'Kem chống nắng SPF 50',
     price: 12,
     stock: 40,
     image: '/images/products/sunscreen.png',
