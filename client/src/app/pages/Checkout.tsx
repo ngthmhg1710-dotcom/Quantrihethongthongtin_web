@@ -97,6 +97,31 @@ function isValidSavedCardRow(method: {
   return name.length >= 2 && /^\d{4}$/.test(last4) && /^(0[1-9]|1[0-2])\/\d{2}$/.test(exp);
 }
 
+function isPostalCodeOnlyDistrict(value: string) {
+  return /^\d{3,10}$/.test(value.trim());
+}
+
+/** Tránh undefined trong object — JSON.stringify bỏ key → API profile 400. */
+function sanitizeAddressForApi(row: {
+  label?: string;
+  name?: unknown;
+  address?: unknown;
+  city?: unknown;
+  district?: unknown;
+  country?: unknown;
+  isDefault?: boolean;
+}) {
+  return {
+    label: String(row.label || 'Nhà riêng').trim() || 'Nhà riêng',
+    name: String(row.name ?? '').trim(),
+    address: String(row.address ?? '').trim(),
+    city: String(row.city ?? '').trim(),
+    district: String(row.district ?? '').trim(),
+    country: String(row.country ?? '').trim(),
+    isDefault: Boolean(row.isDefault),
+  };
+}
+
 function normalizeCheckoutPhone(value: string) {
   return value.trim().replace(/[\s().\-_]/g, '');
 }
@@ -151,23 +176,35 @@ export function Checkout() {
       const resolvedCountry =
         chosenAddress?.country || user.defaultShippingAddress?.country || prev.country;
       const rawCity = chosenAddress?.city || user.defaultShippingAddress?.city || prev.city;
+      const cityResolved =
+        resolvedCountry === 'Việt Nam' ? canonicalVietnamCity(String(rawCity || '')) : String(rawCity || '');
+      let districtResolved =
+        normalizeDistrict(chosenAddress?.district) ||
+        normalizeDistrict(user.defaultShippingAddress?.district) ||
+        normalizeDistrict(chosenAddress?.zipCode) ||
+        normalizeDistrict(user.defaultShippingAddress?.zipCode) ||
+        districtForProfileSync(chosenAddress?.district, chosenAddress?.zipCode) ||
+        districtForProfileSync(
+          user.defaultShippingAddress?.district,
+          user.defaultShippingAddress?.zipCode
+        ) ||
+        prev.district;
+      if (
+        resolvedCountry === 'Việt Nam' &&
+        cityResolved &&
+        CITY_DISTRICTS[cityResolved]?.length &&
+        districtResolved &&
+        isPostalCodeOnlyDistrict(String(districtResolved))
+      ) {
+        districtResolved = '';
+      }
       return {
         name: chosenAddress?.name || user.defaultShippingAddress?.name || user.name || prev.name,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
         address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
-        city: resolvedCountry === 'Việt Nam' ? canonicalVietnamCity(rawCity) : rawCity,
-        district:
-          normalizeDistrict(chosenAddress?.district) ||
-          normalizeDistrict(user.defaultShippingAddress?.district) ||
-          normalizeDistrict(chosenAddress?.zipCode) ||
-          normalizeDistrict(user.defaultShippingAddress?.zipCode) ||
-          districtForProfileSync(chosenAddress?.district, chosenAddress?.zipCode) ||
-          districtForProfileSync(
-            user.defaultShippingAddress?.district,
-            user.defaultShippingAddress?.zipCode
-          ) ||
-          prev.district,
+        city: cityResolved,
+        district: districtResolved,
         country: resolvedCountry,
       };
     });
@@ -188,6 +225,16 @@ export function Checkout() {
       return { ...prev, city: c, district: keepDistrict };
     });
   }, [shippingInfo.country, shippingInfo.city]);
+
+  /** Bỏ mã bưu điện nhập nhầm làm quận/huyện (VD: 70000) khi TP có danh sách quận. */
+  useEffect(() => {
+    if (shippingInfo.country !== 'Việt Nam') return;
+    const city = canonicalVietnamCity(shippingInfo.city);
+    const d = shippingInfo.district.trim();
+    if (!d || !city || !CITY_DISTRICTS[city]?.length) return;
+    if (!isPostalCodeOnlyDistrict(d)) return;
+    setShippingInfo((prev) => ({ ...prev, district: '' }));
+  }, [shippingInfo.country, shippingInfo.city, shippingInfo.district]);
 
   useEffect(() => {
     if (!user || didPrefillSavedCard || paymentMethod !== 'card') return;
@@ -217,16 +264,29 @@ export function Checkout() {
     setSelectedAddressIndex(index);
     setIsAddingNewAddress(false);
     setShippingErrors({});
-    setShippingInfo((prev) => ({
-      ...prev,
-      name: address.name,
-      address: address.address,
-      city: address.country === 'Việt Nam' ? canonicalVietnamCity(address.city) : address.city,
-      district: districtForProfileSync(address.district, address.zipCode),
-      country: address.country,
-      email: user.email || prev.email,
-      phone: user.phone || prev.phone,
-    }));
+    setShippingInfo((prev) => {
+      const cityVo =
+        address.country === 'Việt Nam' ? canonicalVietnamCity(String(address.city ?? '')) : String(address.city ?? '');
+      const rawDistrict = districtForProfileSync(address.district, address.zipCode);
+      const districtOk =
+        address.country === 'Việt Nam' &&
+        cityVo &&
+        CITY_DISTRICTS[cityVo]?.length &&
+        rawDistrict &&
+        isPostalCodeOnlyDistrict(rawDistrict)
+          ? ''
+          : rawDistrict;
+      return {
+        ...prev,
+        name: address.name,
+        address: address.address,
+        city: cityVo,
+        district: districtOk,
+        country: address.country,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      };
+    });
   };
 
   const setDefaultAddressInBook = async (index: number) => {
@@ -266,7 +326,7 @@ export function Checkout() {
         toast.error('Không thể đặt mặc định: địa chỉ không nằm trong danh sách hợp lệ đã lưu.');
         return;
       }
-      await updateProfile({ shippingAddresses: nextBook });
+      await updateProfile({ shippingAddresses: nextBook.map(sanitizeAddressForApi) });
       toast.success('Đã cập nhật địa chỉ mặc định');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể đặt địa chỉ mặc định');
@@ -297,8 +357,14 @@ export function Checkout() {
   const cityOptionsWithCurrent = effectiveCityVN && !CITY_OPTIONS.includes(effectiveCityVN)
     ? [effectiveCityVN, ...CITY_OPTIONS]
     : CITY_OPTIONS;
+  const blockPostalAsDistrict =
+    shippingInfo.country === 'Việt Nam' &&
+    Boolean(effectiveCityVN && CITY_DISTRICTS[effectiveCityVN]?.length) &&
+    isPostalCodeOnlyDistrict(shippingInfo.district);
   const districtOptionsWithCurrent =
-    shippingInfo.district && !currentDistrictOptions.includes(shippingInfo.district)
+    shippingInfo.district &&
+    !currentDistrictOptions.includes(shippingInfo.district) &&
+    !blockPostalAsDistrict
       ? [shippingInfo.district, ...currentDistrictOptions]
       : currentDistrictOptions;
 
@@ -352,6 +418,15 @@ export function Checkout() {
     if (address.length < 6) errors.address = 'Địa chỉ quá ngắn';
     if (city.length < 2) errors.city = 'Vui lòng nhập thành phố / tỉnh';
     if (district.length < 2) errors.district = 'Vui lòng nhập quận / huyện';
+    if (
+      country === 'Việt Nam' &&
+      city &&
+      CITY_DISTRICTS[city]?.length &&
+      district &&
+      isPostalCodeOnlyDistrict(district)
+    ) {
+      errors.district = 'Vui lòng chọn quận / huyện trong danh sách (không dùng mã bưu điện).';
+    }
     if (!country) errors.country = 'Vui lòng chọn quốc gia';
 
     return errors;
@@ -438,11 +513,11 @@ export function Checkout() {
       try {
         const mappedBook = (user.shippingAddresses || []).map((address, index) => ({
           label: address.label || (index === 0 ? 'Nhà riêng' : `Địa chỉ ${index + 1}`),
-          name: address.name,
-          address: address.address,
-          city: address.city,
+          name: String(address.name ?? '').trim(),
+          address: String(address.address ?? '').trim(),
+          city: String(address.city ?? '').trim(),
           district: districtForProfileSync(address.district, address.zipCode),
-          country: address.country,
+          country: String(address.country ?? '').trim(),
           isDefault: Boolean(address.isDefault),
         }));
         const skippedIncomplete = mappedBook.length - mappedBook.filter(isCompleteAddressRow).length;
@@ -483,7 +558,7 @@ export function Checkout() {
         // Không gửi `name`: tránh 400 nếu user.name trong DB ngắn hơn 2 ký tự (rule PATCH profile).
         await updateProfile({
           phone: normalizeCheckoutPhone(shippingInfo.phone),
-          shippingAddresses: nextBook,
+          shippingAddresses: nextBook.map(sanitizeAddressForApi),
         });
         if (skippedIncomplete > 0) {
           toast.warning(
