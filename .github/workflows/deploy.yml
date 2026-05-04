@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -16,20 +17,37 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
           script: |
-            cd ~/Quantrihethongthongtin_web
-            git reset --hard HEAD
-            git clean -fd
-            git pull origin main
-            
-            # Start MongoDB via Docker (in case docker-compose is missing)
-            sudo docker run -d -p 27017:27017 --name glow-mongo mongo:7 || sudo docker start glow-mongo || true
-            
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then APP_DIR="$HOME/Quantrihethongthongtin_web"; fi
+            cd "$APP_DIR"
+
+            git fetch origin main
+            git reset --hard origin/main
+            # Không xóa .env trên máy chủ (thường không commit)
+            git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env'
+
+            # MongoDB (bỏ qua nếu đã chạy hoặc dùng Mongo Atlas / compose khác)
+            if ! sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^glow-mongo$'; then
+              sudo docker run -d -p 27017:27017 --name glow-mongo mongo:7 2>/dev/null || sudo docker start glow-mongo 2>/dev/null || true
+            fi
+
+            echo ">>> Build client"
             cd client
-            npm install
+            npm ci || npm install
             npm run build
-            
+
+            echo ">>> Install server deps & PM2"
             cd ../server
-            npm install
-            pm2 delete "ecommerce-api" || true
-            pm2 start server.js --name "ecommerce-api"
+            npm ci || npm install
+
+            if pm2 describe ecommerce-api >/dev/null 2>&1; then
+              pm2 restart ecommerce-api --update-env
+            else
+              pm2 start index.js --name ecommerce-api
+            fi
+            pm2 save || true
+
+            echo ">>> Reload Nginx (nếu có)"
+            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true

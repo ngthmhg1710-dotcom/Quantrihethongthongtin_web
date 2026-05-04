@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const { normalizePhoneInput, isValidPhoneNormalized } = require("../utils/phone");
 
 function normalizeWishlistIds(value) {
   if (!Array.isArray(value)) return [];
@@ -87,8 +88,8 @@ async function updateUserProfile(req, res) {
     }
 
     if (typeof phone === "string") {
-      const normalizedPhone = phone.trim();
-      if (normalizedPhone && !/^[0-9+\-() ]{8,20}$/.test(normalizedPhone)) {
+      const normalizedPhone = normalizePhoneInput(phone);
+      if (normalizedPhone && !isValidPhoneNormalized(normalizedPhone)) {
         return res.status(400).json({ message: "Phone number format is invalid" });
       }
       user.phone = normalizedPhone;

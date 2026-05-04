@@ -75,6 +75,33 @@ Lệnh này sẽ tự động:
 docker-compose down
 ```
 
+### 3.4. Cập nhật bản chạy trên EC2 (production)
+
+Trên EC2 dự án thường được clone về thư mục `~/Quantrihethongthongtin_web`, chạy **MongoDB** (Docker hoặc Atlas), **build Vite** ra `client/dist`, **Nginx** phục vụ `dist` và proxy `/api` tới Node (ví dụ PM2 trên cổng 5000). File `.github/workflows/deploy.yml` tự động cập nhật khi có push lên nhánh `main`.
+
+**Cách 1 — GitHub Actions (khuyến nghị)**  
+1. Đẩy code lên `main` trên repo GitHub (ví dụ [Quantrihethongthongtin_web](https://github.com/ngthmhg1710-dotcom/Quantrihethongthongtin_web)).  
+2. Vào repo → **Actions** → workflow **Deploy to EC2** phải chạy xanh.  
+3. Trong **Settings → Secrets and variables → Actions**, cấu hình tối thiểu: `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`. Tuỳ chọn: `EC2_APP_DIR` (đường dẫn clone trên server; nếu bỏ trống sẽ dùng `~/Quantrihethongthongtin_web`).  
+4. Có thể chạy tay workflow: **Actions** → **Deploy to EC2** → **Run workflow** (`workflow_dispatch`).
+
+**Cách 2 — SSH vào EC2 và chạy lệnh** (cùng logic với CI):
+
+```bash
+cd ~/Quantrihethongthongtin_web   # hoặc đường dẫn clone của bạn
+git fetch origin main
+git reset --hard origin/main
+git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env'
+
+cd client && (npm ci || npm install) && npm run build
+cd ../server && (npm ci || npm install)
+pm2 restart ecommerce-api --update-env || pm2 start index.js --name ecommerce-api
+pm2 save || true
+sudo nginx -t && sudo systemctl reload nginx || true
+```
+
+Đảm bảo Nginx `root` (hoặc `alias`) trỏ tới `client/dist` sau mỗi lần build. Nếu dùng toàn **Docker Compose** trên EC2 thay vì PM2, thay các lệnh `npm`/`pm2` bằng: `docker compose up -d --build` tại thư mục gốc dự án.
+
 ---
 
 ## 4. 🔑 TÀI KHOẢN TEST TRẢI NGHIỆM

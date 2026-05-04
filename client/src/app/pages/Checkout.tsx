@@ -86,6 +86,17 @@ function isCompleteAddressRow(row: { name?: string; address?: string; city?: str
   return [row.name, row.address, row.city, row.district, row.country].every((v) => String(v ?? '').trim().length > 0);
 }
 
+function isValidSavedCardRow(method: {
+  cardName?: string;
+  last4?: string;
+  expiryDate?: string;
+}) {
+  const name = String(method.cardName ?? '').trim();
+  const last4 = String(method.last4 ?? '');
+  const exp = String(method.expiryDate ?? '');
+  return name.length >= 2 && /^\d{4}$/.test(last4) && /^(0[1-9]|1[0-2])\/\d{2}$/.test(exp);
+}
+
 function normalizeCheckoutPhone(value: string) {
   return value.trim().replace(/[\s().\-_]/g, '');
 }
@@ -221,15 +232,40 @@ export function Checkout() {
   const setDefaultAddressInBook = async (index: number) => {
     if (!user?.shippingAddresses || !user.shippingAddresses[index]) return;
     try {
-      const nextBook = user.shippingAddresses.map((addr, idx) => ({
+      const rawSel = user.shippingAddresses[index];
+      const syncedSel = {
+        name: String(rawSel.name ?? '').trim(),
+        address: String(rawSel.address ?? '').trim(),
+        city: String(rawSel.city ?? '').trim(),
+        district: districtForProfileSync(rawSel.district, rawSel.zipCode),
+        country: String(rawSel.country ?? '').trim(),
+      };
+      if (!isCompleteAddressRow(syncedSel)) {
+        toast.error('Địa chỉ này chưa đủ thông tin để đặt làm mặc định.');
+        return;
+      }
+      const mappedBook = user.shippingAddresses.map((addr, idx) => ({
         label: addr.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
-        name: addr.name,
-        address: addr.address,
-        city: addr.city,
+        name: String(addr.name ?? '').trim(),
+        address: String(addr.address ?? '').trim(),
+        city: String(addr.city ?? '').trim(),
         district: districtForProfileSync(addr.district, addr.zipCode),
-        country: addr.country,
-        isDefault: idx === index,
+        country: String(addr.country ?? '').trim(),
+        isDefault: false,
       }));
+      const nextBook = mappedBook.filter(isCompleteAddressRow).map((row) => ({
+        ...row,
+        isDefault:
+          row.name === syncedSel.name &&
+          row.address === syncedSel.address &&
+          row.city === syncedSel.city &&
+          row.district === syncedSel.district &&
+          row.country === syncedSel.country,
+      }));
+      if (!nextBook.some((r) => r.isDefault)) {
+        toast.error('Không thể đặt mặc định: địa chỉ không nằm trong danh sách hợp lệ đã lưu.');
+        return;
+      }
       await updateProfile({ shippingAddresses: nextBook });
       toast.success('Đã cập nhật địa chỉ mặc định');
     } catch (error) {
@@ -444,8 +480,8 @@ export function Checkout() {
             item.isDefault = index === (existingIndex === -1 ? nextBook.length - 1 : existingIndex);
           });
         }
+        // Không gửi `name`: tránh 400 nếu user.name trong DB ngắn hơn 2 ký tự (rule PATCH profile).
         await updateProfile({
-          name: user.name,
           phone: normalizeCheckoutPhone(shippingInfo.phone),
           shippingAddresses: nextBook,
         });
@@ -463,14 +499,16 @@ export function Checkout() {
       try {
         const digits = paymentInfo.cardNumber.replace(/\D/g, '');
         const cardLast4 = digits.slice(-4);
-        const nextMethods = (user.savedPaymentMethods || []).map((method, index) => ({
-          label: method.label || `Card ${index + 1}`,
-          cardName: method.cardName,
-          brand: method.brand || 'Card',
-          last4: method.last4,
-          expiryDate: method.expiryDate,
-          isDefault: Boolean(method.isDefault),
-        }));
+        const nextMethods = (user.savedPaymentMethods || [])
+          .map((method, index) => ({
+            label: method.label || `Card ${index + 1}`,
+            cardName: method.cardName,
+            brand: method.brand || 'Card',
+            last4: method.last4,
+            expiryDate: method.expiryDate,
+            isDefault: Boolean(method.isDefault),
+          }))
+          .filter(isValidSavedCardRow);
         const existingIndex = nextMethods.findIndex(
           (method) =>
             method.last4 === cardLast4 &&
