@@ -45,8 +45,8 @@ jobs:
             # Forcefully kill any process occupying port 5173 (the old frontend dev server port)
             sudo fuser -k 5173/tcp 2>/dev/null || true
             pm2 delete ecommerce-client || true
-            # Serve the built frontend statically on port 5173 using PM2
-            pm2 serve dist 5173 --name ecommerce-client --spa
+            # Serve the built frontend using Vite's production preview server via PM2
+            pm2 start npm --name ecommerce-client -- run preview -- --port 5173 --host 0.0.0.0
 
             echo ">>> Install server deps & PM2"
             cd ../server
