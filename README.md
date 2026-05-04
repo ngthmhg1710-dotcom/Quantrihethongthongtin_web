@@ -6,7 +6,7 @@ Dự án Website Thương Mại Điện Tử B2C hiện đại, tập trung vào
 ## 1. 🔗 THÔNG TIN BÁO CÁO (LINKS)
 =====================================
 - **GitHub Repo:** [https://github.com/ngthmhg1710-dotcom/Quantrihethongthongtin_web]
-- **Figma Design:** [https://www.figma.com/design/Widn3Th6JGP7dLFdIjCLLY/Web-CK-QTHTTT?node-id=0-1&t=5SUzlI6ETCZwyHEM-1]
+- **Figma Design:** [https://www.figma.com/design/Widn3Th6JGP7dLFdIjCLLY/Web-CK-QTHTTT?node-id=0-1&t=5SUzlI6ETCZwyHEM-1](https://www.figma.com/design/Widn3Th6JGP7dLFdIjCLLY/Web-CK-QTHTTT?node-id=0-1&t=5SUzlI6ETCZwyHEM-1)
 
 ---
 
