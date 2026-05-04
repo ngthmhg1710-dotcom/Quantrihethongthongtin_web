@@ -46,7 +46,9 @@ jobs:
             cd ../server
             npm ci || npm install
 
-            pm2 delete ecommerce-api || true
+            # Forcefully kill any process occupying port 5000 (the API port)
+            sudo fuser -k 5000/tcp 2>/dev/null || true
+            pm2 delete all || true
             pm2 start index.js --name ecommerce-api
             pm2 save || true
 
