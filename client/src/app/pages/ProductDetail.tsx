@@ -226,31 +226,29 @@ export function ProductDetail() {
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="mb-6 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-2 sm:gap-3 min-w-0">
                 <button
                   type="button"
                   onClick={handleAddToCart}
                   disabled={availableStock <= 0}
-                  className="flex-1 bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="min-w-0 bg-black text-white py-3 px-2 sm:px-4 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
-                  <ShoppingCart className="w-5 h-5" />
-                  {availableStock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="truncate">{availableStock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleBuyNow}
                   disabled={availableStock <= 0}
-                  className="flex-1 bg-[#FFC0CB] text-black py-3 rounded-full hover:bg-[#ffb3c1] transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+                  className="min-w-0 bg-[#FFC0CB] text-black py-3 px-2 sm:px-4 rounded-full hover:bg-[#ffb3c1] transition-colors flex items-center justify-center gap-1.5 sm:gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
                 >
-                  <Zap className="w-5 h-5" />
-                  Mua ngay
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="truncate">Mua ngay</span>
                 </button>
-              </div>
-              <div className="flex gap-3 mb-6">
                 <button
                   type="button"
                   onClick={handleToggleWishlist}
-                  className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
+                  className="p-2.5 sm:p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors justify-self-end"
                   aria-label={isInWishlist(product.id) ? 'Xóa khỏi wishlist' : 'Thêm vào wishlist'}
                 >
                   <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-[#FFC0CB] text-[#FFC0CB]' : ''}`} />
@@ -258,7 +256,7 @@ export function ProductDetail() {
                 <button
                   type="button"
                   onClick={() => void handleShare()}
-                  className="p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
+                  className="p-2.5 sm:p-3 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors justify-self-end"
                   aria-label="Chia sẻ sản phẩm"
                 >
                   <Share2 className="w-5 h-5" />
