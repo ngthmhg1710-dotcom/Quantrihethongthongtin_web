@@ -806,13 +806,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       quantity: Number(item.quantity),
     }));
 
-    const phoneNormalized = String(order.shippingAddress.phone ?? '')
+    const raw = order.shippingAddress;
+    const phoneNormalized = String(raw?.phone ?? '')
       .trim()
       .replace(/[\s().\-_]/g, '');
     const shippingPayload = {
-      ...order.shippingAddress,
+      name: String(raw?.name ?? '').trim(),
       phone: phoneNormalized,
+      address: String(raw?.address ?? '').trim(),
+      district: String(raw?.district ?? '').trim(),
+      city: String(raw?.city ?? '').trim(),
+      country: String(raw?.country ?? '').trim(),
     };
+    const missing = ['name', 'phone', 'address', 'district', 'city', 'country'].filter(
+      (k) => !String((shippingPayload as Record<string, string>)[k] ?? '').trim()
+    );
+    if (missing.length > 0) {
+      throw new Error(
+        'Thông tin giao hàng chưa đủ (thiếu: ' + missing.join(', ') + '). Vui lòng quay lại bước 1 và kiểm tra.'
+      );
+    }
 
     const response = await authFetch(`${API_BASE_URL}/user/orders`, {
       method: 'POST',

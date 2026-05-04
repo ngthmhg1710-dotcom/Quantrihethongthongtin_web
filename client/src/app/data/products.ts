@@ -182,6 +182,7 @@ export interface Order {
   trackingCode?: string;
   shippingAddress: {
     name: string;
+    email?: string;
     phone?: string;
     address: string;
     district?: string;

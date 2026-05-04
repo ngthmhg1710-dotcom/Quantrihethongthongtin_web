@@ -555,15 +555,23 @@ export function Checkout() {
             item.isDefault = index === (existingIndex === -1 ? nextBook.length - 1 : existingIndex);
           });
         }
-        // Không gửi `name`: tránh 400 nếu user.name trong DB ngắn hơn 2 ký tự (rule PATCH profile).
-        await updateProfile({
-          phone: normalizeCheckoutPhone(shippingInfo.phone),
-          shippingAddresses: nextBook.map(sanitizeAddressForApi),
-        });
-        if (skippedIncomplete > 0) {
-          toast.warning(
-            `Đã bỏ qua ${skippedIncomplete} địa chỉ cũ thiếu thông tin khi lưu. Bạn có thể sửa lại trong trang tài khoản.`
+        const sanitizedBook = nextBook.map(sanitizeAddressForApi);
+        const badRow = sanitizedBook.find((r) => !isCompleteAddressRow(r));
+        if (badRow) {
+          toast.error(
+            'Không lưu được sổ địa chỉ: còn dòng thiếu thông tin. Vui lòng quay lại bước 1, chọn đủ Tỉnh/TP và Quận/Huyện trong danh sách rồi thử lại.'
           );
+        } else {
+          // Không gửi `name`: tránh 400 nếu user.name trong DB ngắn hơn 2 ký tự (rule PATCH profile).
+          await updateProfile({
+            phone: normalizeCheckoutPhone(shippingInfo.phone),
+            shippingAddresses: sanitizedBook,
+          });
+          if (skippedIncomplete > 0) {
+            toast.warning(
+              `Đã bỏ qua ${skippedIncomplete} địa chỉ cũ thiếu thông tin khi lưu. Bạn có thể sửa lại trong trang tài khoản.`
+            );
+          }
         }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Không thể lưu địa chỉ vào tài khoản');
@@ -614,6 +622,10 @@ export function Checkout() {
     }
 
     const orderId = `ORD-${Date.now()}`;
+    const orderCity =
+      shippingInfo.country.trim() === 'Việt Nam'
+        ? canonicalVietnamCity(shippingInfo.city.trim())
+        : shippingInfo.city.trim();
     const order = {
       id: orderId,
       date: new Date().toISOString().split('T')[0],
@@ -622,15 +634,12 @@ export function Checkout() {
       paymentMethod,
       status: 'pending' as const,
       shippingAddress: {
-        ...shippingInfo,
-        city:
-          shippingInfo.country === 'Việt Nam'
-            ? canonicalVietnamCity(shippingInfo.city.trim())
-            : shippingInfo.city.trim(),
-        district: shippingInfo.district.trim(),
-        address: shippingInfo.address.trim(),
         name: shippingInfo.name.trim(),
+        email: shippingInfo.email.trim(),
         phone: normalizeCheckoutPhone(shippingInfo.phone),
+        address: shippingInfo.address.trim(),
+        city: orderCity,
+        district: shippingInfo.district.trim(),
         country: shippingInfo.country.trim(),
       },
     };
