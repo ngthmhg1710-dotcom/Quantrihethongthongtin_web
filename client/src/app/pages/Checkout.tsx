@@ -86,6 +86,10 @@ function isCompleteAddressRow(row: { name?: string; address?: string; city?: str
   return [row.name, row.address, row.city, row.district, row.country].every((v) => String(v ?? '').trim().length > 0);
 }
 
+function normalizeCheckoutPhone(value: string) {
+  return value.trim().replace(/[\s().\-_]/g, '');
+}
+
 export function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart, addOrder, user, updateProfile } = useApp();
@@ -297,7 +301,7 @@ export function Checkout() {
     const errors: Partial<Record<keyof typeof shippingInfo, string>> = {};
     const name = shippingInfo.name.trim();
     const email = shippingInfo.email.trim();
-    const phone = shippingInfo.phone.trim();
+    const phone = normalizeCheckoutPhone(shippingInfo.phone);
     const address = shippingInfo.address.trim();
     const country = shippingInfo.country.trim();
     const city =
@@ -308,7 +312,7 @@ export function Checkout() {
 
     if (name.length < 2) errors.name = 'Vui lòng nhập họ tên đầy đủ';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email không hợp lệ';
-    if (!/^[0-9+\-() ]{8,20}$/.test(phone)) errors.phone = 'Số điện thoại không hợp lệ';
+    if (!/^\+?[0-9]{8,16}$/.test(phone)) errors.phone = 'Số điện thoại không hợp lệ';
     if (address.length < 6) errors.address = 'Địa chỉ quá ngắn';
     if (city.length < 2) errors.city = 'Vui lòng nhập thành phố / tỉnh';
     if (district.length < 2) errors.district = 'Vui lòng nhập quận / huyện';
@@ -442,7 +446,7 @@ export function Checkout() {
         }
         await updateProfile({
           name: user.name,
-          phone: shippingInfo.phone.trim(),
+          phone: normalizeCheckoutPhone(shippingInfo.phone),
           shippingAddresses: nextBook,
         });
         if (skippedIncomplete > 0) {
@@ -513,7 +517,7 @@ export function Checkout() {
         district: shippingInfo.district.trim(),
         address: shippingInfo.address.trim(),
         name: shippingInfo.name.trim(),
-        phone: shippingInfo.phone.trim(),
+        phone: normalizeCheckoutPhone(shippingInfo.phone),
         country: shippingInfo.country.trim(),
       },
     };

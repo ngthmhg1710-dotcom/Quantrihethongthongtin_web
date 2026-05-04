@@ -4,6 +4,13 @@ const nodemailer = require("nodemailer");
 const env = require("../config/env");
 const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
 
+/** Strip common formatting so VN numbers like "0912.345.678" or "+84 912 345 678" validate. */
+function normalizeOrderPhone(input) {
+  const s = String(input ?? "").trim();
+  if (!s) return "";
+  return s.replace(/[\s().\-_]/g, "");
+}
+
 function isMailerConfigured() {
   return Boolean(env.smtpHost && env.smtpPort && env.smtpUser && env.smtpPass && env.newsletterFromEmail);
 }
@@ -312,9 +319,10 @@ async function createOrder(req, res) {
       return res.status(400).json({ message: "Order items are required" });
     }
 
+    const normalizedPhone = normalizeOrderPhone(shippingAddress?.phone);
     if (
       !shippingAddress?.name ||
-      !shippingAddress?.phone ||
+      !normalizedPhone ||
       !shippingAddress?.address ||
       !shippingAddress?.district ||
       !shippingAddress?.city ||
@@ -326,7 +334,7 @@ async function createOrder(req, res) {
     if (district.length < 2) {
       return res.status(400).json({ message: "District is invalid" });
     }
-    if (!/^[0-9+\-() ]{8,20}$/.test(String(shippingAddress.phone).trim())) {
+    if (!/^\+?[0-9]{8,16}$/.test(normalizedPhone)) {
       return res.status(400).json({ message: "Phone number format is invalid" });
     }
 
@@ -386,7 +394,7 @@ async function createOrder(req, res) {
       status: "pending",
       shippingAddress: {
         name: String(shippingAddress.name).trim(),
-        phone: String(shippingAddress.phone).trim(),
+        phone: normalizedPhone,
         address: String(shippingAddress.address).trim(),
         district,
         city: String(shippingAddress.city).trim(),

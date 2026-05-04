@@ -782,19 +782,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addOrder = async (order: Order) => {
-    const sanitizedItems = order.items
-      .filter((item) => Number(item.quantity) > 0 && Number(item.product?.price) >= 0)
-      .map((item) => ({
-        product: {
-          id: Number(item.product.id),
-          name: item.product.name,
-          price: Number(item.product.price),
-          category: item.product.category,
-          // Avoid sending large base64 data URLs in checkout payload.
-          image: item.product.image?.startsWith('data:image/') ? '' : item.product.image,
-        },
-        quantity: Number(item.quantity),
-      }));
+    const lineItems = order.items.filter(
+      (item) => Number(item.quantity) > 0 && Number(item.product?.price) >= 0
+    );
+    const hasInvalidProduct = lineItems.some(
+      (item) => !Number.isFinite(Number(item.product?.id)) || Number(item.product.id) <= 0
+    );
+    if (hasInvalidProduct || lineItems.length === 0) {
+      throw new Error(
+        'Không thể đặt hàng: giỏ hàng không có sản phẩm hợp lệ. Hãy làm mới trang, thêm sản phẩm từ danh mục rồi thử lại.'
+      );
+    }
+
+    const sanitizedItems = lineItems.map((item) => ({
+      product: {
+        id: Number(item.product.id),
+        name: item.product.name,
+        price: Number(item.product.price),
+        category: item.product.category,
+        // Avoid sending large base64 data URLs in checkout payload.
+        image: item.product.image?.startsWith('data:image/') ? '' : item.product.image,
+      },
+      quantity: Number(item.quantity),
+    }));
+
+    const phoneNormalized = String(order.shippingAddress.phone ?? '')
+      .trim()
+      .replace(/[\s().\-_]/g, '');
+    const shippingPayload = {
+      ...order.shippingAddress,
+      phone: phoneNormalized,
+    };
 
     const response = await authFetch(`${API_BASE_URL}/user/orders`, {
       method: 'POST',
@@ -802,7 +820,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         items: sanitizedItems,
         total: order.total,
         paymentMethod: order.paymentMethod || 'card',
-        shippingAddress: order.shippingAddress,
+        shippingAddress: shippingPayload,
       }),
     });
     const contentType = response.headers.get('content-type') || '';
