@@ -42,11 +42,8 @@ jobs:
             cd ../server
             npm ci || npm install
 
-            if pm2 describe ecommerce-api >/dev/null 2>&1; then
-              pm2 restart ecommerce-api --update-env
-            else
-              pm2 start index.js --name ecommerce-api
-            fi
+            pm2 delete ecommerce-api || true
+            pm2 start index.js --name ecommerce-api
             pm2 save || true
 
             echo ">>> Reload Nginx (nếu có)"
