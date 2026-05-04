@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 const env = require("../config/env");
 const { normalizePhoneInput, isValidPhoneNormalized } = require("../utils/phone");
 const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
+const { formatVnd } = require("../utils/currency");
 
 function isMailerConfigured() {
   return Boolean(env.smtpHost && env.smtpPort && env.smtpUser && env.smtpPass && env.newsletterFromEmail);
@@ -150,7 +151,9 @@ async function sendOrderConfirmationEmail({ to, orderNumber, shippingCode, payme
   estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
   const estimatedDeliveryText = estimatedDelivery.toLocaleDateString("vi-VN");
   const paymentLabel = getPaymentMethodLabel(paymentMethod);
-  const itemLines = items.map((item) => `- ${item.name} x${item.quantity}: $${(item.price * item.quantity).toFixed(2)}`).join("\n");
+  const itemLines = items
+    .map((item) => `- ${item.name} x${item.quantity}: ${formatVnd(item.price * item.quantity)}`)
+    .join("\n");
 
   const subject = `Glow | Xác nhận đơn hàng ${orderNumber}`;
   const text = `Xin chào ${shippingAddress.name},
@@ -159,7 +162,7 @@ async function sendOrderConfirmationEmail({ to, orderNumber, shippingCode, payme
 Mã đơn: ${orderNumber}
 Mã vận chuyển: ${shippingCode}
 Phương thức thanh toán: ${paymentLabel}
-Tổng thanh toán: $${Number(total).toFixed(2)}
+Tổng thanh toán: ${formatVnd(Number(total))}
 Ngày giao dự kiến: ${estimatedDeliveryText}
 
 Sản phẩm:
@@ -177,7 +180,7 @@ Vui lòng giữ email này để tiện theo dõi đơn hàng.
   const htmlItems = items
     .map(
       (item) =>
-        `<li>${item.name} x${item.quantity} - <strong>$${(item.price * item.quantity).toFixed(2)}</strong></li>`
+        `<li>${item.name} x${item.quantity} - <strong>${formatVnd(item.price * item.quantity)}</strong></li>`
     )
     .join("");
   const html = `
@@ -187,7 +190,7 @@ Vui lòng giữ email này để tiện theo dõi đơn hàng.
       <p>
         <strong>Mã vận chuyển:</strong> ${shippingCode}<br/>
         <strong>Phương thức thanh toán:</strong> ${paymentLabel}<br/>
-        <strong>Tổng thanh toán:</strong> $${Number(total).toFixed(2)}<br/>
+        <strong>Tổng thanh toán:</strong> ${formatVnd(Number(total))}<br/>
         <strong>Ngày giao dự kiến:</strong> ${estimatedDeliveryText}
       </p>
       <p><strong>Sản phẩm:</strong></p>

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Star, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { formatVnd } from '../utils/currency';
 
 function normalizeSearchText(value: string) {
   return value
@@ -140,8 +141,8 @@ export function ProductListing() {
                     className="w-full accent-[#FFC0CB]"
                   />
                   <div className="flex justify-between text-sm text-gray-600">
-                    <span>${priceRange.min}</span>
-                    <span>${priceRange.max}</span>
+                    <span>{formatVnd(priceRange.min)}</span>
+                    <span>{formatVnd(priceRange.max)}</span>
                   </div>
                 </div>
               </div>
@@ -199,7 +200,7 @@ export function ProductListing() {
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
+                      <span className="text-lg font-bold">{formatVnd(product.price)}</span>
                       <span className="text-xs text-[#FFC0CB] group-hover:underline">Xem</span>
                     </div>
                   </div>

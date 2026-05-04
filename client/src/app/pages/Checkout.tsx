@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { CreditCard, MapPin, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatVnd, SHIPPING_FEE_LEGACY, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
 
 const CITY_DISTRICTS: Record<string, string[]> = {
   'TP HCM': [
@@ -175,7 +176,7 @@ export function Checkout() {
   const [paymentErrors, setPaymentErrors] = useState<Partial<Record<keyof typeof paymentInfo, string>>>({});
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const shipping = subtotal > 50 ? 0 : 5.99;
+  const shipping = subtotal > SHIPPING_FREE_SUBTOTAL_MIN_LEGACY ? 0 : SHIPPING_FEE_LEGACY;
   const total = subtotal + shipping;
 
   useEffect(() => {
@@ -690,7 +691,7 @@ export function Checkout() {
           </p>
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
             <p className="text-sm text-gray-600 mb-2">Tổng đơn hàng</p>
-            <p className="text-3xl font-bold mb-4">${displayTotal.toFixed(2)}</p>
+            <p className="text-3xl font-bold mb-4">{formatVnd(displayTotal)}</p>
             <p className="text-sm text-gray-600">Dự kiến giao hàng: 5-7 ngày làm việc</p>
           </div>
           <div className="flex gap-4">
@@ -1205,7 +1206,7 @@ export function Checkout() {
                       <p className="font-semibold text-sm">{item.product.name}</p>
                       <p className="text-xs text-gray-600">SL: {item.quantity}</p>
                     </div>
-                    <p className="font-semibold">${(item.product.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold">{formatVnd(item.product.price * item.quantity)}</p>
                   </div>
                 ))}
               </div>
@@ -1213,18 +1214,18 @@ export function Checkout() {
               <div className="border-t border-gray-200 pt-4 space-y-2 mb-4">
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatVnd(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Phí vận chuyển</span>
-                  <span>{shipping === 0 ? 'MIỄN PHÍ' : `$${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? 'MIỄN PHÍ' : formatVnd(shipping)}</span>
                 </div>
               </div>
 
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Tổng cộng</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatVnd(total)}</span>
                 </div>
               </div>
             </div>

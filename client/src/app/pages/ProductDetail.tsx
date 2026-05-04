@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { Star, ShoppingCart, Heart, Share2, Check, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatVnd, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
 
 export function ProductDetail() {
   const { id } = useParams();
@@ -136,7 +137,7 @@ export function ProductDetail() {
       if (navigator.share) {
         await navigator.share({
           title: product.name,
-          text: `${product.name} - $${product.price.toFixed(2)}`,
+          text: `${product.name} - ${formatVnd(product.price)}`,
           url,
         });
         toast.success('Đã mở chia sẻ');
@@ -189,7 +190,7 @@ export function ProductDetail() {
                 <span className="text-gray-600">{product.reviews.length} đánh giá</span>
               </div>
 
-              <p className="text-3xl font-bold mb-6">${product.price.toFixed(2)}</p>
+              <p className="text-3xl font-bold mb-6">{formatVnd(product.price)}</p>
 
               <div className="mb-6">
                 <h3 className="font-semibold mb-2">Phù hợp với:</h3>
@@ -266,7 +267,7 @@ export function ProductDetail() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Check className="w-5 h-5 text-[#FFC0CB]" />
-                  <span>Miễn phí vận chuyển cho đơn trên $50</span>
+                  <span>Miễn phí vận chuyển cho đơn từ {formatVnd(SHIPPING_FREE_SUBTOTAL_MIN_LEGACY)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Check className="w-5 h-5 text-[#FFC0CB]" />

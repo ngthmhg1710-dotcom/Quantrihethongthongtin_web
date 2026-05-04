@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { Package, User, Heart, MessageCircleHeart } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { formatVnd } from '../utils/currency';
 
 export function CustomerDashboard() {
   const { user, orders, products, wishlistIds, updateProfile, setPassword } = useApp();
@@ -398,7 +399,7 @@ export function CustomerDashboard() {
                                   {order.shippingAddress.city}
                                 </p>
                               </td>
-                              <td className="px-4 py-3 text-sm font-semibold">${order.total.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-sm font-semibold">{formatVnd(order.total)}</td>
                               <td className="px-4 py-3 text-sm text-gray-600">{getPaymentMethodLabel(order.paymentMethod)}</td>
                               <td className="px-4 py-3">
                                 <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -551,7 +552,7 @@ export function CustomerDashboard() {
                       >
                         <div className="min-w-0">
                           <p className="font-medium line-clamp-1">{product.name}</p>
-                          <p className="text-sm text-gray-600 mt-1">${product.price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-600 mt-1">{formatVnd(product.price)}</p>
                         </div>
                         <img
                           src={product.image}
@@ -642,7 +643,7 @@ export function CustomerDashboard() {
                   {getStatusLabel(selectedOrder.status)}
                 </span>
                 <p className="text-sm text-gray-600 mt-3">Ngày đặt: {formatOrderDateTime(selectedOrder)}</p>
-                <p className="text-sm text-gray-600 mt-1">Tổng tiền: ${selectedOrder.total.toFixed(2)}</p>
+                <p className="text-sm text-gray-600 mt-1">Tổng tiền: {formatVnd(selectedOrder.total)}</p>
                 <p className="text-sm text-gray-600 mt-1">Thanh toán: {getPaymentMethodLabel(selectedOrder.paymentMethod)}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
@@ -677,7 +678,7 @@ export function CustomerDashboard() {
                         <p className="text-xs text-gray-500">SL: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-medium">{formatVnd(item.product.price * item.quantity)}</p>
                   </div>
                 ))}
               </div>

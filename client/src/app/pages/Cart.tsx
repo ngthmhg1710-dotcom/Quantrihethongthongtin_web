@@ -1,14 +1,15 @@
 import { Link } from 'react-router';
 import { useApp } from '../context/AppContext';
 import { Trash2, Plus, Minus } from 'lucide-react';
+import { formatVnd, SHIPPING_FEE_LEGACY, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
 
 export function Cart() {
   const { cart, removeFromCart, updateQuantity } = useApp();
-const subtotal = cart.reduce(
-  (sum, item) => sum + (item.product?.price || 0) * item.quantity,
-  0
-);
-  const shipping = subtotal > 50 ? 0 : 5.99;
+  const subtotal = cart.reduce(
+    (sum, item) => sum + (item.product?.price || 0) * item.quantity,
+    0
+  );
+  const shipping = subtotal > SHIPPING_FREE_SUBTOTAL_MIN_LEGACY ? 0 : SHIPPING_FEE_LEGACY;
   const total = subtotal + shipping;
 
   if (cart.length === 0) {
@@ -73,7 +74,7 @@ const subtotal = cart.reduce(
                         </button>
                       </div>
 
-                      <p className="font-bold">${(item.product.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold">{formatVnd(item.product.price * item.quantity)}</p>
                     </div>
                   </div>
 
@@ -95,15 +96,15 @@ const subtotal = cart.reduce(
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính ({cart.length} sản phẩm)</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatVnd(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Phí vận chuyển</span>
-                  <span>{shipping === 0 ? 'MIỄN PHÍ' : `$${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? 'MIỄN PHÍ' : formatVnd(shipping)}</span>
                 </div>
                 {shipping > 0 && (
                   <p className="text-sm text-[#FFC0CB]">
-                    Mua thêm ${(50 - subtotal).toFixed(2)} để được miễn phí vận chuyển!
+                    Mua thêm {formatVnd(SHIPPING_FREE_SUBTOTAL_MIN_LEGACY - subtotal)} để được miễn phí vận chuyển!
                   </p>
                 )}
               </div>
@@ -111,7 +112,7 @@ const subtotal = cart.reduce(
               <div className="border-t border-gray-200 pt-4 mb-6">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Tổng cộng</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatVnd(total)}</span>
                 </div>
               </div>
 

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { ArrowRight, Star } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { formatVnd, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
 
 export function Homepage() {
   const { products } = useApp();
@@ -89,7 +90,7 @@ export function Homepage() {
                   <h3 className="font-['Poppins'] font-semibold mb-2">{product.name}</h3>
                   <p className="text-sm text-gray-600 mb-4 line-clamp-2">{product.description}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
+                    <span className="text-2xl font-bold">{formatVnd(product.price)}</span>
                     <span className="text-sm text-[#FFC0CB] group-hover:underline">Xem chi tiết</span>
                   </div>
                 </div>
@@ -155,7 +156,7 @@ export function Homepage() {
                 </svg>
               </div>
               <h3 className="font-['Poppins'] font-semibold mb-2">Miễn phí vận chuyển</h3>
-              <p className="text-sm text-gray-600">Cho đơn hàng trên $50</p>
+              <p className="text-sm text-gray-600">Cho đơn từ {formatVnd(SHIPPING_FREE_SUBTOTAL_MIN_LEGACY)}</p>
             </div>
 
             <div className="text-center p-8">

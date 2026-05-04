@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Product, Order } from '../data/products';
 import { useApp } from '../context/AppContext';
 import { localizeCategory, localizeProduct } from '../utils/localization';
+import { formatVnd } from '../utils/currency';
 import { useNavigate } from 'react-router';
 import { Package, DollarSign, ShoppingBag, TrendingUp, Plus, Edit, Trash2, Search, X, Mail } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -473,7 +474,6 @@ export function AdminDashboard() {
   useEffect(() => {
     if (orderPage > totalOrderPages) setOrderPage(totalOrderPages);
   }, [orderPage, totalOrderPages]);
-  const formatCurrency = (value: number) => `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   const getOrderStatusBadgeClass = (status: Order['status']) => {
     if (status === 'pending') return 'bg-amber-100 text-amber-700';
     if (status === 'processing') return 'bg-blue-100 text-blue-700';
@@ -518,7 +518,7 @@ export function AdminDashboard() {
     const rows = order.items
       .map((item) => {
         const lineTotal = item.product.price * item.quantity;
-        return `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${item.product.name}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(item.product.price)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(lineTotal)}</td></tr>`;
+        return `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${item.product.name}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatVnd(item.product.price)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatVnd(lineTotal)}</td></tr>`;
       })
       .join('');
     printWindow.document.write(`
@@ -538,7 +538,7 @@ export function AdminDashboard() {
             </thead>
             <tbody>${rows}</tbody>
           </table>
-          <h3 style="text-align:right; margin-top:20px;">Tổng cộng: ${formatCurrency(order.total)}</h3>
+          <h3 style="text-align:right; margin-top:20px;">Tổng cộng: ${formatVnd(order.total)}</h3>
         </body>
       </html>
     `);
@@ -611,7 +611,7 @@ export function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="rounded-2xl bg-black text-white p-5">
                 <p className="text-xs text-gray-300">Doanh thu tháng hiện tại</p>
-                <p className="text-2xl font-semibold mt-1">{latestMonthStats ? formatCurrency(latestMonthStats.revenue) : '--'}</p>
+                <p className="text-2xl font-semibold mt-1">{latestMonthStats ? formatVnd(latestMonthStats.revenue) : '--'}</p>
                 <p className="text-xs text-gray-300 mt-1">{latestMonthStats?.month || 'Chưa có dữ liệu theo tháng'}</p>
               </div>
               <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -638,7 +638,7 @@ export function AdminDashboard() {
                     </span>
                   )}
                 </div>
-                <p className="text-2xl font-bold mb-1">{formatCurrency(stats.totalRevenue)}</p>
+                <p className="text-2xl font-bold mb-1">{formatVnd(stats.totalRevenue)}</p>
                 <p className="text-sm text-gray-600">Tổng doanh thu</p>
               </div>
 
@@ -670,7 +670,7 @@ export function AdminDashboard() {
                   </div>
                   <span className="text-sm text-gray-500">{deliveredOrdersCount} đã giao</span>
                 </div>
-                <p className="text-2xl font-bold mb-1">{formatCurrency(stats.averageOrderValue)}</p>
+                <p className="text-2xl font-bold mb-1">{formatVnd(stats.averageOrderValue)}</p>
                 <p className="text-sm text-gray-600">Giá trị đơn TB</p>
               </div>
             </div>
@@ -687,7 +687,7 @@ export function AdminDashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="month" />
                       <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Tooltip formatter={(value) => formatVnd(Number(value))} />
                       <Bar dataKey="revenue" fill="#FFC0CB" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -731,7 +731,7 @@ export function AdminDashboard() {
                         <p className="text-sm text-gray-600">{localizeCategory(product.category)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">${Number(product.price || 0).toFixed(2)}</p>
+                        <p className="font-bold">{formatVnd(Number(product.price || 0))}</p>
                         <p className="text-sm text-gray-600">{product.sold} đã bán</p>
                       </div>
                     </div>
@@ -813,7 +813,7 @@ export function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-700">{product.category}</td>
-                      <td className="px-5 py-4 font-semibold">${product.price.toFixed(2)}</td>
+                      <td className="px-5 py-4 font-semibold">{formatVnd(product.price)}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center justify-center min-w-[88px] px-2.5 py-0.5 rounded-full text-xs font-medium leading-5 ${
@@ -1073,7 +1073,7 @@ export function AdminDashboard() {
                     <div className="p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-500">{productForm.category || 'Danh mục'}</p>
                       <h3 className="font-semibold mt-1">{productForm.name || 'Tên sản phẩm'}</h3>
-                      <p className="text-base font-bold mt-2">${Number(productForm.price || 0).toFixed(2)}</p>
+                      <p className="text-base font-bold mt-2">{formatVnd(Number(productForm.price || 0))}</p>
                       <p className={`text-sm mt-1 ${Number(productForm.stock || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {Number(productForm.stock || 0) > 0
                           ? `Còn ${Math.floor(Number(productForm.stock || 0))} sản phẩm`
@@ -1217,7 +1217,7 @@ export function AdminDashboard() {
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700">{formatOrderDate(order)}</td>
                           <td className="px-4 py-3 text-sm">{order.items.length}</td>
-                          <td className="px-4 py-3 font-semibold">{formatCurrency(order.total)}</td>
+                          <td className="px-4 py-3 font-semibold">{formatVnd(order.total)}</td>
                           <td className="px-4 py-3">
                             <select
                               value={order.status}
@@ -1392,10 +1392,10 @@ export function AdminDashboard() {
                         <p className="font-medium">{item.product.name}</p>
                         <p className="text-xs text-gray-500">{item.product.category}</p>
                         <p className="text-sm text-gray-600 mt-1">
-                          {formatCurrency(item.product.price)} x {item.quantity}
+                          {formatVnd(item.product.price)} × {item.quantity}
                         </p>
                       </div>
-                      <p className="font-semibold">{formatCurrency(item.product.price * item.quantity)}</p>
+                      <p className="font-semibold">{formatVnd(item.product.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
@@ -1403,7 +1403,7 @@ export function AdminDashboard() {
 
               <div className="mt-4 flex justify-between items-center border-t border-gray-200 pt-4">
                 <p className="text-sm text-gray-600">Tổng đơn hàng</p>
-                <p className="text-xl font-bold">{formatCurrency(selectedOrder.total)}</p>
+                <p className="text-xl font-bold">{formatVnd(selectedOrder.total)}</p>
               </div>
             </div>
           </div>

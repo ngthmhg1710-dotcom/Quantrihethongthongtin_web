@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
+import { formatVnd, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
 
 export function Contact() {
   const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
@@ -168,7 +169,7 @@ export function Contact() {
             {[
               {
                 q: 'Các hình thức giao hàng là gì?',
-                a: 'Chúng tôi miễn phí vận chuyển cho đơn hàng trên $50. Giao hàng tiêu chuẩn mất 5-7 ngày làm việc, và có giao nhanh trong 2-3 ngày.'
+                a: `Chúng tôi miễn phí vận chuyển cho đơn hàng từ ${formatVnd(SHIPPING_FREE_SUBTOTAL_MIN_LEGACY)}. Giao hàng tiêu chuẩn mất 5-7 ngày làm việc, và có giao nhanh trong 2-3 ngày.`
               },
               {
                 q: 'Chính sách đổi trả như thế nào?',
