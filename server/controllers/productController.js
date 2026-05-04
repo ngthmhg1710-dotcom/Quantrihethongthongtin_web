@@ -50,8 +50,11 @@ function validateProductPayload(payload, isPartial = false) {
     const image = String(payload.image || "").trim();
     const isDataImage = image.startsWith("data:image/");
     const isHttpImage = /^https?:\/\//i.test(image);
-    if (!image || (!isDataImage && !isHttpImage)) {
-      errors.push("Image must be a valid URL or uploaded image data");
+    const isSitePathImage = image.startsWith("/");
+    if (!image || (!isDataImage && !isHttpImage && !isSitePathImage)) {
+      errors.push(
+        "Ảnh phải là URL (http/https), đường dẫn trong site (vd. /images/...) hoặc ảnh tải từ thiết bị (data URL)."
+      );
     }
   }
 
