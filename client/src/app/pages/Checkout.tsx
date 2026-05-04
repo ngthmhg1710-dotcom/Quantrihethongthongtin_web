@@ -75,6 +75,13 @@ function normalizeDistrict(value?: string) {
   return text;
 }
 
+/** For API/profile sync: keep a non-empty district when legacy data used zipCode as district. */
+function districtForProfileSync(district?: string, zipCode?: string) {
+  const cleaned = normalizeDistrict(district) || normalizeDistrict(zipCode);
+  if (cleaned) return cleaned;
+  return String(district || zipCode || '').trim();
+}
+
 export function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart, addOrder, user, updateProfile } = useApp();
@@ -136,6 +143,11 @@ export function Checkout() {
           normalizeDistrict(user.defaultShippingAddress?.district) ||
           normalizeDistrict(chosenAddress?.zipCode) ||
           normalizeDistrict(user.defaultShippingAddress?.zipCode) ||
+          districtForProfileSync(chosenAddress?.district, chosenAddress?.zipCode) ||
+          districtForProfileSync(
+            user.defaultShippingAddress?.district,
+            user.defaultShippingAddress?.zipCode
+          ) ||
           prev.district,
         country: resolvedCountry,
       };
@@ -191,7 +203,7 @@ export function Checkout() {
       name: address.name,
       address: address.address,
       city: address.country === 'Việt Nam' ? canonicalVietnamCity(address.city) : address.city,
-      district: normalizeDistrict(address.district) || normalizeDistrict(address.zipCode),
+      district: districtForProfileSync(address.district, address.zipCode),
       country: address.country,
       email: user.email || prev.email,
       phone: user.phone || prev.phone,
@@ -206,7 +218,7 @@ export function Checkout() {
         name: addr.name,
         address: addr.address,
         city: addr.city,
-        district: normalizeDistrict(addr.district) || normalizeDistrict(addr.zipCode),
+        district: districtForProfileSync(addr.district, addr.zipCode),
         country: addr.country,
         isDefault: idx === index,
       }));
@@ -364,6 +376,13 @@ export function Checkout() {
       navigate('/cart');
       return;
     }
+    const shippingErrorsNow = validateShippingInfo();
+    setShippingErrors(shippingErrorsNow);
+    if (Object.keys(shippingErrorsNow).length > 0) {
+      toast.error('Thông tin giao hàng chưa đầy đủ. Vui lòng quay lại bước 1 và kiểm tra.');
+      setStep('shipping');
+      return;
+    }
     const errors = validatePaymentInfo();
     setPaymentErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -378,7 +397,7 @@ export function Checkout() {
           name: address.name,
           address: address.address,
           city: address.city,
-          district: normalizeDistrict(address.district) || normalizeDistrict(address.zipCode),
+          district: districtForProfileSync(address.district, address.zipCode),
           country: address.country,
           isDefault: Boolean(address.isDefault),
         }));

@@ -114,16 +114,21 @@ async function updateUserProfile(req, res) {
     }
 
     if (Array.isArray(shippingAddresses)) {
-      const normalizedAddresses = shippingAddresses.map((item, index) => ({
-        label: String(item?.label || `Address ${index + 1}`).trim() || `Address ${index + 1}`,
-        name: String(item?.name || "").trim(),
-        address: String(item?.address || "").trim(),
-        city: String(item?.city || "").trim(),
-        district: String(item?.district || "").trim(),
-        zipCode: "",
-        country: String(item?.country || "").trim(),
-        isDefault: Boolean(item?.isDefault),
-      }));
+      const normalizedAddresses = shippingAddresses.map((item, index) => {
+        const rawDistrict = String(item?.district || "").trim();
+        const rawZip = String(item?.zipCode || "").trim();
+        const district = rawDistrict || rawZip;
+        return {
+          label: String(item?.label || `Address ${index + 1}`).trim() || `Address ${index + 1}`,
+          name: String(item?.name || "").trim(),
+          address: String(item?.address || "").trim(),
+          city: String(item?.city || "").trim(),
+          district,
+          zipCode: "",
+          country: String(item?.country || "").trim(),
+          isDefault: Boolean(item?.isDefault),
+        };
+      });
 
       const invalidAddress = normalizedAddresses.find(
         (item) => !item.name || !item.address || !item.city || !item.district || !item.country
