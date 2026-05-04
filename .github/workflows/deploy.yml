@@ -37,16 +37,17 @@ jobs:
             sudo docker stop glow-server glow-client 2>/dev/null || true
             sudo docker rm glow-server glow-client 2>/dev/null || true
 
+            pm2 delete ecommerce-api ecommerce-frontend 2>/dev/null || true
+            
             echo ">>> Build client"
             cd client
             npm ci || npm install
             npm run build
-
-            # Forcefully kill any process occupying port 5173 (the old frontend dev server port)
+            
+            # Forcefully kill any process occupying port 5173
             sudo fuser -k 5173/tcp 2>/dev/null || true
-            pm2 delete ecommerce-client || true
-            # Serve the built frontend using Vite's production preview server via PM2
-            pm2 start npm --name ecommerce-client -- run preview -- --port 5173 --host 0.0.0.0
+            # Serve the built frontend via PM2
+            pm2 start "npx --yes vite preview --port 5173 --host 0.0.0.0" --name ecommerce-frontend
 
             echo ">>> Install server deps & PM2"
             cd ../server
@@ -54,7 +55,6 @@ jobs:
 
             # Forcefully kill any process occupying port 5000 (the API port)
             sudo fuser -k 5000/tcp 2>/dev/null || true
-            pm2 delete all || true
             pm2 start index.js --name ecommerce-api
             pm2 save || true
 
