@@ -42,6 +42,7 @@ jobs:
             echo ">>> Build client (cài serve — phục vụ dist, tránh vite preview / npx trên PM2)"
             cd client
             npm ci || npm install
+            test -f node_modules/serve/build/main.js || npm install serve@14.2.4 --no-save
             npm run build
 
             echo ">>> Install server deps"

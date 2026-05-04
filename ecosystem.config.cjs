@@ -21,10 +21,9 @@ module.exports = {
     },
     {
       name: "ecommerce-frontend",
-      cwd: path.join(root, "client"),
-      script: path.join(root, "client/node_modules/serve/build/main.js"),
+      cwd: root,
+      script: path.join(root, "scripts/pm2-serve-frontend.cjs"),
       interpreter: "node",
-      args: ["-s", "dist", "-l", "tcp://0.0.0.0:5173", "-n", "-L"],
       instances: 1,
       autorestart: true,
       max_restarts: 25,

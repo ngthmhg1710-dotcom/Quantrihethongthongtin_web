@@ -93,7 +93,7 @@ git fetch origin main
 git reset --hard origin/main
 git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env'
 
-cd client && (npm ci || npm install) && npm run build
+cd client && (npm ci || npm install) && (test -f node_modules/serve/build/main.js || npm install serve@14.2.4 --no-save) && npm run build
 cd ../server && (npm ci || npm install)
 cd ..
 sudo fuser -k 5173/tcp 2>/dev/null || true
