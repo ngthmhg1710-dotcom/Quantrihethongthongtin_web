@@ -32,6 +32,10 @@ jobs:
             if ! sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^glow-mongo$'; then
               sudo docker run -d -p 27017:27017 --name glow-mongo mongo:7 2>/dev/null || sudo docker start glow-mongo 2>/dev/null || true
             fi
+            
+            # Stop any conflicting docker containers that might have been started manually
+            sudo docker stop glow-server glow-client 2>/dev/null || true
+            sudo docker rm glow-server glow-client 2>/dev/null || true
 
             echo ">>> Build client"
             cd client
