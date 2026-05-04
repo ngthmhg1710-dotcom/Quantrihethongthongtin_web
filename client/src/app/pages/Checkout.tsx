@@ -713,18 +713,39 @@ export function Checkout() {
   }
 
   return (
-    <div className="min-h-screen py-8 px-4">
+    <div className="min-h-screen py-10 px-4 bg-gradient-to-b from-[#fff7fa] via-white to-white">
       <div className="max-w-7xl mx-auto">
-        <h1 className="font-['Poppins'] text-4xl font-bold mb-8">Thanh toán</h1>
+        <div className="mb-8">
+          <h1 className="font-['Poppins'] text-3xl sm:text-4xl font-bold">Thanh toán</h1>
+          <p className="text-sm text-gray-500 mt-1">Hoàn tất thông tin để xác nhận đơn hàng của bạn.</p>
+        </div>
 
         <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step === 'shipping' ? 'bg-black text-white' : 'bg-[#FFE4E9] text-black'}`}>
-              1
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold border ${
+                  step === 'shipping' ? 'bg-black text-white border-black' : 'bg-[#FFE4E9] text-black border-[#ffd4de]'
+                }`}
+              >
+                1
+              </div>
+              <span className={`hidden sm:inline text-sm ${step === 'shipping' ? 'text-black font-medium' : 'text-gray-500'}`}>
+                Giao hàng
+              </span>
             </div>
-            <div className={`w-24 h-1 ${step === 'payment' ? 'bg-black' : 'bg-gray-300'}`} />
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step === 'payment' ? 'bg-black text-white' : 'bg-gray-300 text-white'}`}>
-              2
+            <div className={`w-12 sm:w-20 h-1 rounded-full ${step === 'payment' ? 'bg-black' : 'bg-gray-300'}`} />
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold border ${
+                  step === 'payment' ? 'bg-black text-white border-black' : 'bg-gray-100 text-gray-500 border-gray-200'
+                }`}
+              >
+                2
+              </div>
+              <span className={`hidden sm:inline text-sm ${step === 'payment' ? 'text-black font-medium' : 'text-gray-500'}`}>
+                Thanh toán
+              </span>
             </div>
           </div>
         </div>
@@ -732,15 +753,15 @@ export function Checkout() {
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {step === 'shipping' && (
-              <div className="bg-white rounded-2xl shadow-sm p-8">
+              <div className="bg-white rounded-3xl border border-[#f3dbe1] shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <MapPin className="w-6 h-6" />
                   <h2 className="font-['Poppins'] font-semibold text-2xl">Thông tin giao hàng</h2>
                 </div>
 
-                <form onSubmit={handleShippingSubmit} className="space-y-4">
+                <form onSubmit={handleShippingSubmit} className="space-y-5">
                   {user.shippingAddresses && user.shippingAddresses.length > 0 && (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <div className="rounded-2xl border border-[#f2dce2] bg-[#fffafc] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-medium">Địa chỉ giao hàng</p>
@@ -753,7 +774,7 @@ export function Checkout() {
                         <button
                           type="button"
                           onClick={() => setIsAddressPickerOpen(true)}
-                          className="shrink-0 px-3 py-1.5 text-xs border rounded-full bg-white hover:bg-gray-100"
+                          className="shrink-0 px-3 py-1.5 text-xs border border-gray-300 rounded-full bg-white hover:bg-gray-100"
                         >
                           Chọn địa chỉ
                         </button>
@@ -928,7 +949,7 @@ export function Checkout() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="rounded-2xl border border-[#f2dce2] bg-[#fffafc] p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                       <label className="flex items-center gap-2 text-sm">
                         <input
@@ -956,7 +977,7 @@ export function Checkout() {
 
                   <button
                     type="submit"
-                    className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors"
+                    className="w-full bg-black text-white py-3 rounded-full hover:bg-gray-800 transition-colors font-medium shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
                   >
                     Tiếp tục tới thanh toán
                   </button>
@@ -965,7 +986,7 @@ export function Checkout() {
             )}
 
             {step === 'payment' && (
-              <div className="bg-white rounded-2xl shadow-sm p-8">
+              <div className="bg-white rounded-3xl border border-[#f3dbe1] shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <CreditCard className="w-6 h-6" />
                   <h2 className="font-['Poppins'] font-semibold text-2xl">Thông tin thanh toán</h2>
@@ -989,7 +1010,7 @@ export function Checkout() {
                       </button>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+                    <div className="rounded-2xl border border-[#f2dce2] bg-[#fffafc] p-4 text-sm text-gray-800">
                       <p className="font-semibold text-gray-900 mb-2">Giao hàng tới</p>
                       <p>
                         {shippingInfo.name.trim()} · {normalizeCheckoutPhone(shippingInfo.phone) || '—'}
@@ -1005,10 +1026,10 @@ export function Checkout() {
                     </div>
                   )}
 
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="rounded-2xl border border-[#f2dce2] bg-[#fffafc] p-4">
                     <p className="text-sm font-medium mb-2">Phương thức thanh toán</p>
                     <div className="space-y-2 text-sm">
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 p-2.5 rounded-lg border border-transparent hover:border-[#f0d0d9] hover:bg-white transition-colors">
                         <input
                           type="radio"
                           name="paymentMethod"
@@ -1021,7 +1042,7 @@ export function Checkout() {
                         />
                         Thẻ ngân hàng
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 p-2.5 rounded-lg border border-transparent hover:border-[#f0d0d9] hover:bg-white transition-colors">
                         <input
                           type="radio"
                           name="paymentMethod"
@@ -1034,7 +1055,7 @@ export function Checkout() {
                         />
                         Thanh toán khi nhận hàng (COD)
                       </label>
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 p-2.5 rounded-lg border border-transparent hover:border-[#f0d0d9] hover:bg-white transition-colors">
                         <input
                           type="radio"
                           name="paymentMethod"
@@ -1052,7 +1073,7 @@ export function Checkout() {
 
                   {paymentMethod === 'card' ? (
                     <>
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="rounded-2xl border border-[#f2dce2] bg-[#fffafc] p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm">
                       <label className="flex items-center gap-2">
                         <input
@@ -1162,17 +1183,17 @@ export function Checkout() {
                     <button
                       type="button"
                       onClick={() => setStep('shipping')}
-                      className="flex-1 bg-gray-200 text-black py-3 rounded-full hover:bg-gray-300 transition-colors"
+                      className="flex-1 bg-gray-100 text-black py-3 rounded-full hover:bg-gray-200 transition-colors border border-gray-200 font-medium"
                     >
                       Quay lại
                     </button>
                     <button
                       type="submit"
                       disabled={paymentShippingBlocked}
-                      className={`flex-1 py-3 rounded-full transition-colors ${
+                      className={`flex-1 py-3 rounded-full transition-colors font-medium ${
                         paymentShippingBlocked
                           ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                          : 'bg-black text-white hover:bg-gray-800'
+                          : 'bg-black text-white hover:bg-gray-800 shadow-[0_8px_20px_rgba(0,0,0,0.18)]'
                       }`}
                     >
                       Đặt hàng
@@ -1184,16 +1205,16 @@ export function Checkout() {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
+            <div className="bg-white rounded-3xl border border-[#f3dbe1] shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-6 sticky top-24">
               <h3 className="font-['Poppins'] font-semibold text-xl mb-4">Tóm tắt đơn hàng</h3>
 
               <div className="space-y-3 mb-6">
                 {cart.map(item => (
-                  <div key={item.product.id} className="flex gap-3">
+                  <div key={item.product.id} className="flex gap-3 pb-3 border-b border-gray-100 last:border-b-0 last:pb-0">
                     <img
                       src={item.product.image}
                       alt={item.product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
+                      className="w-16 h-16 object-cover rounded-xl border border-gray-100"
                     />
                     <div className="flex-1">
                       <p className="font-semibold text-sm">{item.product.name}</p>
