@@ -1,4 +1,4 @@
-# 🛒 Modern B2C E-Commerce Website
+# QUẢN TRỊ HỆ THỐNG THÔNG TIN - WEB CHĂM SÓC SẮC ĐẸP - THƯƠNG HIỆU GLOW
 
 Dự án Website Thương Mại Điện Tử B2C hiện đại, tập trung vào trải nghiệm người dùng (UI/UX) cùng đầy đủ tính năng cốt lõi cho Khách hàng và Quản trị viên.
 
