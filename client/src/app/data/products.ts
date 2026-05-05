@@ -96,7 +96,7 @@ export const products: Product[] = [
     name: 'Kem dưỡng đêm phục hồi',
     price: 31,
     stock: 20,
-    image: '/images/products/Serum niacinamide.png',
+    image: '/images/products/Kem dưỡng đêm phục.jpeg',
     category: 'Night Cream',
     description:
       'Kem đêm nuôi dưỡng với retinol nồng độ vừa, ceramide và squalane, hỗ trợ phục hồi hàng rào da và giảm nếp nhăn nông khi dùng kiên trì. Dùng buổi tối, kèm kem chống nắng ban ngày.',
