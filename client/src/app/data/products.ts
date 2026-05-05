@@ -29,7 +29,7 @@ export const products: Product[] = [
     name: 'Serum hoa hồng cấp ẩm Glow',
     price: 32,
     stock: 30,
-    image: '/images/products/vitc_cream.png',
+    image: '/images/products/rose_serum.png',
     category: 'Serum',
     description:
       'Serum nhẹ, thấm nhanh với chiết xuất hoa hồng, giúp cấp ẩm sâu và làm mịn ẩm cho làn da. Kết hợp HA và niacinamide, phù hợp dùng sáng tối trước kem dưỡng.',
@@ -228,7 +228,7 @@ export const products: Product[] = [
     name: 'Serum niacinamide sáng da',
     price: 18,
     stock: 33,
-    image: '/images/products/night_cream.png',
+    image: '/images/products/Serum niacinamide.png',
     category: 'Serum',
     description:
       'Serum cô đặc niacinamide kết hợp kẽm PCA, hỗ trợ sebum ổn định, lỗ chân lông gọn hơn và tông da đều hơn theo thời gian.',
