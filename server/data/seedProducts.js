@@ -5,7 +5,7 @@ const seedProducts = [
     name: "Serum hoa hồng cấp ẩm Glow",
     price: 32,
     stock: 30,
-    image: "/images/products/rose_serum.png",
+    image: "/images/products/vitc_cream.png",
     category: "Serum",
     description:
       "Serum nhẹ, thấm nhanh với chiết xuất hoa hồng, giúp cấp ẩm sâu và làm mịn ẩm cho làn da. Kết hợp HA và niacinamide, phù hợp dùng sáng tối trước kem dưỡng.",
@@ -100,7 +100,7 @@ const seedProducts = [
     name: "Kem dưỡng đêm phục hồi",
     price: 31,
     stock: 20,
-    image: "/images/products/night_cream.png",
+    image: "/images/products/Serum niacinamide.png",
     category: "Night Cream",
     description:
       "Kem đêm nuôi dưỡng với retinol nồng độ vừa, ceramide và squalane, hỗ trợ phục hồi hàng rào da và giảm nếp nhăn nông khi dùng kiên trì. Dùng buổi tối, kèm kem chống nắng ban ngày.",
@@ -244,7 +244,7 @@ const seedProducts = [
     name: "Serum niacinamide sáng da",
     price: 18,
     stock: 33,
-    image: "/images/products/rose_serum.png",
+    image: "/images/products/night_cream.png",
     category: "Serum",
     description:
       "Serum cô đặc niacinamide kết hợp kẽm PCA, hỗ trợ sebum ổn định, lỗ chân lông gọn hơn và tông da đều hơn theo thời gian.",
@@ -260,7 +260,7 @@ const seedProducts = [
     name: "Serum retinol tái tạo ban đêm",
     price: 29,
     stock: 17,
-    image: "/images/products/rose_serum.png",
+    image: "/images/products/Serum retinol.png",
     category: "Serum",
     description:
       "Serum đêm với retinol và peptide, hỗ trợ texture da mịn và giảm nếp nhăn nhìn thấy khi kiên trì. Bắt đầu 2 đêm/tuần, luôn dùng chống nắng ban ngày.",
