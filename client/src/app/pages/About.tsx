@@ -74,7 +74,7 @@ export function About() {
             </div>
             <div>
               <img
-                src="/images/hero.png"
+                src="/images/hero2.jpeg"
                 alt="Câu chuyện thương hiệu"
                 className="rounded-2xl shadow-2xl"
               />
