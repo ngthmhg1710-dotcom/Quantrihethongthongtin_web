@@ -5,7 +5,7 @@
 export const VND_PER_LEGACY_UNIT = 25_000;
 
 /** Miễn phí ship khi tạm tính (cùng đơn vị lưu trong DB) ≥ giá trị này. */
-export const SHIPPING_FREE_SUBTOTAL_MIN_LEGACY = 4;
+export const SHIPPING_FREE_SUBTOTAL_MIN_LEGACY = 20;
 
 /** Phí ship khi chưa đủ ngưỡng (cùng đơn vị lưu trong DB). */
 export const SHIPPING_FEE_LEGACY = 5.99;
