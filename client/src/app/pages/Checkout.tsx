@@ -403,6 +403,115 @@ function resolveWardFromSaved(addr: {
   );
 }
 
+/**
+ * Bóc phường/xã đúng catalog khỏi dòng địa chỉ — gỡ các đoạn trùng tên phường
+ * (xảy ra khi dữ liệu cũ nối/ghép ward nhiều lần).
+ */
+function normalizeVietnamAddressLineParts(
+  country: string,
+  cityRaw: string,
+  districtForCatalog: string,
+  zipCode: string | undefined,
+  addressLine: string,
+  explicitWard?: string,
+): { address: string; ward: string } {
+  const ctry = String(country ?? '').trim();
+  if (ctry !== 'Việt Nam') {
+    return { address: String(addressLine ?? '').trim(), ward: String(explicitWard ?? '').trim() };
+  }
+  const city = canonicalVietnamCity(String(cityRaw ?? '').trim());
+  const districtKey = String(districtForCatalog ?? '').trim();
+  const wardsList = generateWardOptionsByDistrict(city, districtKey);
+  if (!wardsList.length) {
+    return { address: String(addressLine ?? '').trim(), ward: String(explicitWard ?? '').trim() };
+  }
+
+  const wardByNfc = new Map<string, string>();
+  for (const w of wardsList) {
+    wardByNfc.set(w.normalize('NFC'), w);
+  }
+
+  const explicitNfc = String(explicitWard ?? '').trim().normalize('NFC');
+  const explicitCanon = explicitNfc ? wardByNfc.get(explicitNfc) : undefined;
+
+  const rawLine = String(addressLine ?? '').trim();
+  const segments = rawLine
+    .normalize('NFC')
+    .split(/\s*,\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const streetParts: string[] = [];
+  const wardsFoundInOrder: string[] = [];
+  for (const seg of segments) {
+    const canon = wardByNfc.get(seg.normalize('NFC'));
+    if (canon) {
+      if (!wardsFoundInOrder.includes(canon)) wardsFoundInOrder.push(canon);
+      continue;
+    }
+    streetParts.push(seg);
+  }
+
+  let ward = '';
+  if (explicitCanon) {
+    ward = explicitCanon;
+  } else if (wardsFoundInOrder.length > 0) {
+    ward = wardsFoundInOrder[0];
+  } else {
+    const streetJoined = streetParts.join(', ');
+    const distProfile = districtForProfileSync(districtKey, zipCode);
+    const inferred = inferWardFromSavedAddressLine(ctry, city, distProfile, streetJoined || rawLine);
+    ward = inferred && wardByNfc.has(inferred.normalize('NFC')) ? inferred : '';
+  }
+
+  if (!ward && explicitNfc && !explicitCanon) {
+    ward = String(explicitWard ?? '').trim();
+  }
+
+  let addressClean = streetParts.join(', ').trim();
+  if (!addressClean && rawLine && !ward) {
+    addressClean = rawLine;
+  }
+
+  return { address: addressClean, ward };
+}
+
+function sanitizeVietnamShippingRowFields(row: {
+  country?: string;
+  city?: string;
+  district?: string;
+  zipCode?: string;
+  address?: string;
+  ward?: string;
+}): { address: string; ward: string; city: string; district: string } {
+  const country = String(row.country ?? '').trim();
+  const addressRaw = String(row.address ?? '').trim();
+  const wardRaw = String(row.ward ?? '').trim();
+  if (country !== 'Việt Nam') {
+    return {
+      address: addressRaw,
+      ward: wardRaw,
+      city: String(row.city ?? '').trim(),
+      district: String(row.district ?? '').trim(),
+    };
+  }
+  const city = canonicalVietnamCity(String(row.city ?? '').trim());
+  const districtRaw = districtForProfileSync(row.district, row.zipCode).trim();
+  const districtCatalog = resolveDistrictForVietnamOrder(country, city, districtRaw);
+  if (!generateWardOptionsByDistrict(city, districtCatalog).length) {
+    return { address: addressRaw, ward: wardRaw, city, district: districtRaw };
+  }
+  const split = normalizeVietnamAddressLineParts(country, city, districtCatalog, row.zipCode, addressRaw, wardRaw);
+  const nextAddress = split.address.trim() ? split.address : split.ward ? '' : addressRaw;
+  const nextWard = split.ward || wardRaw;
+  return {
+    address: nextAddress,
+    ward: nextWard,
+    city,
+    district: districtCatalog,
+  };
+}
+
 function isCompleteAddressRow(row: {
   name?: string;
   address?: string;
@@ -555,22 +664,41 @@ export function Checkout() {
         districtResolved = '';
       }
       const rowForWard = chosenAddress ?? user.defaultShippingAddress;
-      const wardResolved = rowForWard
-        ? resolveWardFromSaved({
+      let addrLine =
+        chosenAddress?.address ||
+        user.defaultShippingAddress?.address ||
+        prev.address;
+      let wardLine = '';
+      if (resolvedCountry === 'Việt Nam' && rowForWard && cityResolved && districtResolved) {
+        const distCat = resolveDistrictForVietnamOrder(resolvedCountry, cityResolved, districtResolved);
+        const cleaned = sanitizeVietnamShippingRowFields({
+          country: resolvedCountry,
+          city: cityResolved,
+          district: districtResolved,
+          zipCode: rowForWard.zipCode,
+          address: String(addrLine),
+          ward: rowForWard.ward,
+        });
+        addrLine = cleaned.address;
+        wardLine = cleaned.ward;
+        districtResolved = cleaned.district;
+      } else if (rowForWard) {
+        wardLine =
+          resolveWardFromSaved({
             ward: rowForWard.ward,
             country: resolvedCountry,
             city: rowForWard.city,
             district: rowForWard.district,
             zipCode: rowForWard.zipCode,
-            address: rowForWard.address,
-          })
-        : '';
+            address: String(addrLine),
+          }) || '';
+      }
       return {
         name: chosenAddress?.name || user.defaultShippingAddress?.name || user.name || prev.name,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
-        address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
-        ward: wardResolved || prev.ward,
+        address: addrLine,
+        ward: wardLine || prev.ward,
         city: cityResolved,
         district: districtResolved,
         country: resolvedCountry,
@@ -646,21 +774,39 @@ export function Checkout() {
         isPostalCodeOnlyDistrict(rawDistrict)
           ? ''
           : rawDistrict;
-      const wardFromSaved = resolveWardFromSaved({
-        ward: address.ward,
-        country: address.country,
-        city: address.city,
-        district: address.district,
-        zipCode: address.zipCode,
-        address: address.address,
-      });
+      let addrOut = String(address.address ?? '');
+      let wardOut = '';
+      let districtFinal = districtOk;
+      if (address.country === 'Việt Nam' && cityVo && (districtOk || rawDistrict)) {
+        const distCat = resolveDistrictForVietnamOrder(address.country, cityVo, districtOk || rawDistrict);
+        const cleaned = sanitizeVietnamShippingRowFields({
+          country: address.country,
+          city: cityVo,
+          district: districtOk || rawDistrict,
+          zipCode: address.zipCode,
+          address: addrOut,
+          ward: address.ward,
+        });
+        addrOut = cleaned.address;
+        wardOut = cleaned.ward;
+        districtFinal = cleaned.district;
+      } else {
+        wardOut = resolveWardFromSaved({
+          ward: address.ward,
+          country: address.country,
+          city: address.city,
+          district: address.district,
+          zipCode: address.zipCode,
+          address: address.address,
+        });
+      }
       return {
         ...prev,
         name: address.name,
-        address: address.address,
-        ward: wardFromSaved,
+        address: addrOut,
+        ward: wardOut,
         city: cityVo,
-        district: districtOk,
+        district: districtFinal,
         country: address.country,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
@@ -672,28 +818,46 @@ export function Checkout() {
     if (!user?.shippingAddresses || !user.shippingAddresses[index]) return;
     try {
       const rawSel = user.shippingAddresses[index];
+      const vnSel = sanitizeVietnamShippingRowFields({
+        country: rawSel.country,
+        city: rawSel.city,
+        district: rawSel.district,
+        zipCode: rawSel.zipCode,
+        address: String(rawSel.address ?? ''),
+        ward: rawSel.ward,
+      });
       const syncedSel = {
         name: String(rawSel.name ?? '').trim(),
-        address: String(rawSel.address ?? '').trim(),
-        city: String(rawSel.city ?? '').trim(),
-        district: districtForProfileSync(rawSel.district, rawSel.zipCode),
+        address: vnSel.address,
+        city: vnSel.city,
+        district: vnSel.district,
         country: String(rawSel.country ?? '').trim(),
-        ward: resolveWardFromSaved(rawSel),
+        ward: vnSel.ward || resolveWardFromSaved(rawSel),
       };
       if (!isCompleteAddressRow(syncedSel)) {
         toast.error('Địa chỉ này chưa đủ thông tin để đặt làm mặc định.');
         return;
       }
-      const mappedBook = user.shippingAddresses.map((addr, idx) => ({
-        label: addr.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
-        name: String(addr.name ?? '').trim(),
-        address: String(addr.address ?? '').trim(),
-        city: String(addr.city ?? '').trim(),
-        district: districtForProfileSync(addr.district, addr.zipCode),
-        country: String(addr.country ?? '').trim(),
-        ward: resolveWardFromSaved(addr),
-        isDefault: false,
-      }));
+      const mappedBook = user.shippingAddresses.map((addr, idx) => {
+        const vn = sanitizeVietnamShippingRowFields({
+          country: addr.country,
+          city: addr.city,
+          district: addr.district,
+          zipCode: addr.zipCode,
+          address: String(addr.address ?? ''),
+          ward: addr.ward,
+        });
+        return {
+          label: addr.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
+          name: String(addr.name ?? '').trim(),
+          address: vn.address,
+          city: vn.city,
+          district: vn.district,
+          country: String(addr.country ?? '').trim(),
+          ward: vn.ward || resolveWardFromSaved(addr),
+          isDefault: false,
+        };
+      });
       const nextBook = mappedBook.filter(isCompleteAddressRow).map((row) => ({
         ...row,
         isDefault:
@@ -906,20 +1070,47 @@ export function Checkout() {
     }
 
     /** Snapshot ngay sau khi pass validate — tránh await làm state/ effect ghi đè mất quận-huyện trước khi tạo đơn. */
-    const ship = { ...shippingInfo };
+    let ship = { ...shippingInfo };
+    if (ship.country.trim() === 'Việt Nam') {
+      const cleanedShip = sanitizeVietnamShippingRowFields({
+        country: ship.country,
+        city: ship.city,
+        district: ship.district,
+        zipCode: undefined,
+        address: ship.address,
+        ward: ship.ward,
+      });
+      ship = {
+        ...ship,
+        address: cleanedShip.address,
+        ward: cleanedShip.ward,
+        city: cleanedShip.city,
+        district: cleanedShip.district,
+      };
+    }
 
     if (saveAddressToAccount && user) {
       try {
-        const mappedBook = (user.shippingAddresses || []).map((address, index) => ({
-          label: address.label || (index === 0 ? 'Nhà riêng' : `Địa chỉ ${index + 1}`),
-          name: String(address.name ?? '').trim(),
-          address: String(address.address ?? '').trim(),
-          city: String(address.city ?? '').trim(),
-          district: districtForProfileSync(address.district, address.zipCode),
-          country: String(address.country ?? '').trim(),
-          ward: resolveWardFromSaved(address),
-          isDefault: Boolean(address.isDefault),
-        }));
+        const mappedBook = (user.shippingAddresses || []).map((address, index) => {
+          const vn = sanitizeVietnamShippingRowFields({
+            country: address.country,
+            city: address.city,
+            district: address.district,
+            zipCode: address.zipCode,
+            address: String(address.address ?? ''),
+            ward: address.ward,
+          });
+          return {
+            label: address.label || (index === 0 ? 'Nhà riêng' : `Địa chỉ ${index + 1}`),
+            name: String(address.name ?? '').trim(),
+            address: vn.address,
+            city: vn.city,
+            district: vn.district,
+            country: String(address.country ?? '').trim(),
+            ward: vn.ward || resolveWardFromSaved(address),
+            isDefault: Boolean(address.isDefault),
+          };
+        });
         const skippedIncomplete = mappedBook.length - mappedBook.filter(isCompleteAddressRow).length;
         const currentBook = mappedBook.filter(isCompleteAddressRow);
         const normalizedCurrent = {
@@ -957,7 +1148,19 @@ export function Checkout() {
             item.isDefault = index === (existingIndex === -1 ? nextBook.length - 1 : existingIndex);
           });
         }
-        const sanitizedBook = nextBook.map(sanitizeAddressForApi);
+        const sanitizedBook = nextBook.map((row) => {
+          const api = sanitizeAddressForApi(row);
+          if (api.country.trim() !== 'Việt Nam') return api;
+          const vn = sanitizeVietnamShippingRowFields({
+            country: api.country,
+            city: api.city,
+            district: api.district,
+            zipCode: undefined,
+            address: api.address,
+            ward: api.ward,
+          });
+          return { ...api, address: vn.address, ward: vn.ward, city: vn.city, district: vn.district };
+        });
         const badRow = sanitizedBook.find((r) => !isCompleteAddressRow(r));
         if (badRow) {
           toast.error(
