@@ -23,59 +23,37 @@ jobs:
             if [ -z "$APP_DIR" ]; then APP_DIR="$HOME/Quantrihethongthongtin_web"; fi
             cd "$APP_DIR"
 
-            mkdir -p .deploy-cache
-
             git fetch origin main
             git reset --hard origin/main
-            # Không xóa .env + giữ cache deps để deploy nhanh hơn
-            git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env' --exclude=.deploy-cache --exclude=client/node_modules --exclude=server/node_modules
+            # Không xóa .env trên máy chủ (thường không commit)
+            git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env'
 
-            # MongoDB/container ops: chỉ chạy khi có docker + passwordless sudo, tránh treo workflow
-            if command -v docker >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-              if ! sudo -n docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^glow-mongo$'; then
-                sudo -n docker run -d -p 27017:27017 --name glow-mongo mongo:7 2>/dev/null || sudo -n docker start glow-mongo 2>/dev/null || true
-              fi
-
-              # Stop conflicting containers if present
-              sudo -n docker stop glow-server glow-client 2>/dev/null || true
-              sudo -n docker rm glow-server glow-client 2>/dev/null || true
-            else
-              echo ">>> Skip docker ops (docker/sudo not available)"
+            # MongoDB (bỏ qua nếu đã chạy hoặc dùng Mongo Atlas / compose khác)
+            if ! sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^glow-mongo$'; then
+              sudo docker run -d -p 27017:27017 --name glow-mongo mongo:7 2>/dev/null || sudo docker start glow-mongo 2>/dev/null || true
             fi
+
+            # Stop any conflicting docker containers that might have been started manually
+            sudo docker stop glow-server glow-client 2>/dev/null || true
+            sudo docker rm glow-server glow-client 2>/dev/null || true
+
+            pm2 delete ecommerce-api ecommerce-frontend 2>/dev/null || true
 
             echo ">>> Build client"
             cd client
-            CLIENT_LOCK_HASH="$(sha256sum package-lock.json | awk '{print $1}')"
-            CLIENT_PREV_HASH="$(cat ../.deploy-cache/client-lock.sha 2>/dev/null || true)"
-            if [ "$CLIENT_LOCK_HASH" != "$CLIENT_PREV_HASH" ] || [ ! -d node_modules ]; then
-              echo ">>> client deps changed -> npm ci"
-              npm ci --no-audit --no-fund || npm install --no-audit --no-fund
-              echo "$CLIENT_LOCK_HASH" > ../.deploy-cache/client-lock.sha
-            else
-              echo ">>> client deps unchanged -> skip npm ci"
-            fi
+            npm ci || npm install
+            test -f node_modules/serve/build/main.js || npm install serve@14.2.4 --no-save
             npm run build
 
             echo ">>> Install server deps"
             cd ../server
-            SERVER_LOCK_HASH="$(sha256sum package-lock.json | awk '{print $1}')"
-            SERVER_PREV_HASH="$(cat ../.deploy-cache/server-lock.sha 2>/dev/null || true)"
-            if [ "$SERVER_LOCK_HASH" != "$SERVER_PREV_HASH" ] || [ ! -d node_modules ]; then
-              echo ">>> server deps changed -> npm ci"
-              npm ci --no-audit --no-fund || npm install --no-audit --no-fund
-              echo "$SERVER_LOCK_HASH" > ../.deploy-cache/server-lock.sha
-            else
-              echo ">>> server deps unchanged -> skip npm ci"
-            fi
+            npm ci || npm install
 
             cd "$APP_DIR"
-            pm2 start ecosystem.config.cjs --update-env
-            pm2 reload ecosystem.config.cjs --update-env
+            sudo fuser -k 5173/tcp 2>/dev/null || true
+            sudo fuser -k 5000/tcp 2>/dev/null || true
+            pm2 start ecosystem.config.cjs
             pm2 save || true
 
             echo ">>> Reload Nginx (nếu có)"
-            if sudo -n true 2>/dev/null; then
-              sudo -n nginx -t 2>/dev/null && sudo -n systemctl reload nginx 2>/dev/null || true
-            else
-              echo ">>> Skip nginx reload (sudo requires password)"
-            fi
+            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true
