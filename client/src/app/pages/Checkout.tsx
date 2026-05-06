@@ -127,6 +127,13 @@ function normalizeCheckoutPhone(value: string) {
   return value.trim().replace(/[\s().\-_]/g, '');
 }
 
+function joinAddressParts(parts: Array<unknown>) {
+  return parts
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+    .join(', ');
+}
+
 /** Khớp quận/huyện với danh sách (Unicode NFC) — tránh lệch ký tự vô hình giữa <select> và state. */
 function resolveDistrictForVietnamOrder(country: string, cityRaw: string, districtRaw: string) {
   const cty = country.trim();
@@ -150,6 +157,8 @@ export function Checkout() {
     email: '',
     phone: '',
     address: '',
+    street: '',
+    ward: '',
     city: '',
     district: '',
     country: 'Việt Nam'
@@ -216,6 +225,8 @@ export function Checkout() {
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
         address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
+        street: prev.street,
+        ward: prev.ward,
         city: cityResolved,
         district: districtResolved,
         country: resolvedCountry,
@@ -293,6 +304,8 @@ export function Checkout() {
         ...prev,
         name: address.name,
         address: address.address,
+        street: prev.street,
+        ward: prev.ward,
         city: cityVo,
         district: districtOk,
         country: address.country,
@@ -418,6 +431,8 @@ export function Checkout() {
     const email = shippingInfo.email.trim();
     const phone = normalizeCheckoutPhone(shippingInfo.phone);
     const address = shippingInfo.address.trim();
+    const street = shippingInfo.street.trim();
+    const ward = shippingInfo.ward.trim();
     const country = shippingInfo.country.trim();
     const city =
       country === 'Việt Nam'
@@ -429,6 +444,8 @@ export function Checkout() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email không hợp lệ';
     if (!/^\+?[0-9]{8,16}$/.test(phone)) errors.phone = 'Số điện thoại không hợp lệ';
     if (address.length < 6) errors.address = 'Địa chỉ quá ngắn';
+    if (street.length < 2) errors.street = 'Vui lòng nhập tên đường';
+    if (ward.length < 2) errors.ward = 'Vui lòng nhập phường / xã';
     if (city.length < 2) errors.city = 'Vui lòng nhập thành phố / tỉnh';
     if (district.length < 2) errors.district = 'Vui lòng nhập quận / huyện';
     if (
@@ -544,7 +561,7 @@ export function Checkout() {
         const currentBook = mappedBook.filter(isCompleteAddressRow);
         const normalizedCurrent = {
           name: ship.name.trim(),
-          address: ship.address.trim(),
+          address: joinAddressParts([ship.address, ship.street, ship.ward]),
           city:
             ship.country.trim() === 'Việt Nam'
               ? canonicalVietnamCity(ship.city.trim())
@@ -658,7 +675,7 @@ export function Checkout() {
         name: ship.name.trim(),
         email: ship.email.trim(),
         phone: normalizeCheckoutPhone(ship.phone),
-        address: ship.address.trim(),
+        address: joinAddressParts([ship.address, ship.street, ship.ward]),
         city: orderCity,
         district: orderDistrict,
         country: ship.country.trim(),
@@ -846,6 +863,39 @@ export function Checkout() {
                       placeholder="123 Beauty Street"
                     />
                     {shippingErrors.address && <p className="mt-1 text-xs text-red-600">{shippingErrors.address}</p>}
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Đường</label>
+                      <input
+                        type="text"
+                        required
+                        value={shippingInfo.street}
+                        onChange={(e) => {
+                          setShippingInfo({ ...shippingInfo, street: e.target.value });
+                          setShippingErrors((prev) => ({ ...prev, street: undefined }));
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                        placeholder="VD: Nguyễn Trãi"
+                      />
+                      {shippingErrors.street && <p className="mt-1 text-xs text-red-600">{shippingErrors.street}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Phường / Xã</label>
+                      <input
+                        type="text"
+                        required
+                        value={shippingInfo.ward}
+                        onChange={(e) => {
+                          setShippingInfo({ ...shippingInfo, ward: e.target.value });
+                          setShippingErrors((prev) => ({ ...prev, ward: undefined }));
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                        placeholder="VD: Phường 5"
+                      />
+                      {shippingErrors.ward && <p className="mt-1 text-xs text-red-600">{shippingErrors.ward}</p>}
+                    </div>
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-4">
@@ -1281,6 +1331,8 @@ export function Checkout() {
                     email: user.email || '',
                     phone: user.phone || '',
                     address: '',
+                    street: '',
+                    ward: '',
                     city: '',
                     district: '',
                     country: 'Việt Nam',
