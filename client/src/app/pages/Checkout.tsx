@@ -95,7 +95,7 @@ export function Checkout() {
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(-1);
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
   const [isAddressPickerOpen, setIsAddressPickerOpen] = useState(false);
-  const [saveAddressToAccount, setSaveAddressToAccount] = useState(true);
+  const [saveAddressToAccount, setSaveAddressToAccount] = useState(false);
   const [setAsDefaultAddress, setSetAsDefaultAddress] = useState(true);
   const [makeSelectedDefaultInPicker, setMakeSelectedDefaultInPicker] = useState(false);
 
@@ -252,6 +252,7 @@ export function Checkout() {
     const address = user.shippingAddresses[index];
     setSelectedAddressIndex(index);
     setIsAddingNewAddress(false);
+    setSaveAddressToAccount(false);
     setShippingErrors({});
     setShippingInfo((prev) => {
       const cityVo =
@@ -580,7 +581,7 @@ export function Checkout() {
       };
     }
 
-    if (saveAddressToAccount && user) {
+    if (saveAddressToAccount && user && isAddingNewAddress) {
       try {
         const mappedBook = (user.shippingAddresses || []).map((address, index) => {
           const vn = sanitizeVietnamShippingRowFields({
@@ -1408,6 +1409,7 @@ export function Checkout() {
                 type="button"
                 onClick={() => {
                   setIsAddingNewAddress(true);
+                  setSaveAddressToAccount(true);
                   setSelectedAddressIndex(-1);
                   setShippingErrors({});
                   setShippingInfo({
