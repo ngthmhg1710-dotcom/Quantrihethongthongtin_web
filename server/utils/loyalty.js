@@ -3,9 +3,9 @@
  * Ngưỡng ưu đãi — đồng bộ với client/src/app/utils/loyalty.ts (min, title, benefit).
  */
 const LOYALTY_TIERS = [
-  { min: 50, title: "Thành viên Đồng", benefit: "Giảm 3% cho đơn hàng kế tiếp (theo điều kiện chương trình)." },
-  { min: 120, title: "Thành viên Bạc", benefit: "Giảm 5% + ưu tiên hỗ trợ khi mua hàng." },
-  { min: 250, title: "Thành viên Vàng", benefit: "Miễn phí vận chuyển đơn kế tiếp (theo điều kiện)." },
+  { min: 50, title: "Thành viên Đồng", benefit: "Giảm 3% tạm tính mỗi đơn khi thanh toán." },
+  { min: 120, title: "Thành viên Bạc", benefit: "Giảm 5% tạm tính mỗi đơn khi thanh toán." },
+  { min: 250, title: "Thành viên Vàng", benefit: "Giảm 5% tạm tính + miễn phí giao hàng mỗi đơn." },
 ];
 
 function computePointsEarned(orderTotal) {
@@ -24,8 +24,21 @@ function findNewlyUnlockedTiers(previousPoints, newPoints) {
   }));
 }
 
+/**
+ * Giá trị đơn = tạm tính sản phẩm (trước ship). Điểm tính theo số dư *trước* khi cộng điểm đơn này.
+ * Đồng 50+: giảm 3% tạm tính. Bạc 120+: giảm 5%. Vàng 250+: giảm 5% + luôn miễn phí ship đơn này.
+ */
+function getLoyaltyDiscountMeta(points) {
+  const p = Math.max(0, Math.floor(Number(points) || 0));
+  if (p >= 250) return { discountPercent: 5, loyaltyFreeShipping: true };
+  if (p >= 120) return { discountPercent: 5, loyaltyFreeShipping: false };
+  if (p >= 50) return { discountPercent: 3, loyaltyFreeShipping: false };
+  return { discountPercent: 0, loyaltyFreeShipping: false };
+}
+
 module.exports = {
   LOYALTY_TIERS,
   computePointsEarned,
   findNewlyUnlockedTiers,
+  getLoyaltyDiscountMeta,
 };

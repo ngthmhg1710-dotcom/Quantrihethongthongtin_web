@@ -866,11 +866,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
           pointsEarned: number;
           totalPoints: number;
           tiersUnlocked: Array<{ min: number; title: string; benefit: string }>;
+          discountApplied?: {
+            discountPercent: number;
+            discountAmount: number;
+            loyaltyFreeShipping?: boolean;
+          };
         }
       | undefined;
 
     if (loyalty && Number.isFinite(loyalty.pointsEarned) && Number.isFinite(loyalty.totalPoints)) {
       toast.success(`+${loyalty.pointsEarned} điểm thưởng — Bạn có ${loyalty.totalPoints} điểm`);
+      const disc = loyalty.discountApplied;
+      if (disc && (disc.discountAmount > 0 || disc.loyaltyFreeShipping)) {
+        if (disc.discountPercent > 0 && disc.discountAmount > 0) {
+          toast.message(`Đã áp dụng giảm ${disc.discountPercent}% thành viên cho đơn này`);
+        }
+        if (disc.loyaltyFreeShipping) {
+          toast.message('Đã áp dụng miễn phí giao hàng (hạng Vàng)');
+        }
+      }
       for (const tier of loyalty.tiersUnlocked || []) {
         toast.success(`Đạt ${tier.title}: ${tier.benefit}`, { duration: 6500 });
       }

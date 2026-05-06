@@ -1,7 +1,11 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
-const { computePointsEarned, findNewlyUnlockedTiers } = require("../utils/loyalty");
+const {
+  computePointsEarned,
+  findNewlyUnlockedTiers,
+  getLoyaltyDiscountMeta,
+} = require("../utils/loyalty");
 const nodemailer = require("nodemailer");
 const env = require("../config/env");
 const { normalizePhoneInput, isValidPhoneNormalized } = require("../utils/phone");
@@ -364,8 +368,18 @@ async function createOrder(req, res) {
     const normalizedPaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : "card";
 
     const subtotal = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const shippingFee = subtotal > 50 ? 0 : 5.99;
-    const computedTotal = Number((subtotal + shippingFee).toFixed(2));
+
+    const buyer = await User.findById(req.user.id);
+    if (!buyer) {
+      return res.status(401).json({ message: "Unauthorized: user not found" });
+    }
+    const prevLoyaltyPts = Math.max(0, Math.floor(Number(buyer.loyaltyPoints) || 0));
+    const loyaltyPrice = getLoyaltyDiscountMeta(prevLoyaltyPts);
+    const loyaltyDiscountAmount = Number(((subtotal * loyaltyPrice.discountPercent) / 100).toFixed(2));
+    const discountedSubtotal = Number((subtotal - loyaltyDiscountAmount).toFixed(2));
+    const shippingFeeRaw = discountedSubtotal > 50 ? 0 : 5.99;
+    const shippingFee = loyaltyPrice.loyaltyFreeShipping ? 0 : shippingFeeRaw;
+    const computedTotal = Number((discountedSubtotal + shippingFee).toFixed(2));
 
     // Atomically decrement stock for each item (prevent overselling).
     // Note: If a later item fails, we roll back previous decrements.
@@ -433,19 +447,23 @@ async function createOrder(req, res) {
 
     let loyalty = null;
     try {
-      const buyer = await User.findById(req.user.id);
-      if (buyer) {
-        const prevPts = Number(buyer.loyaltyPoints || 0);
-        const earned = computePointsEarned(computedTotal);
-        buyer.loyaltyPoints = prevPts + earned;
-        await buyer.save();
-        const tiersUnlocked = findNewlyUnlockedTiers(prevPts, buyer.loyaltyPoints);
-        loyalty = {
-          pointsEarned: earned,
-          totalPoints: buyer.loyaltyPoints,
-          tiersUnlocked,
-        };
-      }
+      const earned = computePointsEarned(computedTotal);
+      buyer.loyaltyPoints = prevLoyaltyPts + earned;
+      await buyer.save();
+      const tiersUnlocked = findNewlyUnlockedTiers(prevLoyaltyPts, buyer.loyaltyPoints);
+      loyalty = {
+        pointsEarned: earned,
+        totalPoints: buyer.loyaltyPoints,
+        tiersUnlocked,
+        discountApplied:
+          loyaltyDiscountAmount > 0 || loyaltyPrice.loyaltyFreeShipping
+            ? {
+                discountPercent: loyaltyPrice.discountPercent,
+                discountAmount: loyaltyDiscountAmount,
+                loyaltyFreeShipping: loyaltyPrice.loyaltyFreeShipping,
+              }
+            : undefined,
+      };
     } catch (err) {
       console.error("loyalty update error:", err?.message || err);
     }

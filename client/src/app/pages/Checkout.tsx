@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { CreditCard, MapPin, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatVnd, SHIPPING_FEE_LEGACY, SHIPPING_FREE_SUBTOTAL_MIN_LEGACY } from '../utils/currency';
+import { getCurrentLoyaltyTier, getLoyaltyDiscountMeta } from '../utils/loyalty';
 
 const CITY_DISTRICTS: Record<string, string[]> = {
   'TP HCM': [
@@ -468,8 +469,14 @@ export function Checkout() {
   const [paymentErrors, setPaymentErrors] = useState<Partial<Record<keyof typeof paymentInfo, string>>>({});
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const shipping = subtotal > SHIPPING_FREE_SUBTOTAL_MIN_LEGACY ? 0 : SHIPPING_FEE_LEGACY;
-  const total = subtotal + shipping;
+  const loyaltyPointsBalance = Math.max(0, Math.floor(Number(user?.loyaltyPoints ?? 0)));
+  const loyaltyPricing = getLoyaltyDiscountMeta(loyaltyPointsBalance);
+  const loyaltyDiscountAmount = Number(((subtotal * loyaltyPricing.discountPercent) / 100).toFixed(2));
+  const subtotalAfterLoyalty = Number((subtotal - loyaltyDiscountAmount).toFixed(2));
+  const shippingBase = subtotalAfterLoyalty > SHIPPING_FREE_SUBTOTAL_MIN_LEGACY ? 0 : SHIPPING_FEE_LEGACY;
+  const shipping = loyaltyPricing.loyaltyFreeShipping ? 0 : shippingBase;
+  const total = Number((subtotalAfterLoyalty + shipping).toFixed(2));
+  const loyaltyTierApplied = getCurrentLoyaltyTier(loyaltyPointsBalance);
 
   useEffect(() => {
     if (!user || didPrefillShipping) return;
@@ -1557,10 +1564,27 @@ export function Checkout() {
               </div>
 
               <div className="border-t border-gray-200 pt-4 space-y-2 mb-4">
+                {(loyaltyPricing.discountPercent > 0 || loyaltyPricing.loyaltyFreeShipping) && loyaltyTierApplied && (
+                  <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 mb-2">
+                    <span className="font-medium">{loyaltyTierApplied.title}</span>
+                    {loyaltyPricing.discountPercent > 0 && (
+                      <span> — Giảm {loyaltyPricing.discountPercent}% trên tạm tính.</span>
+                    )}
+                    {loyaltyPricing.loyaltyFreeShipping && (
+                      <span> Miễn phí giao hàng cho đơn này.</span>
+                    )}
+                  </p>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính</span>
                   <span>{formatVnd(subtotal)}</span>
                 </div>
+                {loyaltyDiscountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-700 text-sm">
+                    <span>Giảm thành viên ({loyaltyPricing.discountPercent}%)</span>
+                    <span>-{formatVnd(loyaltyDiscountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Phí vận chuyển</span>
                   <span>{shipping === 0 ? 'MIỄN PHÍ' : formatVnd(shipping)}</span>
