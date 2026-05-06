@@ -39,6 +39,26 @@ const CITY_DISTRICTS: Record<string, string[]> = {
 
 const CITY_OPTIONS = Object.keys(CITY_DISTRICTS);
 
+function generateWardOptionsByDistrict(district: string) {
+  const d = district.trim();
+  if (!d) return [];
+  if (d.startsWith('Quận')) {
+    return Array.from({ length: 20 }, (_, idx) => `Phường ${idx + 1}`);
+  }
+  if (d.startsWith('Huyện')) {
+    return [
+      ...Array.from({ length: 20 }, (_, idx) => `Xã ${idx + 1}`),
+      'Thị trấn 1',
+      'Thị trấn 2',
+      'Thị trấn 3',
+    ];
+  }
+  if (d.startsWith('TP ')) {
+    return ['Phường Trung tâm', 'Phường Đông', 'Phường Tây', 'Phường Nam', 'Phường Bắc'];
+  }
+  return [];
+}
+
 function normalizeVietnamCityKey(city: string) {
   return city
     .trim()
@@ -393,6 +413,14 @@ export function Checkout() {
     !blockPostalAsDistrict
       ? [shippingInfo.district, ...currentDistrictOptions]
       : currentDistrictOptions;
+  const currentWardOptions = shippingInfo.country === 'Việt Nam'
+    ? generateWardOptionsByDistrict(shippingInfo.district)
+    : [];
+  const wardOptionsWithCurrent =
+    shippingInfo.ward &&
+    !currentWardOptions.includes(shippingInfo.ward)
+      ? [shippingInfo.ward, ...currentWardOptions]
+      : currentWardOptions;
 
   if (!user) {
     return (
@@ -849,56 +877,33 @@ export function Checkout() {
                     {shippingErrors.phone && <p className="mt-1 text-xs text-red-600">{shippingErrors.phone}</p>}
                   </div>
 
-                  <div>
-                      <label className="block text-sm font-medium mb-2">Địa chỉ</label>
-                    <input
-                      type="text"
-                      required
-                      value={shippingInfo.address}
-                      onChange={(e) => {
-                        setShippingInfo({ ...shippingInfo, address: e.target.value });
-                        setShippingErrors((prev) => ({ ...prev, address: undefined }));
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                      placeholder="123 Beauty Street"
-                    />
-                    {shippingErrors.address && <p className="mt-1 text-xs text-red-600">{shippingErrors.address}</p>}
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Đường</label>
-                      <input
-                        type="text"
-                        required
-                        value={shippingInfo.street}
-                        onChange={(e) => {
-                          setShippingInfo({ ...shippingInfo, street: e.target.value });
-                          setShippingErrors((prev) => ({ ...prev, street: undefined }));
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                        placeholder="VD: Nguyễn Trãi"
-                      />
-                      {shippingErrors.street && <p className="mt-1 text-xs text-red-600">{shippingErrors.street}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Phường / Xã</label>
-                      <input
-                        type="text"
-                        required
-                        value={shippingInfo.ward}
-                        onChange={(e) => {
-                          setShippingInfo({ ...shippingInfo, ward: e.target.value });
-                          setShippingErrors((prev) => ({ ...prev, ward: undefined }));
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                        placeholder="VD: Phường 5"
-                      />
-                      {shippingErrors.ward && <p className="mt-1 text-xs text-red-600">{shippingErrors.ward}</p>}
-                    </div>
-                  </div>
-
                   <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Quốc gia</label>
+                      <select
+                        value={shippingInfo.country}
+                        onChange={(e) => {
+                          const nextCountry = e.target.value;
+                          setShippingInfo((prev) => {
+                            const next = { ...prev, country: nextCountry };
+                            if (nextCountry === 'Việt Nam') {
+                              next.city = canonicalVietnamCity(prev.city);
+                              const d = CITY_DISTRICTS[next.city] || [];
+                              next.district = d.includes(prev.district) ? prev.district : '';
+                              next.ward = '';
+                            }
+                            return next;
+                          });
+                          setShippingErrors((prev) => ({ ...prev, country: undefined, city: undefined, district: undefined, ward: undefined }));
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                      >
+                        <option>Việt Nam</option>
+                        <option>Hoa Kỳ</option>
+                        <option>Canada</option>
+                      </select>
+                      {shippingErrors.country && <p className="mt-1 text-xs text-red-600">{shippingErrors.country}</p>}
+                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Thành phố / Tỉnh</label>
                       {shippingInfo.country === 'Việt Nam' ? (
@@ -910,9 +915,9 @@ export function Checkout() {
                             setShippingInfo((prev) => {
                               const nextDistricts = CITY_DISTRICTS[nextCity] || [];
                               const keepDistrict = nextDistricts.includes(prev.district) ? prev.district : '';
-                              return { ...prev, city: nextCity, district: keepDistrict };
+                                return { ...prev, city: nextCity, district: keepDistrict, ward: '' };
                             });
-                            setShippingErrors((prev) => ({ ...prev, city: undefined, district: undefined }));
+                              setShippingErrors((prev) => ({ ...prev, city: undefined, district: undefined, ward: undefined }));
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
                         >
@@ -946,8 +951,8 @@ export function Checkout() {
                           disabled={!effectiveCityVN}
                           value={shippingInfo.district}
                           onChange={(e) => {
-                            setShippingInfo({ ...shippingInfo, district: e.target.value });
-                            setShippingErrors((prev) => ({ ...prev, district: undefined }));
+                            setShippingInfo({ ...shippingInfo, district: e.target.value, ward: '' });
+                            setShippingErrors((prev) => ({ ...prev, district: undefined, ward: undefined }));
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
@@ -973,30 +978,74 @@ export function Checkout() {
                       )}
                       {shippingErrors.district && <p className="mt-1 text-xs text-red-600">{shippingErrors.district}</p>}
                     </div>
+                  </div>
+
+                  <div>
+                      <label className="block text-sm font-medium mb-2">Địa chỉ</label>
+                    <input
+                      type="text"
+                      required
+                      value={shippingInfo.address}
+                      onChange={(e) => {
+                        setShippingInfo({ ...shippingInfo, address: e.target.value });
+                        setShippingErrors((prev) => ({ ...prev, address: undefined }));
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                      placeholder="Số nhà / tòa nhà"
+                    />
+                    {shippingErrors.address && <p className="mt-1 text-xs text-red-600">{shippingErrors.address}</p>}
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Quốc gia</label>
-                      <select
-                        value={shippingInfo.country}
+                      <label className="block text-sm font-medium mb-2">Đường</label>
+                      <input
+                        type="text"
+                        required
+                        value={shippingInfo.street}
                         onChange={(e) => {
-                          const nextCountry = e.target.value;
-                          setShippingInfo((prev) => {
-                            const next = { ...prev, country: nextCountry };
-                            if (nextCountry === 'Việt Nam') {
-                              next.city = canonicalVietnamCity(prev.city);
-                              const d = CITY_DISTRICTS[next.city] || [];
-                              next.district = d.includes(prev.district) ? prev.district : '';
-                            }
-                            return next;
-                          });
-                          setShippingErrors((prev) => ({ ...prev, country: undefined }));
+                          setShippingInfo({ ...shippingInfo, street: e.target.value });
+                          setShippingErrors((prev) => ({ ...prev, street: undefined }));
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                      >
-                        <option>Việt Nam</option>
-                        <option>Hoa Kỳ</option>
-                        <option>Canada</option>
-                      </select>
-                      {shippingErrors.country && <p className="mt-1 text-xs text-red-600">{shippingErrors.country}</p>}
+                        placeholder="VD: Nguyễn Trãi"
+                      />
+                      {shippingErrors.street && <p className="mt-1 text-xs text-red-600">{shippingErrors.street}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Phường / Xã</label>
+                      {shippingInfo.country === 'Việt Nam' ? (
+                        <select
+                          required
+                          disabled={!shippingInfo.district}
+                          value={shippingInfo.ward}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, ward: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, ward: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                          <option value="">{shippingInfo.district ? 'Chọn phường / xã' : 'Chọn quận / huyện trước'}</option>
+                          {wardOptionsWithCurrent.map((ward) => (
+                            <option key={ward} value={ward}>
+                              {ward}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          required
+                          value={shippingInfo.ward}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, ward: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, ward: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                          placeholder="Phường / Xã"
+                        />
+                      )}
+                      {shippingErrors.ward && <p className="mt-1 text-xs text-red-600">{shippingErrors.ward}</p>}
                     </div>
                   </div>
 
