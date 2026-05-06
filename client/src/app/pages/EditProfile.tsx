@@ -314,7 +314,7 @@ export function EditProfile() {
                         <>
                           <div className="grid md:grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-sm font-medium mb-1">Quốc gia</label>
+                              <label className="block text-sm font-medium mb-1 whitespace-nowrap">Quốc gia</label>
                               <select
                                 value={addressBookDraft[editingAddressIndex].country}
                                 onChange={(e) =>
@@ -340,7 +340,7 @@ export function EditProfile() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
+                              <label className="block text-sm font-medium mb-1 whitespace-nowrap">Thành phố / Tỉnh</label>
                               <select
                                 required
                                 value={profileAddressVnUi.effectiveCity}
@@ -365,7 +365,7 @@ export function EditProfile() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
+                              <label className="block text-sm font-medium mb-1 whitespace-nowrap">Quận / Huyện</label>
                               <select
                                 required
                                 value={
@@ -452,7 +452,7 @@ export function EditProfile() {
                           </div>
                           <div className="grid md:grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
+                              <label className="block text-sm font-medium mb-1 whitespace-nowrap">Thành phố / Tỉnh</label>
                               <input
                                 value={addressBookDraft[editingAddressIndex].city}
                                 onChange={(e) =>
@@ -466,7 +466,7 @@ export function EditProfile() {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
+                              <label className="block text-sm font-medium mb-1 whitespace-nowrap">Quận / Huyện</label>
                               <input
                                 value={addressBookDraft[editingAddressIndex].district}
                                 onChange={(e) =>
@@ -480,7 +480,7 @@ export function EditProfile() {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">Quốc gia</label>
+                              <label className="block text-sm font-medium mb-1 whitespace-nowrap">Quốc gia</label>
                               <input
                                 value={addressBookDraft[editingAddressIndex].country}
                                 onChange={(e) =>

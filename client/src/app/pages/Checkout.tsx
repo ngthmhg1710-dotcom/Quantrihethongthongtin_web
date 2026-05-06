@@ -926,7 +926,7 @@ export function Checkout() {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Quốc gia</label>
+                      <label className="block text-sm font-medium mb-2 whitespace-nowrap">Quốc gia</label>
                       <select
                         value={shippingInfo.country}
                         onChange={(e) => {
@@ -952,7 +952,7 @@ export function Checkout() {
                       {shippingErrors.country && <p className="mt-1 text-xs text-red-600">{shippingErrors.country}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Thành phố / Tỉnh</label>
+                      <label className="block text-sm font-medium mb-2 whitespace-nowrap">Thành phố / Tỉnh</label>
                       {shippingInfo.country === 'Việt Nam' ? (
                         <select
                           required
@@ -991,7 +991,7 @@ export function Checkout() {
                       {shippingErrors.city && <p className="mt-1 text-xs text-red-600">{shippingErrors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Quận / Huyện</label>
+                      <label className="block text-sm font-medium mb-2 whitespace-nowrap">Quận / Huyện</label>
                       {shippingInfo.country === 'Việt Nam' ? (
                         <select
                           required
