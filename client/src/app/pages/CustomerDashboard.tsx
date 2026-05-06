@@ -5,6 +5,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { formatVnd } from '../utils/currency';
 import { getCurrentLoyaltyTier, getNextLoyaltyTier, LOYALTY_TIERS } from '../utils/loyalty';
+import {
+  CITY_DISTRICTS,
+  CITY_OPTIONS,
+  canonicalVietnamCity,
+  generateWardOptionsByDistrict,
+  resolveDistrictForVietnamOrder,
+} from '../utils/vietnamAddress';
 
 export function CustomerDashboard() {
   const { user, orders, products, wishlistIds, updateProfile, setPassword } = useApp();
@@ -102,6 +109,34 @@ export function CustomerDashboard() {
     const idx = book.findIndex((a) => a.isDefault);
     return idx >= 0 ? idx : 0;
   });
+
+  const profileAddressVnUi = useMemo(() => {
+    const row = addressBookDraft[editingAddressIndex];
+    if (!row) return null;
+    const isVN = row.country.trim() === 'Việt Nam';
+    if (!isVN) return { isVN: false as const };
+    const effectiveCity = canonicalVietnamCity(row.city);
+    const districts = effectiveCity ? CITY_DISTRICTS[effectiveCity] || [] : [];
+    const districtCanon = resolveDistrictForVietnamOrder('Việt Nam', effectiveCity, row.district);
+    const wardBase = generateWardOptionsByDistrict(effectiveCity, districtCanon);
+    const cityOpts =
+      effectiveCity && !CITY_OPTIONS.includes(effectiveCity) ? [effectiveCity, ...CITY_OPTIONS] : [...CITY_OPTIONS];
+    const blockPostal = Boolean(effectiveCity && districts.length && /^\d{3,10}$/.test(row.district.trim()));
+    const distOpts =
+      row.district.trim() && !districts.includes(row.district) && !blockPostal
+        ? [row.district, ...districts]
+        : districts;
+    const wardOpts =
+      row.ward.trim() && !wardBase.includes(row.ward) ? [row.ward, ...wardBase] : wardBase;
+    return {
+      isVN: true as const,
+      effectiveCity,
+      cityOpts,
+      districtCanon,
+      distOpts,
+      wardOpts,
+    };
+  }, [addressBookDraft, editingAddressIndex]);
 
   useEffect(() => {
     if (!user) return;
@@ -917,7 +952,7 @@ export function CustomerDashboard() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-1">Địa chỉ</label>
+                          <label className="block text-sm font-medium mb-1">Địa chỉ (số nhà, đường…)</label>
                           <input
                             value={addressBookDraft[editingAddressIndex].address}
                             onChange={(e) =>
@@ -928,57 +963,192 @@ export function CustomerDashboard() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Phường / xã</label>
-                          <input
-                            value={addressBookDraft[editingAddressIndex].ward}
-                            onChange={(e) =>
-                              setAddressBookDraft((prev) =>
-                                prev.map((a, i) => (i === editingAddressIndex ? { ...a, ward: e.target.value } : a))
-                              )
-                            }
-                            className="w-full px-3 py-2 border rounded-lg"
-                            placeholder="VD: Phường Bến Nghé"
-                          />
-                        </div>
-                        <div className="grid md:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
-                            <input
-                              value={addressBookDraft[editingAddressIndex].city}
-                              onChange={(e) =>
-                                setAddressBookDraft((prev) =>
-                                  prev.map((a, i) => (i === editingAddressIndex ? { ...a, city: e.target.value } : a))
-                                )
-                              }
-                              className="w-full px-3 py-2 border rounded-lg"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
-                            <input
-                              value={addressBookDraft[editingAddressIndex].district}
-                              onChange={(e) =>
-                                setAddressBookDraft((prev) =>
-                                  prev.map((a, i) => (i === editingAddressIndex ? { ...a, district: e.target.value } : a))
-                                )
-                              }
-                              className="w-full px-3 py-2 border rounded-lg"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Quốc gia</label>
-                            <input
-                              value={addressBookDraft[editingAddressIndex].country}
-                              onChange={(e) =>
-                                setAddressBookDraft((prev) =>
-                                  prev.map((a, i) => (i === editingAddressIndex ? { ...a, country: e.target.value } : a))
-                                )
-                              }
-                              className="w-full px-3 py-2 border rounded-lg"
-                            />
-                          </div>
-                        </div>
+                        {profileAddressVnUi?.isVN ? (
+                          <>
+                            <div className="grid md:grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Quốc gia</label>
+                                <select
+                                  value={addressBookDraft[editingAddressIndex].country}
+                                  onChange={(e) =>
+                                    setAddressBookDraft((prev) =>
+                                      prev.map((a, i) =>
+                                        i === editingAddressIndex
+                                          ? {
+                                              ...a,
+                                              country: e.target.value,
+                                              city: e.target.value === 'Việt Nam' ? a.city : '',
+                                              district: e.target.value === 'Việt Nam' ? a.district : '',
+                                              ward: e.target.value === 'Việt Nam' ? a.ward : '',
+                                            }
+                                          : a
+                                      )
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border rounded-lg bg-white"
+                                >
+                                  <option>Việt Nam</option>
+                                  <option>Hoa Kỳ</option>
+                                  <option>Canada</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
+                                <select
+                                  required
+                                  value={profileAddressVnUi.effectiveCity}
+                                  onChange={(e) => {
+                                    const nextCity = e.target.value;
+                                    setAddressBookDraft((prev) =>
+                                      prev.map((a, i) =>
+                                        i === editingAddressIndex
+                                          ? { ...a, city: nextCity, district: '', ward: '' }
+                                          : a
+                                      )
+                                    );
+                                  }}
+                                  className="w-full px-3 py-2 border rounded-lg bg-white"
+                                >
+                                  <option value="">Chọn thành phố / tỉnh</option>
+                                  {profileAddressVnUi.cityOpts.map((c) => (
+                                    <option key={c} value={c}>
+                                      {c}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
+                                <select
+                                  required
+                                  value={
+                                    profileAddressVnUi.distOpts.includes(
+                                      resolveDistrictForVietnamOrder(
+                                        'Việt Nam',
+                                        profileAddressVnUi.effectiveCity,
+                                        addressBookDraft[editingAddressIndex].district
+                                      )
+                                    )
+                                      ? resolveDistrictForVietnamOrder(
+                                          'Việt Nam',
+                                          profileAddressVnUi.effectiveCity,
+                                          addressBookDraft[editingAddressIndex].district
+                                        )
+                                      : addressBookDraft[editingAddressIndex].district
+                                  }
+                                  onChange={(e) =>
+                                    setAddressBookDraft((prev) =>
+                                      prev.map((a, i) =>
+                                        i === editingAddressIndex
+                                          ? { ...a, district: e.target.value, ward: '' }
+                                          : a
+                                      )
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border rounded-lg bg-white"
+                                >
+                                  <option value="">Chọn quận / huyện</option>
+                                  {profileAddressVnUi.distOpts.map((d) => (
+                                    <option key={d} value={d}>
+                                      {d}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Phường / xã</label>
+                              <select
+                                value={addressBookDraft[editingAddressIndex].ward}
+                                onChange={(e) =>
+                                  setAddressBookDraft((prev) =>
+                                    prev.map((a, i) =>
+                                      i === editingAddressIndex ? { ...a, ward: e.target.value } : a
+                                    )
+                                  )
+                                }
+                                className="w-full px-3 py-2 border rounded-lg bg-white"
+                              >
+                                <option value="">
+                                  {profileAddressVnUi.wardOpts.length
+                                    ? 'Chọn phường / xã'
+                                    : 'Chọn TP và quận trước — hoặc nhập tay ở địa chỉ'}
+                                </option>
+                                {profileAddressVnUi.wardOpts.map((w) => (
+                                  <option key={w} value={w}>
+                                    {w}
+                                  </option>
+                                ))}
+                              </select>
+                              {profileAddressVnUi.wardOpts.length === 0 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Khu vực này chưa có danh mục phường — ghi phường/xã trong ô địa chỉ nếu cần.
+                                </p>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Phường / xã</label>
+                              <input
+                                value={addressBookDraft[editingAddressIndex].ward}
+                                onChange={(e) =>
+                                  setAddressBookDraft((prev) =>
+                                    prev.map((a, i) =>
+                                      i === editingAddressIndex ? { ...a, ward: e.target.value } : a
+                                    )
+                                  )
+                                }
+                                className="w-full px-3 py-2 border rounded-lg"
+                              />
+                            </div>
+                            <div className="grid md:grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Thành phố / Tỉnh</label>
+                                <input
+                                  value={addressBookDraft[editingAddressIndex].city}
+                                  onChange={(e) =>
+                                    setAddressBookDraft((prev) =>
+                                      prev.map((a, i) =>
+                                        i === editingAddressIndex ? { ...a, city: e.target.value } : a
+                                      )
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border rounded-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Quận / Huyện</label>
+                                <input
+                                  value={addressBookDraft[editingAddressIndex].district}
+                                  onChange={(e) =>
+                                    setAddressBookDraft((prev) =>
+                                      prev.map((a, i) =>
+                                        i === editingAddressIndex ? { ...a, district: e.target.value } : a
+                                      )
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border rounded-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Quốc gia</label>
+                                <input
+                                  value={addressBookDraft[editingAddressIndex].country}
+                                  onChange={(e) =>
+                                    setAddressBookDraft((prev) =>
+                                      prev.map((a, i) =>
+                                        i === editingAddressIndex ? { ...a, country: e.target.value } : a
+                                      )
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border rounded-lg"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
 
                         <div className="flex justify-end">
                           <button
