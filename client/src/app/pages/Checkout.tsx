@@ -43,20 +43,27 @@ function generateWardOptionsByDistrict(district: string) {
   const d = district.trim();
   if (!d) return [];
   if (d.startsWith('Quận')) {
-    return Array.from({ length: 20 }, (_, idx) => `Phường ${idx + 1}`);
+    return Array.from({ length: 15 }, (_, idx) => `Phường ${idx + 1}`);
   }
   if (d.startsWith('Huyện')) {
-    return [
-      ...Array.from({ length: 20 }, (_, idx) => `Xã ${idx + 1}`),
-      'Thị trấn 1',
-      'Thị trấn 2',
-      'Thị trấn 3',
-    ];
+    return [...Array.from({ length: 12 }, (_, idx) => `Xã ${idx + 1}`), 'Thị trấn Trung tâm'];
   }
   if (d.startsWith('TP ')) {
-    return ['Phường Trung tâm', 'Phường Đông', 'Phường Tây', 'Phường Nam', 'Phường Bắc'];
+    return ['Phường Trung tâm', 'Phường Đông', 'Phường Tây', 'Phường Nam', 'Phường Bắc', 'Phường Bắc Đông'];
   }
   return [];
+}
+
+function generateStreetOptionsByWard(ward: string) {
+  const w = ward.trim();
+  if (!w) return [];
+  return [
+    `Đường ${w} 1`,
+    `Đường ${w} 2`,
+    `Đường ${w} 3`,
+    `Đường ${w} 4`,
+    `Đường ${w} 5`,
+  ];
 }
 
 function normalizeVietnamCityKey(city: string) {
@@ -245,8 +252,8 @@ export function Checkout() {
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
         address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
-        street: prev.street,
-        ward: prev.ward,
+        street: '',
+        ward: '',
         city: cityResolved,
         district: districtResolved,
         country: resolvedCountry,
@@ -324,8 +331,8 @@ export function Checkout() {
         ...prev,
         name: address.name,
         address: address.address,
-        street: prev.street,
-        ward: prev.ward,
+        street: '',
+        ward: '',
         city: cityVo,
         district: districtOk,
         country: address.country,
@@ -421,6 +428,14 @@ export function Checkout() {
     !currentWardOptions.includes(shippingInfo.ward)
       ? [shippingInfo.ward, ...currentWardOptions]
       : currentWardOptions;
+  const currentStreetOptions = shippingInfo.country === 'Việt Nam'
+    ? generateStreetOptionsByWard(shippingInfo.ward)
+    : [];
+  const streetOptionsWithCurrent =
+    shippingInfo.street &&
+    !currentStreetOptions.includes(shippingInfo.street)
+      ? [shippingInfo.street, ...currentStreetOptions]
+      : currentStreetOptions;
 
   if (!user) {
     return (
@@ -877,6 +892,22 @@ export function Checkout() {
                     {shippingErrors.phone && <p className="mt-1 text-xs text-red-600">{shippingErrors.phone}</p>}
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Địa chỉ</label>
+                    <input
+                      type="text"
+                      required
+                      value={shippingInfo.address}
+                      onChange={(e) => {
+                        setShippingInfo({ ...shippingInfo, address: e.target.value });
+                        setShippingErrors((prev) => ({ ...prev, address: undefined }));
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                      placeholder="Số nhà / tòa nhà"
+                    />
+                    {shippingErrors.address && <p className="mt-1 text-xs text-red-600">{shippingErrors.address}</p>}
+                  </div>
+
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Quốc gia</label>
@@ -891,10 +922,11 @@ export function Checkout() {
                               const d = CITY_DISTRICTS[next.city] || [];
                               next.district = d.includes(prev.district) ? prev.district : '';
                               next.ward = '';
+                              next.street = '';
                             }
                             return next;
                           });
-                          setShippingErrors((prev) => ({ ...prev, country: undefined, city: undefined, district: undefined, ward: undefined }));
+                          setShippingErrors((prev) => ({ ...prev, country: undefined, city: undefined, district: undefined, ward: undefined, street: undefined }));
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
                       >
@@ -915,9 +947,9 @@ export function Checkout() {
                             setShippingInfo((prev) => {
                               const nextDistricts = CITY_DISTRICTS[nextCity] || [];
                               const keepDistrict = nextDistricts.includes(prev.district) ? prev.district : '';
-                                return { ...prev, city: nextCity, district: keepDistrict, ward: '' };
+                              return { ...prev, city: nextCity, district: keepDistrict, ward: '', street: '' };
                             });
-                              setShippingErrors((prev) => ({ ...prev, city: undefined, district: undefined, ward: undefined }));
+                            setShippingErrors((prev) => ({ ...prev, city: undefined, district: undefined, ward: undefined, street: undefined }));
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
                         >
@@ -951,8 +983,8 @@ export function Checkout() {
                           disabled={!effectiveCityVN}
                           value={shippingInfo.district}
                           onChange={(e) => {
-                            setShippingInfo({ ...shippingInfo, district: e.target.value, ward: '' });
-                            setShippingErrors((prev) => ({ ...prev, district: undefined, ward: undefined }));
+                            setShippingInfo({ ...shippingInfo, district: e.target.value, ward: '', street: '' });
+                            setShippingErrors((prev) => ({ ...prev, district: undefined, ward: undefined, street: undefined }));
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
@@ -969,8 +1001,8 @@ export function Checkout() {
                           required
                           value={shippingInfo.district}
                           onChange={(e) => {
-                            setShippingInfo({ ...shippingInfo, district: e.target.value });
-                            setShippingErrors((prev) => ({ ...prev, district: undefined }));
+                            setShippingInfo({ ...shippingInfo, district: e.target.value, ward: '', street: '' });
+                            setShippingErrors((prev) => ({ ...prev, district: undefined, ward: undefined, street: undefined }));
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
                           placeholder="Quận / Huyện"
@@ -980,38 +1012,7 @@ export function Checkout() {
                     </div>
                   </div>
 
-                  <div>
-                      <label className="block text-sm font-medium mb-2">Địa chỉ</label>
-                    <input
-                      type="text"
-                      required
-                      value={shippingInfo.address}
-                      onChange={(e) => {
-                        setShippingInfo({ ...shippingInfo, address: e.target.value });
-                        setShippingErrors((prev) => ({ ...prev, address: undefined }));
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                      placeholder="Số nhà / tòa nhà"
-                    />
-                    {shippingErrors.address && <p className="mt-1 text-xs text-red-600">{shippingErrors.address}</p>}
-                  </div>
-
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Đường</label>
-                      <input
-                        type="text"
-                        required
-                        value={shippingInfo.street}
-                        onChange={(e) => {
-                          setShippingInfo({ ...shippingInfo, street: e.target.value });
-                          setShippingErrors((prev) => ({ ...prev, street: undefined }));
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
-                        placeholder="VD: Nguyễn Trãi"
-                      />
-                      {shippingErrors.street && <p className="mt-1 text-xs text-red-600">{shippingErrors.street}</p>}
-                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Phường / Xã</label>
                       {shippingInfo.country === 'Việt Nam' ? (
@@ -1020,8 +1021,8 @@ export function Checkout() {
                           disabled={!shippingInfo.district}
                           value={shippingInfo.ward}
                           onChange={(e) => {
-                            setShippingInfo({ ...shippingInfo, ward: e.target.value });
-                            setShippingErrors((prev) => ({ ...prev, ward: undefined }));
+                            setShippingInfo({ ...shippingInfo, ward: e.target.value, street: '' });
+                            setShippingErrors((prev) => ({ ...prev, ward: undefined, street: undefined }));
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
@@ -1046,6 +1047,41 @@ export function Checkout() {
                         />
                       )}
                       {shippingErrors.ward && <p className="mt-1 text-xs text-red-600">{shippingErrors.ward}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Đường</label>
+                      {shippingInfo.country === 'Việt Nam' ? (
+                        <select
+                          required
+                          disabled={!shippingInfo.ward}
+                          value={shippingInfo.street}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, street: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, street: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#FFC0CB] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                          <option value="">{shippingInfo.ward ? 'Chọn đường' : 'Chọn phường / xã trước'}</option>
+                          {streetOptionsWithCurrent.map((street) => (
+                            <option key={street} value={street}>
+                              {street}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          required
+                          value={shippingInfo.street}
+                          onChange={(e) => {
+                            setShippingInfo({ ...shippingInfo, street: e.target.value });
+                            setShippingErrors((prev) => ({ ...prev, street: undefined }));
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFC0CB]"
+                          placeholder="VD: Nguyễn Trãi"
+                        />
+                      )}
+                      {shippingErrors.street && <p className="mt-1 text-xs text-red-600">{shippingErrors.street}</p>}
                     </div>
                   </div>
 
