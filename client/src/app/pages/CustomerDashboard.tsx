@@ -687,7 +687,7 @@ export function CustomerDashboard() {
                   {getStatusLabel(selectedOrder.status)}
                 </span>
                 <p className="text-sm text-gray-600 mt-3">Ngày đặt: {formatOrderDateTime(selectedOrder)}</p>
-                <p className="text-sm text-gray-600 mt-1">Tổng tiền: {formatVnd(selectedOrder.total)}</p>
+                <p className="text-sm text-gray-600 mt-2 font-medium">Tổng thanh toán: {formatVnd(selectedOrder.total)}</p>
                 <p className="text-sm text-gray-600 mt-1">Thanh toán: {getPaymentMethodLabel(selectedOrder.paymentMethod)}</p>
               </div>
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
@@ -726,6 +726,53 @@ export function CustomerDashboard() {
                   </div>
                 ))}
               </div>
+              {(() => {
+                const lineSum = selectedOrder.items.reduce(
+                  (s, item) => s + item.product.price * item.quantity,
+                  0,
+                );
+                const hasBreakdown =
+                  selectedOrder.itemsSubtotal != null &&
+                  selectedOrder.shippingFee != null &&
+                  selectedOrder.loyaltyDiscountAmount != null;
+                return (
+                  <div className="px-4 py-3 bg-white border-t border-gray-200 space-y-1.5 text-sm">
+                    <p className="flex justify-between text-gray-700">
+                      <span>Tạm tính sản phẩm</span>
+                      <span>{formatVnd(hasBreakdown ? selectedOrder.itemsSubtotal! : lineSum)}</span>
+                    </p>
+                    {hasBreakdown && selectedOrder.loyaltyDiscountAmount! > 0 && (
+                      <p className="flex justify-between text-emerald-700">
+                        <span>
+                          Giảm thành viên
+                          {selectedOrder.loyaltyDiscountPercent
+                            ? ` (${selectedOrder.loyaltyDiscountPercent}%)`
+                            : ''}
+                        </span>
+                        <span>-{formatVnd(selectedOrder.loyaltyDiscountAmount!)}</span>
+                      </p>
+                    )}
+                    {hasBreakdown && (
+                      <p className="flex justify-between text-gray-700">
+                        <span>Phí vận chuyển</span>
+                        <span>
+                          {selectedOrder.shippingFee! <= 0 ? 'Miễn phí' : formatVnd(selectedOrder.shippingFee!)}
+                        </span>
+                      </p>
+                    )}
+                    {!hasBreakdown && (
+                      <p className="text-xs text-gray-500 pt-1">
+                        Đơn cũ không lưu chi tiết phí ship / ưu đãi. Chênh lệch so với tạm tính dòng trên là do
+                        phí giao hàng và giảm giá thành viên tại thời điểm đặt.
+                      </p>
+                    )}
+                    <p className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-100">
+                      <span>Tổng thanh toán</span>
+                      <span>{formatVnd(selectedOrder.total)}</span>
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -280,6 +280,11 @@ export interface Order {
   placedAt?: string | null;
   items: CartItem[];
   total: number;
+  /** Đơn vị legacy — tạm tính sản phẩm (đơn mới từ API có; đơn cũ có thể không). */
+  itemsSubtotal?: number;
+  loyaltyDiscountPercent?: number;
+  loyaltyDiscountAmount?: number;
+  shippingFee?: number;
   paymentMethod?: 'card' | 'cod' | 'bank_transfer';
   status: 'pending' | 'processing' | 'shipped' | 'delivered';
   shippingCode?: string;

@@ -10,7 +10,11 @@ const nodemailer = require("nodemailer");
 const env = require("../config/env");
 const { normalizePhoneInput, isValidPhoneNormalized } = require("../utils/phone");
 const FALLBACK_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
-const { formatVnd } = require("../utils/currency");
+const {
+  formatVnd,
+  SHIPPING_FREE_SUBTOTAL_MIN_LEGACY,
+  SHIPPING_FEE_LEGACY,
+} = require("../utils/currency");
 
 function isMailerConfigured() {
   return Boolean(env.smtpHost && env.smtpPort && env.smtpUser && env.smtpPass && env.newsletterFromEmail);
@@ -301,6 +305,12 @@ function formatOrder(order) {
       quantity: item.quantity,
     })),
     total: order.total,
+    itemsSubtotal: order.itemsSubtotal != null ? order.itemsSubtotal : undefined,
+    loyaltyDiscountPercent:
+      order.loyaltyDiscountPercent != null ? order.loyaltyDiscountPercent : undefined,
+    loyaltyDiscountAmount:
+      order.loyaltyDiscountAmount != null ? order.loyaltyDiscountAmount : undefined,
+    shippingFee: order.shippingFee != null ? order.shippingFee : undefined,
     paymentMethod: order.paymentMethod || "card",
     status: order.status,
     shippingAddress: order.shippingAddress,
@@ -377,7 +387,8 @@ async function createOrder(req, res) {
     const loyaltyPrice = getLoyaltyDiscountMeta(prevLoyaltyPts);
     const loyaltyDiscountAmount = Number(((subtotal * loyaltyPrice.discountPercent) / 100).toFixed(2));
     const discountedSubtotal = Number((subtotal - loyaltyDiscountAmount).toFixed(2));
-    const shippingFeeRaw = discountedSubtotal > 50 ? 0 : 5.99;
+    const shippingFeeRaw =
+      discountedSubtotal > SHIPPING_FREE_SUBTOTAL_MIN_LEGACY ? 0 : SHIPPING_FEE_LEGACY;
     const shippingFee = loyaltyPrice.loyaltyFreeShipping ? 0 : shippingFeeRaw;
     const computedTotal = Number((discountedSubtotal + shippingFee).toFixed(2));
 
@@ -411,6 +422,10 @@ async function createOrder(req, res) {
       userId: req.user.id,
       items: normalizedItems,
       total: computedTotal,
+      itemsSubtotal: subtotal,
+      loyaltyDiscountPercent: loyaltyPrice.discountPercent,
+      loyaltyDiscountAmount: loyaltyDiscountAmount,
+      shippingFee,
       paymentMethod: normalizedPaymentMethod,
       status: "pending",
       shippingAddress: {

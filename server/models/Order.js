@@ -29,6 +29,11 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
     shippingCode: { type: String, default: "" },
+    /** Tạm tính sản phẩm (đơn vị legacy). Đơn cũ có thể không có — suy ra từ items. */
+    itemsSubtotal: { type: Number },
+    loyaltyDiscountPercent: { type: Number },
+    loyaltyDiscountAmount: { type: Number },
+    shippingFee: { type: Number },
     shippingAddress: {
       name: { type: String, required: true },
       phone: { type: String, required: true },

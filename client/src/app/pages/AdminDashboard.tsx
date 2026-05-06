@@ -1400,6 +1400,43 @@ export function AdminDashboard() {
                     </div>
                   ))}
                 </div>
+                {(() => {
+                  const lineSum = selectedOrder.items.reduce(
+                    (s, item) => s + item.product.price * item.quantity,
+                    0,
+                  );
+                  const hasBreakdown =
+                    selectedOrder.itemsSubtotal != null &&
+                    selectedOrder.shippingFee != null &&
+                    selectedOrder.loyaltyDiscountAmount != null;
+                  return (
+                    <div className="px-4 py-3 bg-white border-t border-gray-100 space-y-1.5 text-sm">
+                      <p className="flex justify-between text-gray-700">
+                        <span>Tạm tính</span>
+                        <span>{formatVnd(hasBreakdown ? selectedOrder.itemsSubtotal! : lineSum)}</span>
+                      </p>
+                      {hasBreakdown && selectedOrder.loyaltyDiscountAmount! > 0 && (
+                        <p className="flex justify-between text-emerald-700">
+                          <span>
+                            Giảm thành viên
+                            {selectedOrder.loyaltyDiscountPercent != null
+                              ? ` (${selectedOrder.loyaltyDiscountPercent}%)`
+                              : ''}
+                          </span>
+                          <span>-{formatVnd(selectedOrder.loyaltyDiscountAmount!)}</span>
+                        </p>
+                      )}
+                      {hasBreakdown && (
+                        <p className="flex justify-between text-gray-700">
+                          <span>Phí vận chuyển</span>
+                          <span>
+                            {selectedOrder.shippingFee! <= 0 ? 'Miễn phí' : formatVnd(selectedOrder.shippingFee!)}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="mt-4 flex justify-between items-center border-t border-gray-200 pt-4">
