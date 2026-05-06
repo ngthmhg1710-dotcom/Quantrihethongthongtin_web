@@ -28,13 +28,7 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             # Không xóa .env + giữ cache deps để deploy nhanh hơn
-            git clean -fd \
-              --exclude=server/.env \
-              --exclude=client/.env \
-              --exclude='*.env' \
-              --exclude=.deploy-cache \
-              --exclude=client/node_modules \
-              --exclude=server/node_modules
+            git clean -fd --exclude=server/.env --exclude=client/.env --exclude='*.env' --exclude=.deploy-cache --exclude=client/node_modules --exclude=server/node_modules
 
             # MongoDB/container ops: chỉ chạy khi có docker + passwordless sudo, tránh treo workflow
             if command -v docker >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
