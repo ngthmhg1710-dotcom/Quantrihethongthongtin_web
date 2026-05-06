@@ -136,6 +136,29 @@ export function Homepage() {
         </div>
       </section>
 
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="rounded-3xl border border-pink-100 bg-[#FFF6F8] px-6 py-8 md:px-10 md:py-10">
+            <p className="text-xs font-semibold tracking-[0.18em] uppercase text-pink-500 mb-3">
+              ĐỐI TÁC &amp; TIẾP THỊ LIÊN KẾT
+            </p>
+            <h2 className="font-['Poppins'] text-2xl md:text-3xl font-semibold mb-4">
+              Glow đồng hành cùng Beauty Bloggers &amp; KOLs
+            </h2>
+            <p className="text-sm md:text-base text-gray-700 mb-3">
+              Glow hiện đang hợp tác với các beauty blogger, KOLs và những trang review làm đẹp uy tín để chia sẻ
+              trải nghiệm chân thực về sản phẩm chăm sóc da. Những nội dung hợp tác luôn được gắn nhãn rõ ràng, minh
+              bạch với người xem.
+            </p>
+            <p className="text-sm md:text-base text-gray-700">
+              Một phần doanh thu từ tiếp thị liên kết được Glow tái đầu tư vào việc nghiên cứu công thức mới và nâng
+              cấp trải nghiệm mua sắm, để mỗi đơn hàng của bạn đều đóng góp vào việc xây dựng cộng đồng da đẹp, khỏe
+              và hiểu sản phẩm.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
