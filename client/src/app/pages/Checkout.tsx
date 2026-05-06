@@ -68,6 +68,24 @@ function normalizeCheckoutPhone(value: string) {
   return value.trim().replace(/[\s().\-_]/g, '');
 }
 
+function toAddressIdentityKey(row: {
+  name?: string;
+  address?: string;
+  ward?: string;
+  city?: string;
+  district?: string;
+  country?: string;
+}) {
+  return [
+    String(row.name ?? '').trim().toLowerCase(),
+    String(row.address ?? '').trim().toLowerCase(),
+    String(row.ward ?? '').trim().toLowerCase(),
+    String(row.city ?? '').trim().toLowerCase(),
+    String(row.district ?? '').trim().toLowerCase(),
+    String(row.country ?? '').trim().toLowerCase(),
+  ].join('|');
+}
+
 function joinAddressParts(parts: Array<unknown>) {
   return parts
     .map((part) => String(part ?? '').trim())
@@ -616,15 +634,8 @@ export function Checkout() {
           district: resolveDistrictForVietnamOrder(ship.country, ship.city, ship.district),
           country: ship.country.trim(),
         };
-        const existingIndex = currentBook.findIndex(
-          (item) =>
-            item.name === normalizedCurrent.name &&
-            item.address === normalizedCurrent.address &&
-            item.ward === normalizedCurrent.ward &&
-            item.city === normalizedCurrent.city &&
-            item.district === normalizedCurrent.district &&
-            item.country === normalizedCurrent.country
-        );
+        const currentKey = toAddressIdentityKey(normalizedCurrent);
+        const existingIndex = currentBook.findIndex((item) => toAddressIdentityKey(item) === currentKey);
         const nextBook = [...currentBook];
         if (existingIndex === -1) {
           nextBook.push({
@@ -640,7 +651,12 @@ export function Checkout() {
             item.isDefault = index === (existingIndex === -1 ? nextBook.length - 1 : existingIndex);
           });
         }
-        const sanitizedBook = nextBook.map((row) => {
+        // Chặn địa chỉ trùng (khác label nhưng cùng nội dung) trước khi gửi lên API.
+        const dedupedBook = nextBook.filter((item, index, arr) => {
+          const key = toAddressIdentityKey(item);
+          return arr.findIndex((x) => toAddressIdentityKey(x) === key) === index;
+        });
+        const sanitizedBook = dedupedBook.map((row) => {
           const api = sanitizeAddressForApi(row);
           if (api.country.trim() !== 'Việt Nam') return api;
           const vn = sanitizeVietnamShippingRowFields({
