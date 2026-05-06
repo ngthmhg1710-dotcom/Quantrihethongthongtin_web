@@ -61,6 +61,7 @@ function serializeUser(user) {
       : [],
     wishlistIds: normalizeWishlistIds(user.wishlistIds),
     savedCartItems: normalizeSavedCartItems(user.savedCartItems),
+    loyaltyPoints: Math.max(0, Math.floor(Number(user.loyaltyPoints) || 0)),
   };
 }
 

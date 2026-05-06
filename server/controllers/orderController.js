@@ -1,5 +1,7 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const User = require("../models/User");
+const { computePointsEarned, findNewlyUnlockedTiers } = require("../utils/loyalty");
 const nodemailer = require("nodemailer");
 const env = require("../config/env");
 const { normalizePhoneInput, isValidPhoneNormalized } = require("../utils/phone");
@@ -429,9 +431,29 @@ async function createOrder(req, res) {
       console.error("after sales guide email error:", error?.message || error);
     });
 
+    let loyalty = null;
+    try {
+      const buyer = await User.findById(req.user.id);
+      if (buyer) {
+        const prevPts = Number(buyer.loyaltyPoints || 0);
+        const earned = computePointsEarned(computedTotal);
+        buyer.loyaltyPoints = prevPts + earned;
+        await buyer.save();
+        const tiersUnlocked = findNewlyUnlockedTiers(prevPts, buyer.loyaltyPoints);
+        loyalty = {
+          pointsEarned: earned,
+          totalPoints: buyer.loyaltyPoints,
+          tiersUnlocked,
+        };
+      }
+    } catch (err) {
+      console.error("loyalty update error:", err?.message || err);
+    }
+
     return res.status(201).json({
       message: "Order created successfully",
       order: formatOrder(order),
+      ...(loyalty && { loyalty }),
     });
   } catch (error) {
     return res.status(500).json({

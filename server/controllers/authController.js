@@ -69,6 +69,7 @@ function sanitizeUser(user) {
     savedPaymentMethods,
     wishlistIds,
     savedCartItems,
+    loyaltyPoints: Math.max(0, Math.floor(Number(user.loyaltyPoints) || 0)),
   };
 }
 

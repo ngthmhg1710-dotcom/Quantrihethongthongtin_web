@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { toast } from 'sonner';
 import { CartItem, Product, Order, products as localProducts } from '../data/products';
 import { localizeProduct } from '../utils/localization';
 
@@ -43,6 +44,8 @@ interface User {
     productId: number;
     quantity: number;
   }>;
+  /** Điểm thưởng tích lũy (từ server) */
+  loyaltyPoints?: number;
 }
 
 interface AppContextType {
@@ -857,6 +860,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     setOrders((prev) => [data.order as Order, ...prev]);
+
+    const loyalty = data.loyalty as
+      | {
+          pointsEarned: number;
+          totalPoints: number;
+          tiersUnlocked: Array<{ min: number; title: string; benefit: string }>;
+        }
+      | undefined;
+
+    if (loyalty && Number.isFinite(loyalty.pointsEarned) && Number.isFinite(loyalty.totalPoints)) {
+      toast.success(`+${loyalty.pointsEarned} điểm thưởng — Bạn có ${loyalty.totalPoints} điểm`);
+      for (const tier of loyalty.tiersUnlocked || []) {
+        toast.success(`Đạt ${tier.title}: ${tier.benefit}`, { duration: 6500 });
+      }
+      setUser((current) => {
+        if (!current) return current;
+        const next = { ...current, loyaltyPoints: loyalty.totalPoints };
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+
     await refreshProducts();
   };
 

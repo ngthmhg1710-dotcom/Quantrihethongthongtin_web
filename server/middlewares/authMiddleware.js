@@ -74,6 +74,7 @@ async function protect(req, res, next) {
                 item.quantity > 0
             )
         : [],
+      loyaltyPoints: Math.max(0, Math.floor(Number(user.loyaltyPoints) || 0)),
     };
 
     return next();

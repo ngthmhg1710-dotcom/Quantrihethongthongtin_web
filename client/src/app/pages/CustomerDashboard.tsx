@@ -1,9 +1,10 @@
 import { useApp } from '../context/AppContext';
 import { useNavigate, useSearchParams } from 'react-router';
-import { Package, User, Heart, MessageCircleHeart } from 'lucide-react';
+import { Package, User, Heart, MessageCircleHeart, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { formatVnd } from '../utils/currency';
+import { getCurrentLoyaltyTier, getNextLoyaltyTier, LOYALTY_TIERS } from '../utils/loyalty';
 
 export function CustomerDashboard() {
   const { user, orders, products, wishlistIds, updateProfile, setPassword } = useApp();
@@ -16,6 +17,10 @@ export function CustomerDashboard() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'delivered'>('all');
+
+  const loyaltyPoints = Math.max(0, Math.floor(Number(user?.loyaltyPoints ?? 0)));
+  const loyaltyCurrent = getCurrentLoyaltyTier(loyaltyPoints);
+  const loyaltyNext = getNextLoyaltyTier(loyaltyPoints);
 
   function normalizeSearchText(value: string) {
     return value
@@ -496,6 +501,41 @@ export function CustomerDashboard() {
                   <div className="bg-white border border-gray-200 rounded-2xl p-5">
                     <p className="text-sm text-gray-600 mb-3">Tổng quan tài khoản</p>
                     <div className="space-y-3">
+                      <div className="rounded-xl bg-gradient-to-br from-[#FFF0F5] to-[#FFE8EF] border border-[#FFC0CB]/50 px-3 py-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Sparkles className="w-4 h-4 text-[#C85070] shrink-0" />
+                          <p className="text-xs font-medium text-gray-700">Điểm thưởng</p>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 tabular-nums">{loyaltyPoints}</p>
+                        <p className="text-[11px] text-gray-500 mt-2 leading-snug">
+                          Cộng tự động sau mỗi đơn thành công (1 điểm / 1 đơn vị giá trị đơn, tối thiểu 1 điểm/đơn).
+                        </p>
+                        {loyaltyCurrent ? (
+                          <p className="text-xs text-gray-700 mt-2">
+                            Hạng hiện tại: <span className="font-semibold">{loyaltyCurrent.title}</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-600 mt-2">Chưa có hạng — mua thêm để mở ưu đãi.</p>
+                        )}
+                        {loyaltyNext ? (
+                          <p className="text-xs text-[#9A4D5F] mt-1.5">
+                            Còn <span className="font-semibold tabular-nums">{loyaltyNext.min - loyaltyPoints}</span> điểm
+                            để đạt <span className="font-semibold">{loyaltyNext.title}</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-emerald-700 mt-1.5">Bạn đã đạt mức hạng cao nhất trong chương trình hiện tại.</p>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2">
+                        <p className="text-[11px] font-medium text-gray-600 mb-1.5">Ngưỡng ưu đãi</p>
+                        <ul className="text-[11px] text-gray-600 space-y-1">
+                          {LOYALTY_TIERS.map((t) => (
+                            <li key={t.min}>
+                              <span className="tabular-nums font-medium">{t.min}+ điểm</span> — {t.title}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                       <div className="rounded-xl bg-[#FFF7F9] border border-[#FFE4EA] px-3 py-2">
                         <p className="text-xs text-gray-500">Đơn hàng</p>
                         <p className="font-semibold">{orders.length}</p>

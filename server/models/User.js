@@ -55,6 +55,8 @@ const userSchema = new mongoose.Schema(
     savedPaymentMethods: { type: [savedPaymentMethodSchema], default: [] },
     wishlistIds: { type: [Number], default: [] },
     savedCartItems: { type: [savedCartItemSchema], default: [] },
+    /** Điểm tích lũy (cộng tự động sau mỗi đơn hàng thành công) */
+    loyaltyPoints: { type: Number, default: 0, min: 0 },
   },
   {
     timestamps: true,
