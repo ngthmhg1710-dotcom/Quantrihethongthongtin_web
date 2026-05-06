@@ -2,7 +2,8 @@ const VND_PER_LEGACY_UNIT = 25_000;
 
 /** Đồng bộ với client/src/app/utils/currency.ts — đơn vị legacy như trong DB. */
 const SHIPPING_FREE_SUBTOTAL_MIN_LEGACY = 20;
-const SHIPPING_FEE_LEGACY = 5.99;
+/** Đồng bộ client — 0.8 × 25k ≈ 20k ₫ phí chuẩn. */
+const SHIPPING_FEE_LEGACY = 0.8;
 
 function formatVnd(legacyUnitAmount) {
   const vnd = Math.round(Number(legacyUnitAmount) * VND_PER_LEGACY_UNIT);
