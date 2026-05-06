@@ -90,7 +90,7 @@ export function Contact() {
           <div className="grid md:grid-cols-2 gap-12">
             <div>
               <img
-                src="/images/hero2.jpeg"
+                src="/images/hero2.png?v=20260506"
                 alt="Liên hệ"
                 className="rounded-2xl shadow-2xl w-full h-full object-cover"
               />

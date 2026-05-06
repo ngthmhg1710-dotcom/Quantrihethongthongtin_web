@@ -42,7 +42,7 @@ export function Homepage() {
             </div>
             <div className="relative">
               <img
-                src="/images/hero2.jpeg"
+                src="/images/hero2.png?v=20260506"
                 alt="Hero"
                 className="rounded-2xl shadow-2xl"
               />

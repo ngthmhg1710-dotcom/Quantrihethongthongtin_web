@@ -169,7 +169,7 @@ export function Login() {
                   : 'Đăng nhập để truy cập tài khoản và tiếp tục hành trình làm đẹp của bạn.'}
               </p>
               <img
-                src="/images/hero2.jpeg?v=20260505"
+                src="/images/hero2.png?v=20260506"
                 alt="Sản phẩm làm đẹp"
                 className="rounded-xl shadow-2xl"
               />
