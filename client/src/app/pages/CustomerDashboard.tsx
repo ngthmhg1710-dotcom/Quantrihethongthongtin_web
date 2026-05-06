@@ -508,7 +508,7 @@ export function CustomerDashboard() {
                         </div>
                         <p className="text-2xl font-bold text-gray-900 tabular-nums">{loyaltyPoints}</p>
                         <p className="text-[11px] text-gray-500 mt-2 leading-snug">
-                          Cộng tự động sau mỗi đơn thành công (1 điểm / 1 đơn vị giá trị đơn, tối thiểu 1 điểm/đơn).
+                          Sau mỗi đơn đặt thành công, điểm được cộng tự động theo tổng giá trị đơn (càng mua nhiều càng nhiều điểm). Mỗi đơn nhận tối thiểu 1 điểm.
                         </p>
                         {loyaltyCurrent ? (
                           <p className="text-xs text-gray-700 mt-2">
