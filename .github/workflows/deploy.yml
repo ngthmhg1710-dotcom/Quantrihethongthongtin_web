@@ -37,22 +37,18 @@ jobs:
             sudo docker stop glow-server glow-client 2>/dev/null || true
             sudo docker rm glow-server glow-client 2>/dev/null || true
 
-            pm2 delete ecommerce-api ecommerce-frontend 2>/dev/null || true
-
-            echo ">>> Build client (cài serve — phục vụ dist, tránh vite preview / npx trên PM2)"
+            echo ">>> Build client"
             cd client
-            npm ci || npm install
-            test -f node_modules/serve/build/main.js || npm install serve@14.2.4 --no-save
+            npm ci --no-audit --no-fund || npm install --no-audit --no-fund
             npm run build
 
             echo ">>> Install server deps"
             cd ../server
-            npm ci || npm install
+            npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
             cd "$APP_DIR"
-            sudo fuser -k 5173/tcp 2>/dev/null || true
-            sudo fuser -k 5000/tcp 2>/dev/null || true
-            pm2 start ecosystem.config.cjs
+            pm2 start ecosystem.config.cjs --update-env
+            pm2 reload ecosystem.config.cjs --update-env
             pm2 save || true
 
             echo ">>> Reload Nginx (nếu có)"
