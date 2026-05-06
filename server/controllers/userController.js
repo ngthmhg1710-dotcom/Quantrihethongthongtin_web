@@ -19,6 +19,17 @@ function normalizeSavedCartItems(value) {
   return Array.from(bucket.entries()).map(([productId, quantity]) => ({ productId, quantity }));
 }
 
+function addressIdentityKey(item) {
+  return [
+    String(item?.name || "").trim().toLowerCase(),
+    String(item?.address || "").trim().toLowerCase(),
+    String(item?.ward || "").trim().toLowerCase(),
+    String(item?.city || "").trim().toLowerCase(),
+    String(item?.district || item?.zipCode || "").trim().toLowerCase(),
+    String(item?.country || "").trim().toLowerCase(),
+  ].join("|");
+}
+
 function serializeUser(user) {
   return {
     id: user._id.toString(),
@@ -135,8 +146,22 @@ async function updateUserProfile(req, res) {
           isDefault: Boolean(item?.isDefault),
         };
       });
+      const dedupedAddresses = [];
+      const dedupeIndexByKey = new Map();
+      normalizedAddresses.forEach((item) => {
+        const key = addressIdentityKey(item);
+        const existingIndex = dedupeIndexByKey.get(key);
+        if (existingIndex == null) {
+          dedupeIndexByKey.set(key, dedupedAddresses.length);
+          dedupedAddresses.push(item);
+          return;
+        }
+        if (item.isDefault) {
+          dedupedAddresses[existingIndex] = { ...dedupedAddresses[existingIndex], isDefault: true };
+        }
+      });
 
-      const invalidAddress = normalizedAddresses.find(
+      const invalidAddress = dedupedAddresses.find(
         (item) => !item.name || !item.address || !item.city || !item.district || !item.country
       );
       if (invalidAddress) {
@@ -146,11 +171,11 @@ async function updateUserProfile(req, res) {
         });
       }
 
-      if (normalizedAddresses.length > 0) {
-        const hasDefault = normalizedAddresses.some((item) => item.isDefault);
-        if (!hasDefault) normalizedAddresses[0].isDefault = true;
+      if (dedupedAddresses.length > 0) {
+        const hasDefault = dedupedAddresses.some((item) => item.isDefault);
+        if (!hasDefault) dedupedAddresses[0].isDefault = true;
         let markedDefault = false;
-        user.shippingAddresses = normalizedAddresses.map((item) => {
+        user.shippingAddresses = dedupedAddresses.map((item) => {
           if (!markedDefault && item.isDefault) {
             markedDefault = true;
             return item;
