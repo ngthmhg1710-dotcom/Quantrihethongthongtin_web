@@ -508,7 +508,7 @@ export function CustomerDashboard() {
                         </div>
                         <p className="text-2xl font-bold text-gray-900 tabular-nums">{loyaltyPoints}</p>
                         <p className="text-[11px] text-gray-500 mt-2 leading-snug">
-                          Sau mỗi đơn đặt thành công, điểm được cộng tự động theo tổng giá trị đơn (càng mua nhiều càng nhiều điểm). Mỗi đơn nhận tối thiểu 1 điểm. Đủ điểm hạng Đồng/Bạc/Vàng sẽ được giảm giá tạm tính (và miễn ship hạng Vàng) ngay tại bước thanh toán.
+                          Mỗi đơn thành công: cộng điểm theo giá trị đơn (tối thiểu 1). Hạng Đồng / Bạc / Vàng: giảm tạm tính lúc thanh toán; Vàng được miễn phí giao.
                         </p>
                         {loyaltyCurrent ? (
                           <p className="text-xs text-gray-700 mt-2">
