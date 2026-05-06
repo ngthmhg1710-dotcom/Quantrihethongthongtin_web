@@ -23,6 +23,8 @@ jobs:
             if [ -z "$APP_DIR" ]; then APP_DIR="$HOME/Quantrihethongthongtin_web"; fi
             cd "$APP_DIR"
 
+            mkdir -p .deploy-cache
+
             git fetch origin main
             git reset --hard origin/main
             # Không xóa .env trên máy chủ (thường không commit)
@@ -39,12 +41,28 @@ jobs:
 
             echo ">>> Build client"
             cd client
-            npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+            CLIENT_LOCK_HASH="$(sha256sum package-lock.json | awk '{print $1}')"
+            CLIENT_PREV_HASH="$(cat ../.deploy-cache/client-lock.sha 2>/dev/null || true)"
+            if [ "$CLIENT_LOCK_HASH" != "$CLIENT_PREV_HASH" ] || [ ! -d node_modules ]; then
+              echo ">>> client deps changed -> npm ci"
+              npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+              echo "$CLIENT_LOCK_HASH" > ../.deploy-cache/client-lock.sha
+            else
+              echo ">>> client deps unchanged -> skip npm ci"
+            fi
             npm run build
 
             echo ">>> Install server deps"
             cd ../server
-            npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+            SERVER_LOCK_HASH="$(sha256sum package-lock.json | awk '{print $1}')"
+            SERVER_PREV_HASH="$(cat ../.deploy-cache/server-lock.sha 2>/dev/null || true)"
+            if [ "$SERVER_LOCK_HASH" != "$SERVER_PREV_HASH" ] || [ ! -d node_modules ]; then
+              echo ">>> server deps changed -> npm ci"
+              npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+              echo "$SERVER_LOCK_HASH" > ../.deploy-cache/server-lock.sha
+            else
+              echo ">>> server deps unchanged -> skip npm ci"
+            fi
 
             cd "$APP_DIR"
             pm2 start ecosystem.config.cjs --update-env
