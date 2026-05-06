@@ -510,7 +510,7 @@ export function EditProfile() {
                             });
                             setEditingAddressIndex((prev) => (prev > 0 ? prev - 1 : 0));
                           }}
-                          className="px-4 py-2 border rounded-full text-sm text-red-600 hover:bg-red-50"
+                          className="px-4 py-2 border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Xóa
                         </button>
