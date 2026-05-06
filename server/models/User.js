@@ -9,6 +9,8 @@ const shippingAddressSchema = new mongoose.Schema(
     district: { type: String, default: "", trim: true },
     zipCode: { type: String, default: "", trim: true },
     country: { type: String, required: true, trim: true },
+    /** Phường / xã (tách khỏi dòng địa chỉ chi tiết) */
+    ward: { type: String, default: "", trim: true },
     isDefault: { type: Boolean, default: false },
   },
   { _id: true }
@@ -50,6 +52,7 @@ const userSchema = new mongoose.Schema(
       district: { type: String, default: "", trim: true },
       zipCode: { type: String, default: "", trim: true },
       country: { type: String, default: "", trim: true },
+      ward: { type: String, default: "", trim: true },
     },
     shippingAddresses: { type: [shippingAddressSchema], default: [] },
     savedPaymentMethods: { type: [savedPaymentMethodSchema], default: [] },

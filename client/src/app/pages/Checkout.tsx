@@ -368,7 +368,49 @@ function districtForProfileSync(district?: string, zipCode?: string) {
   return String(district || zipCode || '').trim();
 }
 
-function isCompleteAddressRow(row: { name?: string; address?: string; city?: string; district?: string; country?: string }) {
+/** Địa chỉ cũ gộp phường trong một dòng — bóc tách theo danh mục nếu không có field `ward`. */
+function inferWardFromSavedAddressLine(country: string, cityRaw: string, districtRaw: string, addressLine: string) {
+  if (country.trim() !== 'Việt Nam') return '';
+  const city = canonicalVietnamCity(cityRaw.trim());
+  const district = districtRaw.trim().normalize('NFC');
+  if (!city || !district) return '';
+  const wards = generateWardOptionsByDistrict(city, district);
+  if (!wards.length) return '';
+  const line = addressLine.normalize('NFC').toLowerCase();
+  for (const w of [...wards].sort((a, b) => b.length - a.length)) {
+    const needle = w.normalize('NFC').toLowerCase();
+    if (line.includes(needle)) return w;
+  }
+  return '';
+}
+
+function resolveWardFromSaved(addr: {
+  ward?: string;
+  country?: string;
+  city?: string;
+  district?: string;
+  zipCode?: string;
+  address?: string;
+}) {
+  const explicit = String(addr.ward ?? '').trim();
+  if (explicit.length >= 2) return explicit;
+  const district = districtForProfileSync(addr.district, addr.zipCode);
+  return inferWardFromSavedAddressLine(
+    String(addr.country ?? ''),
+    String(addr.city ?? ''),
+    district,
+    String(addr.address ?? ''),
+  );
+}
+
+function isCompleteAddressRow(row: {
+  name?: string;
+  address?: string;
+  city?: string;
+  district?: string;
+  country?: string;
+  ward?: string;
+}) {
   return [row.name, row.address, row.city, row.district, row.country].every((v) => String(v ?? '').trim().length > 0);
 }
 
@@ -395,6 +437,7 @@ function sanitizeAddressForApi(row: {
   city?: unknown;
   district?: unknown;
   country?: unknown;
+  ward?: unknown;
   isDefault?: boolean;
 }) {
   return {
@@ -404,6 +447,7 @@ function sanitizeAddressForApi(row: {
     city: String(row.city ?? '').trim(),
     district: String(row.district ?? '').trim(),
     country: String(row.country ?? '').trim(),
+    ward: String(row.ward ?? '').trim(),
     isDefault: Boolean(row.isDefault),
   };
 }
@@ -510,12 +554,23 @@ export function Checkout() {
       ) {
         districtResolved = '';
       }
+      const rowForWard = chosenAddress ?? user.defaultShippingAddress;
+      const wardResolved = rowForWard
+        ? resolveWardFromSaved({
+            ward: rowForWard.ward,
+            country: resolvedCountry,
+            city: rowForWard.city,
+            district: rowForWard.district,
+            zipCode: rowForWard.zipCode,
+            address: rowForWard.address,
+          })
+        : '';
       return {
         name: chosenAddress?.name || user.defaultShippingAddress?.name || user.name || prev.name,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
         address: chosenAddress?.address || user.defaultShippingAddress?.address || prev.address,
-        ward: '',
+        ward: wardResolved || prev.ward,
         city: cityResolved,
         district: districtResolved,
         country: resolvedCountry,
@@ -535,7 +590,9 @@ export function Checkout() {
       if (c === prev.city) return prev;
       const nextDistricts = CITY_DISTRICTS[c] || [];
       const keepDistrict = nextDistricts.includes(prev.district) ? prev.district : '';
-      return { ...prev, city: c, district: keepDistrict, ward: '' };
+      /** Chuẩn hóa tên TP không đổi quận → giữ phường đã load từ sổ địa chỉ (tránh bắt chọn lại). */
+      const keepWard = keepDistrict === prev.district ? prev.ward : '';
+      return { ...prev, city: c, district: keepDistrict, ward: keepWard };
     });
   }, [shippingInfo.country, shippingInfo.city]);
 
@@ -589,11 +646,19 @@ export function Checkout() {
         isPostalCodeOnlyDistrict(rawDistrict)
           ? ''
           : rawDistrict;
+      const wardFromSaved = resolveWardFromSaved({
+        ward: address.ward,
+        country: address.country,
+        city: address.city,
+        district: address.district,
+        zipCode: address.zipCode,
+        address: address.address,
+      });
       return {
         ...prev,
         name: address.name,
         address: address.address,
-        ward: '',
+        ward: wardFromSaved,
         city: cityVo,
         district: districtOk,
         country: address.country,
@@ -613,6 +678,7 @@ export function Checkout() {
         city: String(rawSel.city ?? '').trim(),
         district: districtForProfileSync(rawSel.district, rawSel.zipCode),
         country: String(rawSel.country ?? '').trim(),
+        ward: resolveWardFromSaved(rawSel),
       };
       if (!isCompleteAddressRow(syncedSel)) {
         toast.error('Địa chỉ này chưa đủ thông tin để đặt làm mặc định.');
@@ -625,6 +691,7 @@ export function Checkout() {
         city: String(addr.city ?? '').trim(),
         district: districtForProfileSync(addr.district, addr.zipCode),
         country: String(addr.country ?? '').trim(),
+        ward: resolveWardFromSaved(addr),
         isDefault: false,
       }));
       const nextBook = mappedBook.filter(isCompleteAddressRow).map((row) => ({
@@ -634,7 +701,8 @@ export function Checkout() {
           row.address === syncedSel.address &&
           row.city === syncedSel.city &&
           row.district === syncedSel.district &&
-          row.country === syncedSel.country,
+          row.country === syncedSel.country &&
+          row.ward === syncedSel.ward,
       }));
       if (!nextBook.some((r) => r.isDefault)) {
         toast.error('Không thể đặt mặc định: địa chỉ không nằm trong danh sách hợp lệ đã lưu.');
@@ -849,13 +917,15 @@ export function Checkout() {
           city: String(address.city ?? '').trim(),
           district: districtForProfileSync(address.district, address.zipCode),
           country: String(address.country ?? '').trim(),
+          ward: resolveWardFromSaved(address),
           isDefault: Boolean(address.isDefault),
         }));
         const skippedIncomplete = mappedBook.length - mappedBook.filter(isCompleteAddressRow).length;
         const currentBook = mappedBook.filter(isCompleteAddressRow);
         const normalizedCurrent = {
           name: ship.name.trim(),
-          address: joinAddressParts([ship.address, ship.ward]),
+          address: ship.address.trim(),
+          ward: ship.ward.trim(),
           city:
             ship.country.trim() === 'Việt Nam'
               ? canonicalVietnamCity(ship.city.trim())
@@ -867,6 +937,7 @@ export function Checkout() {
           (item) =>
             item.name === normalizedCurrent.name &&
             item.address === normalizedCurrent.address &&
+            item.ward === normalizedCurrent.ward &&
             item.city === normalizedCurrent.city &&
             item.district === normalizedCurrent.district &&
             item.country === normalizedCurrent.country

@@ -20,6 +20,8 @@ interface User {
     /** @deprecated legacy field from older accounts; prefer district */
     zipCode?: string;
     country: string;
+    /** Phường / xã (lưu riêng khỏi dòng địa chỉ chi tiết) */
+    ward?: string;
     isDefault?: boolean;
   }>;
   savedPaymentMethods?: Array<{
@@ -38,6 +40,7 @@ interface User {
     district: string;
     zipCode?: string;
     country: string;
+    ward?: string;
   };
   wishlistIds?: number[];
   savedCartItems?: Array<{
@@ -75,6 +78,7 @@ interface AppContextType {
       city: string;
       district: string;
       country: string;
+      ward?: string;
     };
     shippingAddresses?: Array<{
       label: string;
@@ -83,6 +87,7 @@ interface AppContextType {
       city: string;
       district: string;
       country: string;
+      ward?: string;
       isDefault?: boolean;
     }>;
     savedPaymentMethods?: Array<{
@@ -751,6 +756,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       city: string;
       district: string;
       country: string;
+      ward?: string;
     };
     shippingAddresses?: Array<{
       label: string;
@@ -759,6 +765,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       city: string;
       district: string;
       country: string;
+      ward?: string;
       isDefault?: boolean;
     }>;
     savedPaymentMethods?: Array<{

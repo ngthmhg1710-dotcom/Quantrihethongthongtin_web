@@ -35,6 +35,7 @@ function sanitizeUser(user) {
         district: address.district || "",
         zipCode: address.zipCode || "",
         country: address.country || "",
+        ward: address.ward || "",
         isDefault: Boolean(address.isDefault),
       }))
     : [];
@@ -64,6 +65,7 @@ function sanitizeUser(user) {
       district: defaultAddressFromBook?.district || user.defaultShippingAddress?.district || "",
       zipCode: defaultAddressFromBook?.zipCode || user.defaultShippingAddress?.zipCode || "",
       country: defaultAddressFromBook?.country || user.defaultShippingAddress?.country || "",
+      ward: defaultAddressFromBook?.ward || user.defaultShippingAddress?.ward || "",
     },
     shippingAddresses,
     savedPaymentMethods,

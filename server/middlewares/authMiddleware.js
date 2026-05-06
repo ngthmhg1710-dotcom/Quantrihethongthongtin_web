@@ -32,6 +32,7 @@ async function protect(req, res, next) {
         district: user.defaultShippingAddress?.district || "",
         zipCode: user.defaultShippingAddress?.zipCode || "",
         country: user.defaultShippingAddress?.country || "",
+        ward: user.defaultShippingAddress?.ward || "",
       },
       shippingAddresses: Array.isArray(user.shippingAddresses)
         ? user.shippingAddresses.map((address) => ({
@@ -43,6 +44,7 @@ async function protect(req, res, next) {
             district: address.district || "",
             zipCode: address.zipCode || "",
             country: address.country || "",
+            ward: address.ward || "",
             isDefault: Boolean(address.isDefault),
           }))
         : [],

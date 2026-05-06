@@ -34,6 +34,7 @@ function serializeUser(user) {
       district: user.defaultShippingAddress?.district || "",
       zipCode: user.defaultShippingAddress?.zipCode || "",
       country: user.defaultShippingAddress?.country || "",
+      ward: user.defaultShippingAddress?.ward || "",
     },
     shippingAddresses: Array.isArray(user.shippingAddresses)
       ? user.shippingAddresses.map((item) => ({
@@ -45,6 +46,7 @@ function serializeUser(user) {
           district: item.district || "",
           zipCode: item.zipCode || "",
           country: item.country || "",
+          ward: item.ward || "",
           isDefault: Boolean(item.isDefault),
         }))
       : [],
@@ -104,6 +106,7 @@ async function updateUserProfile(req, res) {
         district: String(defaultShippingAddress.district || "").trim(),
         zipCode: "",
         country: String(defaultShippingAddress.country || "").trim(),
+        ward: String(defaultShippingAddress.ward || "").trim(),
       };
 
       const addressParts = [nextAddress.name, nextAddress.address, nextAddress.city, nextAddress.district, nextAddress.country];
@@ -128,6 +131,7 @@ async function updateUserProfile(req, res) {
           district,
           zipCode: "",
           country: String(item?.country || "").trim(),
+          ward: String(item?.ward || "").trim(),
           isDefault: Boolean(item?.isDefault),
         };
       });
@@ -162,6 +166,7 @@ async function updateUserProfile(req, res) {
             district: chosenDefault.district,
             zipCode: "",
             country: chosenDefault.country,
+            ward: chosenDefault.ward || "",
           };
         }
       } else {

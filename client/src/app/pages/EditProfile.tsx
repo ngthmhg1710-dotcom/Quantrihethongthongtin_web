@@ -8,6 +8,7 @@ type AddressDraft = {
   label: string;
   name: string;
   address: string;
+  ward: string;
   city: string;
   district: string;
   country: string;
@@ -24,6 +25,7 @@ export function EditProfile() {
         label: a.label || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: a.name || '',
         address: a.address || '',
+        ward: String(a.ward ?? '').trim(),
         city: a.city || '',
         district: a.district || a.zipCode || '',
         country: a.country || 'Việt Nam',
@@ -42,6 +44,7 @@ export function EditProfile() {
           label: 'Nhà riêng',
           name: user.defaultShippingAddress.name || user.name || '',
           address: user.defaultShippingAddress.address || '',
+          ward: String(user.defaultShippingAddress.ward ?? '').trim(),
           city: user.defaultShippingAddress.city || '',
           district: user.defaultShippingAddress.district || user.defaultShippingAddress.zipCode || '',
           country: user.defaultShippingAddress.country || 'Việt Nam',
@@ -89,6 +92,7 @@ export function EditProfile() {
         label: item.label.trim() || (idx === 0 ? 'Nhà riêng' : `Địa chỉ ${idx + 1}`),
         name: item.name.trim(),
         address: item.address.trim(),
+        ward: item.ward.trim(),
         city: item.city.trim(),
         district: item.district.trim(),
         country: item.country.trim() || 'Việt Nam',
@@ -172,6 +176,7 @@ export function EditProfile() {
                           label: `Địa chỉ ${prev.length + 1}`,
                           name: user.name || '',
                           address: '',
+                          ward: '',
                           city: '',
                           district: '',
                           country: 'Việt Nam',
@@ -268,6 +273,19 @@ export function EditProfile() {
                             )
                           }
                           className="w-full px-3 py-2 border rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Phường / xã</label>
+                        <input
+                          value={addressBookDraft[editingAddressIndex].ward}
+                          onChange={(e) =>
+                            setAddressBookDraft((prev) =>
+                              prev.map((a, i) => (i === editingAddressIndex ? { ...a, ward: e.target.value } : a))
+                            )
+                          }
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="VD: Phường Bến Nghé"
                         />
                       </div>
                       <div className="grid md:grid-cols-3 gap-3">
